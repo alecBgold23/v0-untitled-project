@@ -35,17 +35,16 @@ export default function Navbar() {
         <div className="container mx-auto px-4">
           <nav className="flex justify-between items-center h-12">
             {/* Logo - static link */}
-            <a href="/" className="flex items-center gap-2">
-              <div className="relative w-8 h-8">
+            <a href="/" className="flex items-center">
+              <div className="relative w-10 h-10">
                 <Image
                   src="/images/BluBerry_Logo_Transparent.png"
                   alt="BluBerry Logo"
-                  width={32}
-                  height={32}
+                  width={40}
+                  height={40}
                   className="object-contain"
                 />
               </div>
-              <span className="text-sm font-medium sparkle-text">BluBerry</span>
             </a>
 
             {/* Desktop navigation - static links */}
