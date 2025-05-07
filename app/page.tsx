@@ -71,16 +71,17 @@ export default function Home() {
 
           {/* Separate buttons section */}
           <ContentAnimation delay={0.1}>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/how-it-works"
-                className="bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-5 py-2 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all"
+                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-5 py-2 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all w-[180px] sm:w-auto text-center"
               >
-                Learn How It Works
+                <span className="block sm:hidden">How It Works</span>
+                <span className="hidden sm:block">Learn How It Works</span>
               </Link>
               <Link
                 href="/sell-item"
-                className="border-2 border-[#6a5acd] text-[#6a5acd] px-5 py-2 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all"
+                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-5 py-2 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all w-[180px] sm:w-auto text-center"
               >
                 Sell Your Item
               </Link>
@@ -365,13 +366,15 @@ export default function Home() {
               <p className="text-gray-500 mb-8 max-w-xl mx-auto text-sm">
                 Start the simple process today and turn your unused items into cash with our professional service.
               </p>
-              <Link
-                href="/sell-item"
-                className="inline-flex items-center bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg hover:translate-y-[-2px] transition-all duration-300 group"
-              >
-                Sell Your Item Now
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
+              <div className="flex justify-center">
+                <Link
+                  href="/sell-item"
+                  className="inline-flex items-center bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg hover:translate-y-[-2px] transition-all duration-300 group"
+                >
+                  Sell Your Item Now
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+              </div>
             </div>
           </ContentAnimation>
         </div>
