@@ -1,8 +1,7 @@
 "use client"
 
-import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
-import type { ReactNode } from "react"
+import { useState, useEffect, useRef, type ReactNode } from "react"
 
 interface PageTransitionProps {
   children: ReactNode
@@ -10,31 +9,40 @@ interface PageTransitionProps {
 
 export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname()
+  const [displayChildren, setDisplayChildren] = useState(children)
+  const [transitioning, setTransitioning] = useState(false)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    // If the pathname changes, start transition
+    if (pathname) {
+      setTransitioning(true)
+
+      // After a short delay, update the displayed children
+      timeoutRef.current = setTimeout(() => {
+        setDisplayChildren(children)
+
+        // After updating children, end the transition with a slight delay
+        timeoutRef.current = setTimeout(() => {
+          setTransitioning(false)
+        }, 50)
+      }, 300)
+    }
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [pathname, children])
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={pathname}
-        initial={{
-          opacity: 0,
-          y: 10, // Start slightly below final position
-        }}
-        animate={{
-          opacity: 1,
-          y: 0, // Move up to final position
-        }}
-        exit={{
-          opacity: 0,
-          y: -10, // Exit by moving slightly upward
-        }}
-        transition={{
-          duration: 0.35,
-          ease: [0.22, 1, 0.36, 1], // Custom cubic-bezier curve for Apple-like feel
-        }}
-        className="w-full"
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <div
+      className={`transition-opacity duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${
+        transitioning ? "opacity-0" : "opacity-100"
+      }`}
+    >
+      {displayChildren}
+    </div>
   )
 }

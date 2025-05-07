@@ -258,10 +258,9 @@ body {
 
 /* Apple-style page transitions */
 .apple-page-transition {
-  will-change: opacity, transform;
+  will-change: opacity;
+  transform: translateZ(0);
   backface-visibility: hidden;
-  transform-style: preserve-3d;
-  perspective: 1000px;
 }
 
 @layer components {
@@ -363,6 +362,6 @@ body {
 
 /* Ensure the content animation doesn't cause layout shifts */
 .content-animation-wrapper {
-  will-change: opacity, transform;
+  will-change: opacity;
   backface-visibility: hidden;
 }
