@@ -12,16 +12,24 @@ export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname()
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={pathname}
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
+        initial={{
+          opacity: 0,
+          y: 10, // Start slightly below final position
+        }}
+        animate={{
+          opacity: 1,
+          y: 0, // Move up to final position
+        }}
+        exit={{
+          opacity: 0,
+          y: -10, // Exit by moving slightly upward
+        }}
         transition={{
-          type: "tween",
-          ease: "easeInOut",
-          duration: 0.3,
+          duration: 0.35,
+          ease: [0.22, 1, 0.36, 1], // Custom cubic-bezier curve for Apple-like feel
         }}
         className="w-full"
       >

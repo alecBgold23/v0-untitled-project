@@ -46,7 +46,7 @@ export default function RootLayout({
           <Navbar />
 
           {/* Main content area with page transitions */}
-          <main className="flex-grow relative">
+          <main className="flex-grow relative apple-page-transition">
             <PageTransition>{children}</PageTransition>
           </main>
 
