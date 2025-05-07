@@ -91,7 +91,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section - REDESIGNED */}
-      <section className="py-32 bg-gradient-to-b from-gray-50 to-white relative shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.05),0_15px_15px_-15px_rgba(0,0,0,0.05)]">
+      <section className="py-32 bg-gradient-to-b from-gray-100 to-white relative shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.05),0_15px_15px_-15px_rgba(0,0,0,0.05)]">
         <div className="container mx-auto px-4 max-w-6xl">
           <ContentAnimation>
             <h2 className="text-3xl md:text-4xl font-light mb-16 text-center tracking-wide">
@@ -226,7 +226,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section - REDESIGNED */}
-      <section className="py-32 bg-gradient-to-b from-gray-50 to-white relative shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.05),0_15px_15px_-15px_rgba(0,0,0,0.05)]">
+      <section className="py-32 bg-gradient-to-b from-gray-100 to-white relative shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.05),0_15px_15px_-15px_rgba(0,0,0,0.05)]">
         <div className="container mx-auto px-4 max-w-6xl">
           <ContentAnimation>
             <h2 className="text-3xl md:text-4xl font-light mb-20 text-center tracking-wide">
@@ -356,7 +356,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section - REDESIGNED */}
-      <section className="py-32 bg-gradient-to-b from-gray-50 to-white relative shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.05)]">
+      <section className="py-32 bg-gradient-to-b from-gray-100 to-white relative shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.05)]">
         <div className="container mx-auto px-4 max-w-4xl">
           <ContentAnimation>
             <div className="bg-white p-12 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">

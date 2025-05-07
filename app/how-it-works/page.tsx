@@ -27,7 +27,12 @@ export default function HowItWorksPage() {
               <div className="flex flex-col md:flex-row items-center gap-8">
                 <div className="md:w-1/2">
                   <div className="relative w-full aspect-square rounded-2xl overflow-hidden">
-                    <Image src="/placeholder.svg?key=exrom" alt="Submit Your Item" fill className="object-cover" />
+                    <Image
+                      src="/images/submit-item-illustration.png"
+                      alt="Submit Your Item"
+                      fill
+                      className="object-contain bg-[#e6f0fa]"
+                    />
                   </div>
                 </div>
                 <div className="md:w-1/2 text-center md:text-left">
