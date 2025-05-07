@@ -1,0 +1,383 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 96.1%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96.1%;
+  --muted-foreground: 0 0% 45.1%;
+  --accent: 0 0% 96.1%;
+  --accent-foreground: 0 0% 9%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 89.8%;
+  --input: 0 0% 89.8%;
+  --ring: 221.2 83.2% 53.3%;
+  --radius: 0.5rem;
+
+  /* BluBerry colors */
+  --bluberry-blue: 221.2 83.2% 53.3%;
+  --bluberry-purple: 262 51% 47%;
+}
+
+.dark {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 0 0% 14.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 14.9%;
+  --muted-foreground: 0 0% 63.9%;
+  --accent: 0 0% 14.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 14.9%;
+  --input: 0 0% 14.9%;
+  --ring: 224.3 76.3% 48%;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-regular-webfont.woff2")
+    format("woff2");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-medium-webfont.woff2")
+    format("woff2");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-semibold-webfont.woff2")
+    format("woff2");
+  font-weight: 600;
+  font-style: normal;
+}
+
+body {
+  @apply bg-background text-foreground;
+  font-family: var(--font-poppins), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.sf-pro-display {
+  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.text-3d {
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.05), 2px 2px 0 rgba(0, 0, 0, 0.03);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+  position: relative;
+  display: inline-block;
+  padding: 0 4px;
+}
+
+.text-3d:hover {
+  transform: translateY(-2px);
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.08), 2px 2px 0 rgba(0, 0, 0, 0.05), 3px 3px 0 rgba(0, 0, 0, 0.03);
+}
+
+/* BluBerry gradient text styles */
+.bluberry-gradient-text {
+  background-image: linear-gradient(to right, #0066ff, #6a5acd, #8c52ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 500;
+  /* Add padding to prevent descenders from being cut off */
+  padding-bottom: 0.1em;
+  /* Increase line height to give more space for descenders */
+  line-height: 1.3;
+  /* Change from inline-block to block for better centering */
+  display: block;
+  /* Center the text */
+  text-align: center;
+}
+
+.page-header {
+  font-size: 2.25rem;
+  margin-bottom: 1rem;
+  /* Ensure adequate line height for descenders */
+  line-height: 1.3;
+  /* Add padding to prevent descenders from being cut off */
+  padding-bottom: 0.1em;
+  /* Center the text */
+  text-align: center;
+  /* Default color for light backgrounds */
+  color: #000;
+}
+
+/* Special gradient only for BluBerry and Sell Your Item headers */
+.gradient-header {
+  background-image: linear-gradient(to right, #0066ff, #6a5acd, #8c52ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* White text for dark backgrounds */
+.white-header {
+  color: white;
+}
+
+@media (min-width: 768px) {
+  .page-header {
+    font-size: 3rem;
+    /* Maintain proper line height at larger sizes */
+    line-height: 1.3;
+  }
+}
+
+.section-header {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  /* Ensure adequate line height for descenders */
+  line-height: 1.3;
+  /* Add padding to prevent descenders from being cut off */
+  padding-bottom: 0.1em;
+  /* Center the text */
+  text-align: center;
+  /* Default color for light backgrounds */
+  color: #000;
+}
+
+/* White text for dark backgrounds */
+.white-section-header {
+  color: white;
+}
+
+@media (min-width: 768px) {
+  .section-header {
+    font-size: 1.875rem;
+    /* Maintain proper line height at larger sizes */
+    line-height: 1.3;
+  }
+}
+
+/* Add these new keyframes and classes for the sparkling effect after the existing styles */
+
+@keyframes sparkle {
+  0%,
+  100% {
+    background-position: 0% 50%;
+    opacity: 1;
+  }
+  25% {
+    background-position: 100% 50%;
+    opacity: 0.8;
+  }
+  50% {
+    background-position: 100% 100%;
+    opacity: 1;
+  }
+  75% {
+    background-position: 0% 100%;
+    opacity: 0.9;
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1) contrast(1);
+  }
+  25% {
+    opacity: 0.8;
+    filter: brightness(1.2) contrast(1.1);
+  }
+  50% {
+    opacity: 0.9;
+    filter: brightness(1.1) contrast(1);
+  }
+  75% {
+    opacity: 0.7;
+    filter: brightness(1.3) contrast(1.05);
+  }
+}
+
+.sparkle-text {
+  position: relative;
+  background-image: linear-gradient(90deg, #0066ff, #6a5acd, #8c52ff, #0066ff, #6a5acd, #8c52ff);
+  background-size: 400% 100%;
+  animation: sparkle 8s ease-in-out infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sparkle-text::before,
+.sparkle-text::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0) 45%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0) 55%
+  );
+  background-size: 200% 200%;
+  mix-blend-mode: overlay;
+  animation: twinkle 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.sparkle-text::after {
+  animation-delay: -2s;
+  background-size: 300% 300%;
+  filter: blur(1px);
+}
+
+/* Page transition styles */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 100ms, transform 100ms;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 100ms, transform 100ms;
+}
+
+@layer components {
+  .apple-button {
+    @apply rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 transform;
+  }
+
+  .apple-button-primary {
+    background-color: #0071e3;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0, 113, 227, 0.2);
+    transition: all 0.3s ease;
+  }
+
+  .apple-button-primary:hover {
+    background-color: white;
+    color: #0071e3;
+    border: 1px solid #0071e3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 113, 227, 0.3);
+  }
+
+  .apple-button-secondary {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #0071e3;
+    border: 1px solid #0071e3;
+    box-shadow: 0 2px 5px rgba(0, 113, 227, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .apple-button-secondary:hover {
+    background-color: #0071e3;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 113, 227, 0.15);
+  }
+
+  .gradient-button {
+    @apply transition-all duration-300 transform;
+    box-shadow: 0 2px 5px rgba(0, 102, 255, 0.2);
+  }
+
+  .gradient-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 102, 255, 0.3);
+    filter: brightness(1.05);
+  }
+
+  .gradient-button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0, 102, 255, 0.2);
+  }
+
+  .outline-button {
+    @apply transition-all duration-300;
+  }
+
+  .outline-button:hover {
+    background-color: #0066ff;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 102, 255, 0.1);
+  }
+
+  .apple-nav {
+    @apply backdrop-blur-md bg-white bg-opacity-90 border-b border-gray-200 border-opacity-50;
+  }
+
+  .apple-footer {
+    @apply py-4 text-xs text-gray-500 border-t border-gray-200;
+  }
+
+  .apple-section {
+    @apply py-16 md:py-24 flex flex-col items-center justify-center text-center;
+  }
+
+  .apple-heading {
+    @apply text-4xl md:text-5xl font-semibold tracking-tight;
+  }
+
+  .apple-subheading {
+    @apply text-xl md:text-2xl font-normal text-gray-600 mt-2;
+  }
+}
+
+/* Add these styles to ensure the navbar stays fixed during transitions */
+
+/* Ensure content transitions properly beneath the fixed navbar */
+.page-content {
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure content transitions properly beneath the fixed navbar */
+.page-content-wrapper {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Ensure the content animation doesn't cause layout shifts */
+.content-animation-wrapper {
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+}
