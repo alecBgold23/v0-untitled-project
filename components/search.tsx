@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { SearchIcon, X } from "lucide-react"
+import { useAppNavigation } from "@/lib/navigation"
 
 // Define search routes and their keywords
 const searchRoutes = [
@@ -53,9 +53,9 @@ const searchRoutes = [
 export default function SearchModal({ isOpen, onClose }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState([])
-  const router = useRouter()
   const inputRef = useRef(null)
   const modalRef = useRef(null)
+  const { navigateTo } = useAppNavigation()
 
   // Focus input when modal opens
   useEffect(() => {
@@ -105,12 +105,13 @@ export default function SearchModal({ isOpen, onClose }) {
     setSearchResults(results)
   }
 
-  // Handle result click - use router.push for consistent transitions
+  // Handle result click - use consistent navigation
   const handleResultClick = (path) => {
-    router.push(path)
-    onClose()
-    setSearchQuery("")
-    setSearchResults([])
+    navigateTo(path, () => {
+      onClose()
+      setSearchQuery("")
+      setSearchResults([])
+    })
   }
 
   // Handle key press

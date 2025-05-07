@@ -2,15 +2,21 @@
 
 import type React from "react"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
+import { useAppNavigation } from "@/lib/navigation"
 
 export default function Footer() {
-  const router = useRouter()
+  const pathname = usePathname()
+  const { navigateTo } = useAppNavigation()
 
   // Handle navigation for consistent transitions
   const handleNavigation = (href: string, e: React.MouseEvent) => {
     e.preventDefault()
-    router.push(href)
+
+    // Only navigate if we're going to a different page
+    if (href !== pathname) {
+      navigateTo(href)
+    }
   }
 
   return (

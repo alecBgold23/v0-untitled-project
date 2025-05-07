@@ -178,89 +178,15 @@ body {
   }
 }
 
-/* Add these new keyframes and classes for the sparkling effect after the existing styles */
-
-@keyframes sparkle {
-  0%,
-  100% {
-    background-position: 0% 50%;
-    opacity: 1;
-  }
-  25% {
-    background-position: 100% 50%;
-    opacity: 0.8;
-  }
-  50% {
-    background-position: 100% 100%;
-    opacity: 1;
-  }
-  75% {
-    background-position: 0% 100%;
-    opacity: 0.9;
-  }
-}
-
-@keyframes twinkle {
-  0%,
-  100% {
-    opacity: 1;
-    filter: brightness(1) contrast(1);
-  }
-  25% {
-    opacity: 0.8;
-    filter: brightness(1.2) contrast(1.1);
-  }
-  50% {
-    opacity: 0.9;
-    filter: brightness(1.1) contrast(1);
-  }
-  75% {
-    opacity: 0.7;
-    filter: brightness(1.3) contrast(1.05);
-  }
-}
-
-.sparkle-text {
-  position: relative;
-  background-image: linear-gradient(90deg, #0066ff, #6a5acd, #8c52ff, #0066ff, #6a5acd, #8c52ff);
-  background-size: 400% 100%;
-  animation: sparkle 8s ease-in-out infinite;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.sparkle-text::before,
-.sparkle-text::after {
-  content: "";
-  position: absolute;
+/* Blue line transition */
+.blue-line-indicator {
+  position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0) 45%,
-    rgba(255, 255, 255, 0.5) 50%,
-    rgba(255, 255, 255, 0) 55%
-  );
-  background-size: 200% 200%;
-  mix-blend-mode: overlay;
-  animation: twinkle 4s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.sparkle-text::after {
-  animation-delay: -2s;
-  background-size: 300% 300%;
-  filter: blur(1px);
-}
-
-/* Apple-style page transitions */
-.apple-page-transition {
-  will-change: opacity;
-  transform: translateZ(0);
-  backface-visibility: hidden;
+  width: 100%;
+  height: 1px;
+  background-color: #3b82f6;
+  z-index: 9999;
 }
 
 @layer components {
@@ -344,24 +270,4 @@ body {
   .apple-subheading {
     @apply text-xl md:text-2xl font-normal text-gray-600 mt-2;
   }
-}
-
-/* Add these styles to ensure the navbar stays fixed during transitions */
-
-/* Ensure content transitions properly beneath the fixed navbar */
-.page-content {
-  position: relative;
-  z-index: 10;
-}
-
-/* Ensure content transitions properly beneath the fixed navbar */
-.page-content-wrapper {
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-/* Ensure the content animation doesn't cause layout shifts */
-.content-animation-wrapper {
-  will-change: opacity;
-  backface-visibility: hidden;
 }

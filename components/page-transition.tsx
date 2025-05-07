@@ -9,40 +9,35 @@ interface PageTransitionProps {
 
 export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname()
-  const [displayChildren, setDisplayChildren] = useState(children)
-  const [transitioning, setTransitioning] = useState(false)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [showBlueLine, setShowBlueLine] = useState(false)
+  const previousPathRef = useRef(pathname)
 
   useEffect(() => {
-    // If the pathname changes, start transition
-    if (pathname) {
-      setTransitioning(true)
+    // Only trigger blue line when pathname changes
+    if (pathname !== previousPathRef.current) {
+      // Show blue line
+      setShowBlueLine(true)
 
-      // After a short delay, update the displayed children
-      timeoutRef.current = setTimeout(() => {
-        setDisplayChildren(children)
+      // Hide blue line after 100ms
+      const timer = setTimeout(() => {
+        setShowBlueLine(false)
+      }, 100)
 
-        // After updating children, end the transition with a slight delay
-        timeoutRef.current = setTimeout(() => {
-          setTransitioning(false)
-        }, 50)
-      }, 300)
+      previousPathRef.current = pathname
+      return () => clearTimeout(timer)
     }
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-    }
-  }, [pathname, children])
+  }, [pathname])
 
   return (
-    <div
-      className={`transition-opacity duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${
-        transitioning ? "opacity-0" : "opacity-100"
-      }`}
-    >
-      {displayChildren}
-    </div>
+    <>
+      {/* Blue line indicator */}
+      {showBlueLine && (
+        <div className="fixed top-0 left-0 w-full h-1 bg-blue-500 z-[9999]" style={{ transition: "none" }} />
+      )}
+      {/* Page content with no transitions */}
+      <div className="page-content" style={{ transition: "none" }}>
+        {children}
+      </div>
+    </>
   )
 }

@@ -5,6 +5,10 @@ import { ThemeProvider } from "@/components/theme-provider"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import PageTransition from "@/components/page-transition"
+import { validateEnv } from "@/lib/env"
+
+// Validate environment variables during build/startup
+validateEnv()
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -42,15 +46,15 @@ export default function RootLayout({
         className={`${inter.className} ${poppins.variable} ${roboto.variable} bg-gradient-to-b from-white to-[#f0f7ff] flex flex-col min-h-screen`}
       >
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          {/* Navbar is completely outside the transition area */}
+          {/* Navbar is fixed and outside the transition area */}
           <Navbar />
 
-          {/* Main content area with page transitions */}
-          <main className="flex-grow relative apple-page-transition">
+          {/* Main content area with improved page transitions */}
+          <main className="flex-grow relative overflow-hidden">
             <PageTransition>{children}</PageTransition>
           </main>
 
-          {/* Footer is now outside the transition area and will remain static */}
+          {/* Footer is outside the transition area */}
           <Footer />
         </ThemeProvider>
       </body>

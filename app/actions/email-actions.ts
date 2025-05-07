@@ -6,14 +6,14 @@ import nodemailer from "nodemailer"
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "alecgold808@gmail.com", // Your Gmail address
+    user: process.env.CONTACT_EMAIL || "alecgold808@gmail.com", // Use environment variable with fallback
     pass: process.env.EMAIL_PASSWORD, // Using the environment variable
   },
   secure: true,
 })
 
 // The recipient email address (your email)
-const RECIPIENT_EMAIL = "alecgold808@gmail.com"
+const RECIPIENT_EMAIL = process.env.CONTACT_EMAIL || "alecgold808@gmail.com"
 
 export async function sendContactFormEmail(formData: FormData) {
   try {
@@ -29,7 +29,7 @@ export async function sendContactFormEmail(formData: FormData) {
 
     // Email content
     const mailOptions = {
-      from: `"BluBerry Contact Form" <alecgold808@gmail.com>`,
+      from: `"BluBerry Contact Form" <${process.env.CONTACT_EMAIL || "alecgold808@gmail.com"}>`,
       to: RECIPIENT_EMAIL,
       subject: `New Contact Form Submission: ${inquiryType}`,
       html: `
@@ -89,7 +89,7 @@ export async function sendItemSubmissionEmail(formData: FormData) {
 
     // Email content
     const mailOptions = {
-      from: `"BluBerry Item Submission" <alecgold808@gmail.com>`,
+      from: `"BluBerry Item Submission" <${process.env.CONTACT_EMAIL || "alecgold808@gmail.com"}>`,
       to: RECIPIENT_EMAIL,
       subject: `New Item Submission: ${itemName}`,
       html: `

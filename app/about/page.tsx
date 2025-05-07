@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import ContentAnimation from "@/components/content-animation"
+import AnimatedSection from "@/components/animated-section"
 
 export default function AboutPage() {
   return (
@@ -8,26 +8,26 @@ export default function AboutPage() {
       {/* Hero Section */}
       <section className="apple-section bg-gradient-to-b from-white to-gray-50">
         <div className="container mx-auto px-4">
-          <ContentAnimation>
+          <AnimatedSection>
             <h1 className="page-header">About BluBerry</h1>
-          </ContentAnimation>
-          <ContentAnimation delay={0.1}>
+          </AnimatedSection>
+          <AnimatedSection delay={0.1}>
             <p className="apple-subheading mb-8">
               Our mission is to make selling your unused items simple and efficient.
             </p>
-          </ContentAnimation>
-          <ContentAnimation delay={0.2}>
+          </AnimatedSection>
+          <AnimatedSection delay={0.2}>
             <div className="relative w-full max-w-3xl mx-auto aspect-[16/9] rounded-2xl overflow-hidden">
               <Image src="/placeholder.svg?key=fa01e" alt="BluBerry Team" fill className="object-cover" priority />
             </div>
-          </ContentAnimation>
+          </AnimatedSection>
         </div>
       </section>
 
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="space-y-12 text-center">
-            <ContentAnimation>
+            <AnimatedSection>
               <div>
                 <h2 className="section-header mb-4">Our Mission</h2>
                 <div className="relative w-full max-w-md mx-auto aspect-[16/9] rounded-xl overflow-hidden mb-6">
@@ -43,9 +43,9 @@ export default function AboutPage() {
                   your space and receive fair compensation without the typical complications of second-hand sales.
                 </p>
               </div>
-            </ContentAnimation>
+            </AnimatedSection>
 
-            <ContentAnimation delay={0.1}>
+            <AnimatedSection delay={0.1}>
               <div className="bg-gray-50 p-8 rounded-xl">
                 <h2 className="section-header mb-4">Our Approach</h2>
                 <div className="relative w-full max-w-md mx-auto aspect-[16/9] rounded-xl overflow-hidden mb-6">
@@ -62,9 +62,9 @@ export default function AboutPage() {
                   straightforward.
                 </p>
               </div>
-            </ContentAnimation>
+            </AnimatedSection>
 
-            <ContentAnimation>
+            <AnimatedSection>
               <div>
                 <h2 className="section-header mb-6">Our Core Values</h2>
                 <div className="relative w-full max-w-md mx-auto aspect-[16/9] rounded-xl overflow-hidden mb-6">
@@ -115,9 +115,9 @@ export default function AboutPage() {
                   </div>
                 </div>
               </div>
-            </ContentAnimation>
+            </AnimatedSection>
 
-            <ContentAnimation delay={0.1}>
+            <AnimatedSection delay={0.1}>
               <div className="bg-gray-50 p-8 rounded-xl">
                 <h2 className="section-header mb-4">Who We Serve</h2>
                 <div className="relative w-full max-w-md mx-auto aspect-[16/9] rounded-xl overflow-hidden mb-6">
@@ -133,9 +133,9 @@ export default function AboutPage() {
                   <li>Anyone looking to simplify the decluttering process</li>
                 </ul>
               </div>
-            </ContentAnimation>
+            </AnimatedSection>
 
-            <ContentAnimation>
+            <AnimatedSection>
               <div className="text-center mt-12">
                 <h2 className="section-header mb-4">Begin Your Selling Experience</h2>
                 <p className="text-xl mb-6">
@@ -145,7 +145,7 @@ export default function AboutPage() {
                   Start Selling Today
                 </Link>
               </div>
-            </ContentAnimation>
+            </AnimatedSection>
           </div>
         </div>
       </section>
