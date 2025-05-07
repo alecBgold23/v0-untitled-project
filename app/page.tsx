@@ -90,7 +90,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section - REDESIGNED */}
-      <section className="py-32 bg-gray-50">
+      <section className="py-32 bg-gradient-to-b from-gray-50 to-white relative shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.05),0_15px_15px_-15px_rgba(0,0,0,0.05)]">
         <div className="container mx-auto px-4 max-w-6xl">
           <ContentAnimation>
             <h2 className="text-3xl md:text-4xl font-light mb-16 text-center tracking-wide">
@@ -115,7 +115,7 @@ export default function Home() {
                 <p className="text-gray-500 text-center mb-6 text-sm leading-relaxed max-w-xs">
                   Complete our simple form with your item details. No complex listings required.
                 </p>
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md">
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg transform hover:translate-y-[-2px]">
                   <Image src="/person-submitting-form.png" alt="Submit your item" fill className="object-cover" />
                 </div>
               </div>
@@ -132,7 +132,7 @@ export default function Home() {
                 <p className="text-gray-500 text-center mb-6 text-sm leading-relaxed max-w-xs">
                   Schedule a convenient time, and our team will collect the item from your location.
                 </p>
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md">
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg transform hover:translate-y-[-2px]">
                   <Image src="/courier-pickup.png" alt="We pick it up" fill className="object-cover" />
                 </div>
               </div>
@@ -149,7 +149,7 @@ export default function Home() {
                 <p className="text-gray-500 text-center mb-6 text-sm leading-relaxed max-w-xs">
                   Receive your payment immediately upon pickup. No waiting, no complications.
                 </p>
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md">
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg transform hover:translate-y-[-2px]">
                   <Image src="/digital-payment-received.png" alt="Get paid instantly" fill className="object-cover" />
                 </div>
               </div>
@@ -225,7 +225,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section - REDESIGNED */}
-      <section className="py-32 bg-gray-50">
+      <section className="py-32 bg-gradient-to-b from-gray-50 to-white relative shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.05),0_15px_15px_-15px_rgba(0,0,0,0.05)]">
         <div className="container mx-auto px-4 max-w-6xl">
           <ContentAnimation>
             <h2 className="text-3xl md:text-4xl font-light mb-20 text-center tracking-wide">
@@ -237,7 +237,7 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-8">
             <ContentAnimation delay={0.1}>
-              <div className="bg-white p-8 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
                 <div className="flex items-center mb-6">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
@@ -262,7 +262,7 @@ export default function Home() {
             </ContentAnimation>
 
             <ContentAnimation delay={0.2}>
-              <div className="bg-white p-8 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
                 <div className="flex items-center mb-6">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
@@ -287,7 +287,7 @@ export default function Home() {
             </ContentAnimation>
 
             <ContentAnimation delay={0.3}>
-              <div className="bg-white p-8 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
                 <div className="flex items-center mb-6">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
@@ -355,10 +355,10 @@ export default function Home() {
       </section>
 
       {/* CTA Section - REDESIGNED */}
-      <section className="py-32 bg-gray-50">
+      <section className="py-32 bg-gradient-to-b from-gray-50 to-white relative shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.05)]">
         <div className="container mx-auto px-4 max-w-4xl">
           <ContentAnimation>
-            <div className="bg-white p-12 rounded-2xl shadow-sm text-center">
+            <div className="bg-white p-12 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
               <h2 className="text-3xl md:text-4xl font-light mb-4 tracking-wide">
                 <span className="text-black font-medium">Ready to Declutter?</span>
               </h2>
