@@ -23,17 +23,21 @@ export default function Footer() {
     <footer className="apple-footer">
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center justify-center text-center">
-          <div className="mb-4 flex items-center justify-center">
-            <div className="relative w-6 h-6 mr-1.5">
-              <Image
-                src="/images/blueberry-logo.png"
-                alt="BluBerry Logo"
-                width={24}
-                height={24}
-                className="object-contain bg-transparent"
-              />
+          <div className="mb-4 flex justify-center w-full">
+            <div className="inline-flex items-center">
+              <div className="relative w-6 h-6 mr-1.5">
+                <Image
+                  src="/images/BluBerry_Logo_Transparent.png"
+                  alt="BluBerry Logo"
+                  width={24}
+                  height={24}
+                  className="object-contain bg-transparent"
+                />
+              </div>
+              <span className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                BluBerry
+              </span>
             </div>
-            <span className="text-sm font-medium sparkle-text">BluBerry</span>
           </div>
 
           <div className="space-y-1 mb-4">

@@ -360,9 +360,7 @@ export default function Home() {
           <ContentAnimation>
             <div className="bg-white p-12 rounded-2xl shadow-sm text-center">
               <h2 className="text-3xl md:text-4xl font-light mb-4 tracking-wide">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
-                  Ready to Declutter?
-                </span>
+                <span className="text-black font-medium">Ready to Declutter?</span>
               </h2>
               <p className="text-gray-500 mb-8 max-w-xl mx-auto text-sm">
                 Start the simple process today and turn your unused items into cash with our professional service.

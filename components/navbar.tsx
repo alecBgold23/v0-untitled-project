@@ -38,7 +38,7 @@ export default function Navbar() {
             <a href="/" className="flex items-center gap-2">
               <div className="relative w-8 h-8">
                 <Image
-                  src="/images/blueberry-logo.png"
+                  src="/images/BluBerry_Logo_Transparent.png"
                   alt="BluBerry Logo"
                   width={32}
                   height={32}

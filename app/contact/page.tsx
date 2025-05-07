@@ -76,11 +76,6 @@ export default function ContactPage() {
               Have questions about our services? Our team is available to assist you.
             </p>
           </ContentAnimation>
-          <ContentAnimation delay={0.2}>
-            <div className="relative w-full max-w-3xl mx-auto aspect-[16/9] rounded-2xl overflow-hidden">
-              <Image src="/placeholder.svg?key=7gr1m" alt="Contact Our Team" fill className="object-cover" priority />
-            </div>
-          </ContentAnimation>
         </div>
       </section>
 

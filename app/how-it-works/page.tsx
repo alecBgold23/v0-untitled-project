@@ -16,17 +16,6 @@ export default function HowItWorksPage() {
               Our streamlined process makes selling your items efficient and hassle-free.
             </p>
           </ContentAnimation>
-          <ContentAnimation delay={0.2}>
-            <div className="relative w-full max-w-3xl mx-auto aspect-[16/9] rounded-2xl overflow-hidden">
-              <Image
-                src="/placeholder.svg?key=tf4ku"
-                alt="BluBerry Process Overview"
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-          </ContentAnimation>
         </div>
       </section>
 
