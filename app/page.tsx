@@ -356,8 +356,21 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row items-center max-w-6xl mx-auto">
             <ContentAnimation delay={0.1} className="lg:w-1/2 mb-12 lg:mb-0 lg:pr-16">
-              <div className="relative w-full aspect-square max-w-md mx-auto rounded-lg overflow-hidden shadow-lg transform hover:scale-[1.02] transition-all duration-500">
-                <Image src="/minimalist-sustainability.png" alt="Environmental Impact" fill className="object-cover" />
+              {/* Updated image with the same styling as the other images */}
+              <div className="w-full mb-8">
+                <div className="mx-auto" style={{ maxWidth: "450px" }}>
+                  <img
+                    src="https://q95jzuzo3cbj9etg.public.blob.vercel-storage.com/blob-2025-05-08%20at%208.49.27%20AM-wqAMj7eH5TeKzwB2CqIPom264qUVJb.jpg"
+                    alt="Environmental sustainability illustration"
+                    style={{
+                      width: "100%",
+                      borderRadius: "12px",
+                      boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                      display: "block",
+                    }}
+                    className="transform hover:scale-[1.02] transition-all duration-500"
+                  />
+                </div>
               </div>
             </ContentAnimation>
 
