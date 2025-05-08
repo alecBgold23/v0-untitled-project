@@ -61,7 +61,13 @@ export default function HowItWorksPage() {
               <div className="flex flex-col md:flex-row-reverse items-center gap-8">
                 <div className="md:w-1/2">
                   <div className="relative w-full aspect-square rounded-2xl overflow-hidden">
-                    <Image src="/placeholder.svg?key=sho2m" alt="Receive a Fair Offer" fill className="object-cover" />
+                    <Image
+                      src="https://q95jzuzo3cbj9etg.public.blob.vercel-storage.com/blob-2025-05-08%20at%201.01.32%20PM-qW8D1QxpfR0WeqMX0VaPnB2j0rgJDs.jpg"
+                      alt="Receive a Fair Offer"
+                      fill
+                      className="object-cover"
+                      style={{ borderRadius: "12px" }}
+                    />
                   </div>
                 </div>
                 <div className="md:w-1/2 text-center md:text-left">

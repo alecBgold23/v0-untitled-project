@@ -43,7 +43,7 @@ export default function AboutPage() {
               <div className="bg-gray-50 p-8 rounded-xl">
                 <h2 className="section-header mb-4">Our Approach</h2>
                 <div className="relative w-full max-w-md mx-auto aspect-[16/9] rounded-xl overflow-hidden mb-6">
-                  <Image src="/placeholder.svg?key=2y8ug" alt="Our Approach" fill className="object-cover" />
+                  <Image src="/images/our-approach.jpg" alt="Our Approach" fill className="object-cover" />
                 </div>
                 <p className="text-gray-600">
                   Unlike traditional online marketplaces that require significant time investment in creating listings,
@@ -61,9 +61,7 @@ export default function AboutPage() {
             <AnimatedSection>
               <div>
                 <h2 className="section-header mb-6">Our Core Values</h2>
-                <div className="relative w-full max-w-md mx-auto aspect-[16/9] rounded-xl overflow-hidden mb-6">
-                  <Image src="/placeholder.svg?key=dtqh3" alt="Our Core Values" fill className="object-cover" />
-                </div>
+                {/* Core Values image removed as requested */}
                 <div className="flex flex-col items-center space-y-6">
                   <div className="flex flex-col items-center">
                     <div className="bg-[#3B82F6] w-8 h-8 rounded-full flex items-center justify-center mb-3">
@@ -114,9 +112,7 @@ export default function AboutPage() {
             <AnimatedSection delay={0.1}>
               <div className="bg-gray-50 p-8 rounded-xl">
                 <h2 className="section-header mb-4">Who We Serve</h2>
-                <div className="relative w-full max-w-md mx-auto aspect-[16/9] rounded-xl overflow-hidden mb-6">
-                  <Image src="/placeholder.svg?key=pmis4" alt="Who We Serve" fill className="object-cover" />
-                </div>
+                {/* Who We Serve image removed as requested */}
                 <p className="text-gray-600 mb-4">
                   BluBerry is designed for anyone seeking a convenient selling solution, with particular benefits for:
                 </p>
