@@ -26,9 +26,7 @@ export default function AboutPage() {
             <AnimatedSection>
               <div>
                 <h2 className="section-header mb-4">Our Mission</h2>
-                <div className="relative w-full max-w-md mx-auto aspect-[16/9] rounded-xl overflow-hidden mb-6">
-                  <Image src="/placeholder.svg?key=auush" alt="Our Mission" fill className="object-cover" />
-                </div>
+                {/* Image removed as requested */}
                 <p className="text-gray-600">
                   At BluBerry, our mission is clear: <strong>Selling made simpler</strong>. We've created a service that
                   combines professional efficiency with a personal touch, making the selling process straightforward and
