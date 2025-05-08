@@ -26,13 +26,16 @@ export default function HowItWorksPage() {
             <ContentAnimation>
               <div className="flex flex-col md:flex-row items-center gap-8">
                 <div className="md:w-1/2">
-                  <div className="relative w-full aspect-square rounded-2xl overflow-hidden">
-                    <Image
-                      src="/images/submit-item-illustration.png"
-                      alt="Submit Your Item"
-                      fill
-                      className="object-contain bg-[#e6f0fa]"
-                    />
+                  <div className="relative w-full aspect-square overflow-hidden" style={{ borderRadius: "12px" }}>
+                    <div className="w-full h-full relative" style={{ boxShadow: "0 4px 10px rgba(0,0,0,0.1)" }}>
+                      <Image
+                        src="https://q95jzuzo3cbj9etg.public.blob.vercel-storage.com/36c6561a-e680-4c97-958f-f3db948d9f1f-hZF4zVCj8IVZn2RRrWYDjoEG68hfk1.png"
+                        alt="Person submitting an item form on a laptop"
+                        fill
+                        className="object-contain bg-[#e6f0fa]"
+                        style={{ maxWidth: "100%", borderRadius: "12px" }}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="md:w-1/2 text-center md:text-left">

@@ -116,8 +116,20 @@ export default function Home() {
                 <p className="text-gray-500 text-center mb-6 text-sm leading-relaxed max-w-xs">
                   Complete our simple form with your item details. No complex listings required.
                 </p>
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg transform hover:translate-y-[-2px]">
-                  <Image src="/person-submitting-form.png" alt="Submit your item" fill className="object-cover" />
+                {/* Custom sized container that fits the image without white space */}
+                <div className="w-full mb-8">
+                  <div className="mx-auto" style={{ maxWidth: "450px" }}>
+                    <img
+                      src="https://q95jzuzo3cbj9etg.public.blob.vercel-storage.com/Untitled%20design-Sr5GOVnTsq2SswwH7Nr8MBJ5UGBe9f.jpg"
+                      alt="Submit your item illustration"
+                      style={{
+                        width: "100%",
+                        borderRadius: "12px",
+                        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                        display: "block",
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </ContentAnimation>
@@ -133,8 +145,20 @@ export default function Home() {
                 <p className="text-gray-500 text-center mb-6 text-sm leading-relaxed max-w-xs">
                   Schedule a convenient time, and our team will collect the item from your location.
                 </p>
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg transform hover:translate-y-[-2px]">
-                  <Image src="/courier-pickup.png" alt="We pick it up" fill className="object-cover" />
+                {/* Custom sized container that fits the image without white space - same as first image */}
+                <div className="w-full mb-8">
+                  <div className="mx-auto" style={{ maxWidth: "450px" }}>
+                    <img
+                      src="https://q95jzuzo3cbj9etg.public.blob.vercel-storage.com/Untitled%20design-2-napdpIpt1LFqQJo7QvEbdtFWPfSGK6.jpg"
+                      alt="We pick it up illustration"
+                      style={{
+                        width: "100%",
+                        borderRadius: "12px",
+                        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                        display: "block",
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </ContentAnimation>
@@ -150,8 +174,20 @@ export default function Home() {
                 <p className="text-gray-500 text-center mb-6 text-sm leading-relaxed max-w-xs">
                   Receive your payment immediately upon pickup. No waiting, no complications.
                 </p>
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-md transition-all duration-300 hover:shadow-lg transform hover:translate-y-[-2px]">
-                  <Image src="/digital-payment-received.png" alt="Get paid instantly" fill className="object-cover" />
+                {/* Custom sized container that fits the image without white space - same as other images */}
+                <div className="w-full mb-8">
+                  <div className="mx-auto" style={{ maxWidth: "450px" }}>
+                    <img
+                      src="https://q95jzuzo3cbj9etg.public.blob.vercel-storage.com/blob-2025-05-08%20at%208.43.21%20AM-Pt446d8azjRWhoq9FgtU43Hu3rCxBV.jpg"
+                      alt="Get paid instantly illustration"
+                      style={{
+                        width: "100%",
+                        borderRadius: "12px",
+                        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                        display: "block",
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </ContentAnimation>
