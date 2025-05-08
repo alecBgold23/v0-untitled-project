@@ -50,7 +50,7 @@ export default function RootLayout({
           <Navbar />
 
           {/* Main content area with improved page transitions */}
-          <main className="flex-grow relative overflow-hidden">
+          <main className="flex-grow relative overflow-hidden pt-12">
             <PageTransition>{children}</PageTransition>
           </main>
 
