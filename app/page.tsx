@@ -416,13 +416,15 @@ export default function Home() {
                 Start the simple process today and turn your unused items into cash with our professional service.
               </p>
               <div className="flex justify-center">
-                <Link
-                  href="/sell-item"
-                  className="inline-flex items-center bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg hover:translate-y-[-2px] transition-all duration-300 group"
-                >
-                  Sell Your Item Now
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </Link>
+                <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
+                  <Link
+                    href="/sell-item"
+                    className="inline-flex items-center bg-white hover:bg-gray-50 transition-colors px-6 py-3 rounded-lg font-medium text-gray-900 group"
+                  >
+                    Sell Your Item Now
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  </Link>
+                </div>
               </div>
             </div>
           </ContentAnimation>
