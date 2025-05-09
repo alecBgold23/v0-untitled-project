@@ -3,7 +3,6 @@ import "@/app/globals.css"
 import { Inter, Poppins, Roboto } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import Footer from "@/components/footer"
-import PageTransition from "@/components/page-transition"
 import { validateEnv } from "@/lib/env"
 import Navbar from "@/components/navbar"
 
@@ -41,21 +40,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body
-        className={`${inter.className} ${poppins.variable} ${roboto.variable} bg-gradient-to-b from-white to-[#f0f7ff] flex flex-col min-h-screen`}
-      >
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          {/* Navbar is fixed and outside the transition area */}
-          <Navbar />
-
-          {/* Main content area with improved page transitions */}
-          <main className="flex-grow relative overflow-hidden pt-12">
-            <PageTransition>{children}</PageTransition>
-          </main>
-
-          {/* Footer is outside the transition area */}
-          <Footer />
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} ${poppins.variable} ${roboto.variable} min-h-screen`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <div className="flex flex-col min-h-screen bg-background text-foreground">
+            <Navbar />
+            <main className="flex-grow pt-12">{children}</main>
+            <Footer />
+          </div>
         </ThemeProvider>
       </body>
     </html>

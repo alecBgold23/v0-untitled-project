@@ -341,7 +341,7 @@ export default function SellItemPage() {
   )
 
   return (
-    <div className="container mx-auto py-12 px-4 bg-gradient-to-b from-white to-blue-50" ref={formContainerRef}>
+    <div className="container mx-auto py-12 px-4 bg-background" ref={formContainerRef}>
       {/* Add a ref at the top of the form for scrolling */}
       <div ref={formTopRef} className="scroll-target"></div>
 
@@ -358,7 +358,7 @@ export default function SellItemPage() {
         </ContentAnimation>
 
         <ContentAnimation delay={0.1}>
-          <p className="text-center text-gray-600 mb-12">
+          <p className="text-center text-muted-foreground mb-12">
             Please provide information about the item you wish to sell. This process takes just a few minutes, and we'll
             respond with an offer within 24 hours.
           </p>
@@ -386,7 +386,7 @@ export default function SellItemPage() {
                     className={`w-12 h-12 rounded-full flex items-center justify-center ${
                       formStep === 1
                         ? "bg-gradient-to-r from-[#4f46e5] via-[#7c3aed] to-[#2563eb] text-white shadow-lg"
-                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                        : "bg-card text-muted-foreground border border-border hover:bg-muted/50"
                     } transition-all duration-300`}
                   >
                     <span className="text-lg font-semibold">1</span>
@@ -410,7 +410,7 @@ export default function SellItemPage() {
                     className={`w-12 h-12 rounded-full flex items-center justify-center ${
                       formStep === 2
                         ? "bg-gradient-to-r from-[#4f46e5] via-[#7c3aed] to-[#2563eb] text-white shadow-lg"
-                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                        : "bg-card text-muted-foreground border border-border hover:bg-muted/50"
                     } transition-all duration-300`}
                   >
                     <span className="text-lg font-semibold">2</span>
@@ -434,7 +434,7 @@ export default function SellItemPage() {
                     className={`w-12 h-12 rounded-full flex items-center justify-center ${
                       formStep === 3
                         ? "bg-gradient-to-r from-[#4f46e5] via-[#7c3aed] to-[#2563eb] text-white shadow-lg"
-                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                        : "bg-card text-muted-foreground border border-border hover:bg-muted/50"
                     } transition-all duration-300`}
                   >
                     <span className="text-lg font-semibold">3</span>
@@ -447,7 +447,7 @@ export default function SellItemPage() {
             <ContentAnimation delay={0.3}>
               <form
                 onSubmit={handleSubmit}
-                className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 transform transition-all duration-300 hover:shadow-xl"
+                className="bg-card rounded-2xl shadow-lg p-8 border border-border transform transition-all duration-300 hover:shadow-xl"
               >
                 {formStep === 1 && (
                   <div className="space-y-8" id="section1" ref={section1Ref}>
@@ -460,11 +460,11 @@ export default function SellItemPage() {
                           id="item-category"
                           className={`w-full border ${
                             formErrors.itemCategory ? "border-red-300" : "border-indigo-100"
-                          } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                          } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-background shadow-sm hover:border-indigo-300 transition-all duration-200`}
                         >
                           <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border border-indigo-100 rounded-lg shadow-md">
+                        <SelectContent className="bg-popover border border-border rounded-lg shadow-md">
                           <SelectItem value="electronics">Electronics</SelectItem>
                           <SelectItem value="furniture">Furniture</SelectItem>
                           <SelectItem value="clothing">Clothing</SelectItem>
@@ -486,7 +486,7 @@ export default function SellItemPage() {
                         placeholder="e.g., Leather Sofa, Samsung TV"
                         className={`w-full border ${
                           formErrors.itemName ? "border-red-300" : "border-indigo-100"
-                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-background shadow-sm hover:border-indigo-300 transition-all duration-200`}
                         required
                       />
                       {formErrors.itemName && <ErrorMessage message={formErrors.itemName} />}
@@ -505,7 +505,7 @@ export default function SellItemPage() {
                         rows={4}
                         className={`w-full border ${
                           formErrors.itemDescription ? "border-red-300" : "border-indigo-100"
-                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-background shadow-sm hover:border-indigo-300 transition-all duration-200`}
                         required
                       />
                       {formErrors.itemDescription && <ErrorMessage message={formErrors.itemDescription} />}
@@ -518,8 +518,8 @@ export default function SellItemPage() {
                       </Label>
                       <div
                         className={`p-4 border border-dashed rounded-lg ${
-                          formErrors.itemPhotos ? "border-red-300" : "border-blue-200"
-                        } bg-blue-50 hover:bg-blue-100 transition-colors duration-200 relative cursor-pointer`}
+                          formErrors.itemPhotos ? "border-red-300" : "border-border"
+                        } bg-muted hover:bg-muted/80 transition-colors duration-200 relative cursor-pointer`}
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <div className="flex flex-col items-center justify-center gap-3">
@@ -550,8 +550,8 @@ export default function SellItemPage() {
                               </div>
                             ))}
                             {itemPhotos.length === 0 && (
-                              <div className="w-full text-center text-gray-500 py-4">
-                                <ImageIcon className="w-12 h-12 mx-auto mb-2 text-blue-200" />
+                              <div className="w-full text-center text-muted-foreground py-4">
+                                <ImageIcon className="w-12 h-12 mx-auto mb-2 text-muted-foreground/50" />
                                 <p className="text-sm">Click to upload photos</p>
                               </div>
                             )}
@@ -648,7 +648,7 @@ export default function SellItemPage() {
                             <Label htmlFor="like-new" className="font-medium cursor-pointer">
                               Like New
                             </Label>
-                            <p className="text-sm text-gray-500">Appears new and functions perfectly</p>
+                            <p className="text-sm text-muted-foreground">Appears new and functions perfectly</p>
                           </div>
                         </div>
 
@@ -667,7 +667,7 @@ export default function SellItemPage() {
                             <Label htmlFor="excellent" className="font-medium cursor-pointer">
                               Excellent
                             </Label>
-                            <p className="text-sm text-gray-500">Minimal signs of use, functions perfectly</p>
+                            <p className="text-sm text-muted-foreground">Minimal signs of use, functions perfectly</p>
                           </div>
                         </div>
 
@@ -686,7 +686,7 @@ export default function SellItemPage() {
                             <Label htmlFor="good" className="font-medium cursor-pointer">
                               Good
                             </Label>
-                            <p className="text-sm text-gray-500">Some signs of use, functions well</p>
+                            <p className="text-sm text-muted-foreground">Some signs of use, functions well</p>
                           </div>
                         </div>
 
@@ -705,7 +705,7 @@ export default function SellItemPage() {
                             <Label htmlFor="fair" className="font-medium cursor-pointer">
                               Fair
                             </Label>
-                            <p className="text-sm text-gray-500">Visible wear, remains functional</p>
+                            <p className="text-sm text-muted-foreground">Visible wear, remains functional</p>
                           </div>
                         </div>
 
@@ -724,7 +724,7 @@ export default function SellItemPage() {
                             <Label htmlFor="poor" className="font-medium cursor-pointer">
                               Poor
                             </Label>
-                            <p className="text-sm text-gray-500">Significant wear, may require repair</p>
+                            <p className="text-sm text-muted-foreground">Significant wear, may require repair</p>
                           </div>
                         </div>
                       </div>
@@ -744,7 +744,7 @@ export default function SellItemPage() {
                         rows={4}
                         className={`w-full border ${
                           formErrors.itemIssues ? "border-red-300" : "border-indigo-100"
-                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-background shadow-sm hover:border-indigo-300 transition-all duration-200`}
                         required
                       />
                       {formErrors.itemIssues && <ErrorMessage message={formErrors.itemIssues} />}
@@ -760,7 +760,7 @@ export default function SellItemPage() {
                             setFormStep(1)
                           }, 100)
                         }}
-                        className="px-6 py-2 rounded-full border border-gray-300 bg-white text-gray-700 shadow-sm hover:shadow-md transform hover:-translate-y-1 transition-all duration-300"
+                        className="w-full px-6 py-2 rounded-full border border-border bg-card text-foreground shadow-sm hover:shadow-md transform hover:-translate-y-1 transition-all duration-300"
                       >
                         Back
                       </button>
@@ -790,7 +790,7 @@ export default function SellItemPage() {
                         placeholder="Your full name"
                         className={`w-full border ${
                           formErrors.fullName ? "border-red-300" : "border-indigo-100"
-                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-background shadow-sm hover:border-indigo-300 transition-all duration-200`}
                         required
                       />
                       {formErrors.fullName && <ErrorMessage message={formErrors.fullName} />}
@@ -809,7 +809,7 @@ export default function SellItemPage() {
                         placeholder="your.email@example.com"
                         className={`w-full border ${
                           formErrors.email ? "border-red-300" : "border-indigo-100"
-                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-background shadow-sm hover:border-indigo-300 transition-all duration-200`}
                         required
                       />
                       {formErrors.email && <ErrorMessage message={formErrors.email} />}
@@ -828,7 +828,7 @@ export default function SellItemPage() {
                         placeholder="(123) 456-7890"
                         className={`w-full border ${
                           formErrors.phone ? "border-red-300" : "border-indigo-100"
-                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-background shadow-sm hover:border-indigo-300 transition-all duration-200`}
                         required
                       />
                       {formErrors.phone && <ErrorMessage message={formErrors.phone} />}
@@ -852,17 +852,17 @@ export default function SellItemPage() {
                           placeholder="Start typing your address..."
                           className={`w-full border ${
                             formErrors.address ? "border-red-300" : "border-indigo-100"
-                          } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                          } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-background shadow-sm hover:border-indigo-300 transition-all duration-200`}
                           required
                         />
 
                         {/* Address suggestions dropdown */}
                         {showSuggestions && addressSuggestions.length > 0 && (
-                          <div className="absolute z-10 w-full mt-1 bg-white border border-indigo-100 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          <div className="absolute z-10 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                             {addressSuggestions.map((suggestion, index) => (
                               <div
                                 key={index}
-                                className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-gray-700 text-sm"
+                                className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-muted-foreground text-sm"
                                 onClick={() => handleAddressSelect(suggestion)}
                               >
                                 {suggestion}
@@ -887,14 +887,14 @@ export default function SellItemPage() {
                         onChange={(e) => setPickupDate(e.target.value)}
                         className={`w-full border ${
                           formErrors.pickupDate ? "border-red-300" : "border-indigo-100"
-                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-background shadow-sm hover:border-indigo-300 transition-all duration-200`}
                         required
                       />
                       {formErrors.pickupDate && <ErrorMessage message={formErrors.pickupDate} />}
                     </div>
 
                     <div className="mt-6 transition-all duration-300">
-                      <div className="flex items-start space-x-3 p-4 rounded-lg bg-blue-50 border border-blue-100">
+                      <div className="flex items-start space-x-3 p-4 rounded-lg bg-muted border border-border">
                         <Checkbox
                           id="consent"
                           name="consent"
@@ -907,7 +907,7 @@ export default function SellItemPage() {
                           <Label htmlFor="consent" className="font-medium">
                             I consent to being contacted by BluBerry <span className="text-red-500">*</span>
                           </Label>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             By submitting this form, you agree to our{" "}
                             <Link
                               href="/privacy-policy"
@@ -950,7 +950,7 @@ export default function SellItemPage() {
                             setFormStep(2)
                           }, 100)
                         }}
-                        className="w-full px-6 py-2 rounded-full border border-gray-300 bg-white text-gray-700 shadow-sm hover:shadow-md transform hover:-translate-y-1 transition-all duration-300"
+                        className="w-full px-6 py-2 rounded-full border border-border bg-card text-foreground shadow-sm hover:shadow-md transform hover:-translate-y-1 transition-all duration-300"
                       >
                         Back
                       </button>
@@ -963,7 +963,7 @@ export default function SellItemPage() {
         ) : (
           <ContentAnimation>
             <ConfettiEffect trigger={formSubmitted} />
-            <div className="text-center bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-gray-200 transform transition-all duration-500 hover:shadow-2xl">
+            <div className="text-center bg-card p-8 md:p-12 rounded-2xl shadow-xl border border-border transform transition-all duration-500 hover:shadow-2xl">
               <div className="w-24 h-24 bg-gradient-to-r from-[#ede9ff] to-[#dbeafe] rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg transform transition-all duration-500 hover:scale-105">
                 <CheckCircle2 className="w-14 h-14 text-[#4f46e5]" />
               </div>
@@ -971,13 +971,13 @@ export default function SellItemPage() {
                 Thank You!
               </h2>
               <div className="w-32 h-1 mx-auto mb-6 bg-gradient-to-r from-[#4f46e5] via-[#7c3aed] to-[#2563eb] rounded-full shadow-sm"></div>
-              <p className="text-lg mb-8 text-gray-600">
+              <p className="text-lg mb-8 text-muted-foreground">
                 We've received your submission and will review your item details. You can expect to hear from us within
                 24 hours with a price offer.
               </p>
-              <div className="bg-blue-50 p-6 rounded-lg inline-block text-left border border-blue-100 shadow-sm">
+              <div className="bg-muted p-6 rounded-lg inline-block text-left border border-border shadow-sm">
                 <h3 className="font-medium text-lg mb-2 text-[#7c3aed]">Next Steps</h3>
-                <ol className="list-decimal pl-5 space-y-2 text-gray-600">
+                <ol className="list-decimal pl-5 space-y-2 text-muted-foreground">
                   <li>Our team will evaluate your item details</li>
                   <li>We'll email you a price offer within 24 hours</li>
                   <li>If you accept, we'll schedule a convenient pickup time</li>

@@ -92,50 +92,50 @@ export default function ContactPage() {
   )
 
   return (
-    <div>
+    <div className="bg-background">
       {showConfetti && <ConfettiEffect duration={3000} onComplete={() => setShowConfetti(false)} />}
 
       {/* Hero Section */}
-      <section className="apple-section bg-gradient-to-b from-white to-gray-50">
+      <section className="apple-section bg-background border-b border-border">
         <div className="container mx-auto px-4">
           <ContentAnimation>
-            <h1 className="page-header">Contact Us</h1>
+            <h1 className="page-header text-foreground">Contact Us</h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>
-            <p className="apple-subheading mb-8">
+            <p className="apple-subheading text-muted-foreground mb-8">
               Have questions about our services? Our team is available to assist you.
             </p>
           </ContentAnimation>
         </div>
       </section>
 
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-background">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="grid md:grid-cols-2 gap-12">
             <ContentAnimation>
               <div className="text-center">
-                <h2 className="section-header mb-6">Contact Information</h2>
+                <h2 className="section-header text-foreground mb-6">Contact Information</h2>
                 <div className="space-y-6">
                   <div className="flex flex-col items-center">
                     <Phone className="w-5 h-5 text-[#3B82F6] mb-2" />
-                    <h3 className="font-medium">Phone</h3>
-                    <p className="text-gray-600">847-510-3229</p>
-                    <p className="text-sm text-gray-500 mt-1">Monday-Friday, 9am-5pm EST</p>
+                    <h3 className="font-medium text-foreground">Phone</h3>
+                    <p className="text-foreground/80">847-510-3229</p>
+                    <p className="text-sm text-muted-foreground mt-1">Monday-Friday, 9am-5pm EST</p>
                   </div>
 
                   <div className="flex flex-col items-center">
                     <Mail className="w-5 h-5 text-[#8A4FFF] mb-2" />
-                    <h3 className="font-medium">Email</h3>
-                    <p className="text-gray-600">alecgold808@gmail.com</p>
-                    <p className="text-sm text-gray-500 mt-1">Response within 24 hours</p>
+                    <h3 className="font-medium text-foreground">Email</h3>
+                    <p className="text-foreground/80">alecgold808@gmail.com</p>
+                    <p className="text-sm text-muted-foreground mt-1">Response within 24 hours</p>
                   </div>
 
                   <div className="flex flex-col items-center">
                     <Clock className="w-5 h-5 text-[#3B82F6] mb-2" />
-                    <h3 className="font-medium">Hours</h3>
-                    <p className="text-gray-600">Monday-Friday: 9am-5pm EST</p>
-                    <p className="text-gray-600">Saturday: 10am-2pm EST</p>
-                    <p className="text-gray-600">Sunday: Closed</p>
+                    <h3 className="font-medium text-foreground">Hours</h3>
+                    <p className="text-foreground/80">Monday-Friday: 9am-5pm EST</p>
+                    <p className="text-foreground/80">Saturday: 10am-2pm EST</p>
+                    <p className="text-foreground/80">Sunday: Closed</p>
                   </div>
                 </div>
               </div>
@@ -145,10 +145,10 @@ export default function ContactPage() {
               <div className="text-center">
                 {!isSubmitted ? (
                   <>
-                    <h2 className="section-header mb-6">Send a Message</h2>
+                    <h2 className="section-header text-foreground mb-6">Send a Message</h2>
                     <form className="space-y-4" onSubmit={handleSubmit}>
                       <div>
-                        <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                        <Label htmlFor="name" className="text-sm font-medium text-foreground">
                           Name <span className="text-red-500">*</span>
                         </Label>
                         <Input
@@ -157,14 +157,14 @@ export default function ContactPage() {
                           placeholder="Your name"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          className={`mt-1 rounded-lg ${formErrors.name ? "border-red-500" : "border-gray-300"}`}
+                          className={`mt-1 rounded-lg ${formErrors.name ? "border-red-500" : "border-input"}`}
                           required
                         />
                         {formErrors.name && <ErrorMessage message={formErrors.name} />}
                       </div>
 
                       <div>
-                        <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                        <Label htmlFor="email" className="text-sm font-medium text-foreground">
                           Email <span className="text-red-500">*</span>
                         </Label>
                         <Input
@@ -174,20 +174,20 @@ export default function ContactPage() {
                           placeholder="your.email@example.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className={`mt-1 rounded-lg ${formErrors.email ? "border-red-500" : "border-gray-300"}`}
+                          className={`mt-1 rounded-lg ${formErrors.email ? "border-red-500" : "border-input"}`}
                           required
                         />
                         {formErrors.email && <ErrorMessage message={formErrors.email} />}
                       </div>
 
                       <div>
-                        <Label htmlFor="inquiry-type" className="text-sm font-medium text-gray-700">
+                        <Label htmlFor="inquiry-type" className="text-sm font-medium text-foreground">
                           Type of Inquiry <span className="text-red-500">*</span>
                         </Label>
                         <Select value={inquiryType} onValueChange={setInquiryType} name="inquiryType" required>
                           <SelectTrigger
                             id="inquiry-type"
-                            className={`mt-1 rounded-lg ${formErrors.inquiryType ? "border-red-500" : "border-gray-300"}`}
+                            className={`mt-1 rounded-lg ${formErrors.inquiryType ? "border-red-500" : "border-input"}`}
                           >
                             <SelectValue placeholder="Select an option" />
                           </SelectTrigger>
@@ -202,7 +202,7 @@ export default function ContactPage() {
                       </div>
 
                       <div>
-                        <Label htmlFor="message" className="text-sm font-medium text-gray-700">
+                        <Label htmlFor="message" className="text-sm font-medium text-foreground">
                           Message <span className="text-red-500">*</span>
                         </Label>
                         <Textarea
@@ -212,14 +212,14 @@ export default function ContactPage() {
                           rows={5}
                           value={message}
                           onChange={(e) => setMessage(e.target.value)}
-                          className={`mt-1 rounded-lg ${formErrors.message ? "border-red-500" : "border-gray-300"}`}
+                          className={`mt-1 rounded-lg ${formErrors.message ? "border-red-500" : "border-input"}`}
                           required
                         />
                         {formErrors.message && <ErrorMessage message={formErrors.message} />}
                       </div>
 
                       {submitError && (
-                        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+                        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
                           <AlertCircle className="inline-block h-4 w-4 mr-2" />
                           {submitError}
                         </div>
@@ -242,12 +242,15 @@ export default function ContactPage() {
                     </form>
                   </>
                 ) : (
-                  <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-sm border border-blue-100 p-8">
-                    <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <div className="text-center py-12 bg-card rounded-xl shadow-sm border border-border p-8">
+                    <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg transform transition-all duration-500 hover:scale-105">
                       <CheckCircle className="w-8 h-8 text-white" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-4 text-gray-800">Message Sent!</h2>
-                    <p className="text-gray-600 mb-6">
+                    <h2 className="text-2xl md:text-3xl font-light mb-4 text-foreground tracking-wider">
+                      Message Sent!
+                    </h2>
+                    <div className="w-32 h-1 mx-auto mb-6 bg-gradient-to-r from-[#4f46e5] via-[#7c3aed] to-[#2563eb] rounded-full shadow-sm"></div>
+                    <p className="text-lg mb-8 text-foreground/80">
                       Thank you for contacting BluBerry. Your message has been received and we'll respond within 24
                       hours.
                     </p>
@@ -266,16 +269,16 @@ export default function ContactPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="apple-section bg-gray-50">
+      <section className="apple-section bg-muted/50">
         <div className="container mx-auto px-4 max-w-4xl">
           <ContentAnimation>
-            <h2 className="page-header mb-12">Frequently Asked Questions</h2>
+            <h2 className="page-header text-foreground mb-12">Frequently Asked Questions</h2>
           </ContentAnimation>
           <div className="space-y-8">
             <ContentAnimation delay={0.1}>
               <div className="text-center">
-                <h3 className="text-xl font-semibold mb-2">What types of items do you accept?</h3>
-                <p className="text-gray-600">
+                <h3 className="text-xl font-semibold mb-2 text-foreground">What types of items do you accept?</h3>
+                <p className="text-foreground/80">
                   We accept a wide variety of quality used items in good condition, including furniture, electronics,
                   appliances, sporting equipment, musical instruments, tools, and collectibles.
                 </p>
@@ -283,8 +286,10 @@ export default function ContactPage() {
             </ContentAnimation>
             <ContentAnimation delay={0.2}>
               <div className="text-center">
-                <h3 className="text-xl font-semibold mb-2">How do you determine the price for my item?</h3>
-                <p className="text-gray-600">
+                <h3 className="text-xl font-semibold mb-2 text-foreground">
+                  How do you determine the price for my item?
+                </h3>
+                <p className="text-foreground/80">
                   We evaluate factors such as the item's condition, age, brand, current market value, and demand to
                   offer you a competitive price.
                 </p>
@@ -292,8 +297,8 @@ export default function ContactPage() {
             </ContentAnimation>
             <ContentAnimation delay={0.3}>
               <div className="text-center">
-                <h3 className="text-xl font-semibold mb-2">How soon can you pick up my item?</h3>
-                <p className="text-gray-600">
+                <h3 className="text-xl font-semibold mb-2 text-foreground">How soon can you pick up my item?</h3>
+                <p className="text-foreground/80">
                   Upon acceptance of our offer, we typically schedule pickup within 2-3 business days, depending on your
                   location and availability.
                 </p>
@@ -301,8 +306,8 @@ export default function ContactPage() {
             </ContentAnimation>
             <ContentAnimation delay={0.4}>
               <div className="text-center">
-                <h3 className="text-xl font-semibold mb-2">What payment methods do you offer?</h3>
-                <p className="text-gray-600">
+                <h3 className="text-xl font-semibold mb-2 text-foreground">What payment methods do you offer?</h3>
+                <p className="text-foreground/80">
                   We provide payment via cash, check, or digital payment methods such as Venmo or PayPal, according to
                   your preference.
                 </p>

@@ -2,25 +2,25 @@ import Link from "next/link"
 
 export default function ServicesPage() {
   return (
-    <div className="container mx-auto py-12 px-4">
-      <h1 className="page-header mb-6">Our Services</h1>
+    <div className="container mx-auto py-12 px-4 bg-background text-foreground">
+      <h1 className="text-3xl md:text-4xl font-bold mb-6 text-center text-foreground">Our Services</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="border p-6 rounded-lg">
-          <h2 className="text-2xl font-semibold mb-3">Web Development</h2>
-          <p>We create beautiful, responsive websites tailored to your needs.</p>
+        <div className="border border-border p-6 rounded-lg bg-card">
+          <h2 className="text-2xl font-semibold mb-3 text-foreground">Web Development</h2>
+          <p className="text-muted-foreground">We create beautiful, responsive websites tailored to your needs.</p>
         </div>
-        <div className="border p-6 rounded-lg">
-          <h2 className="text-2xl font-semibold mb-3">Mobile Apps</h2>
-          <p>Custom mobile applications for iOS and Android platforms.</p>
+        <div className="border border-border p-6 rounded-lg bg-card">
+          <h2 className="text-2xl font-semibold mb-3 text-foreground">Mobile Apps</h2>
+          <p className="text-muted-foreground">Custom mobile applications for iOS and Android platforms.</p>
         </div>
-        <div className="border p-6 rounded-lg">
-          <h2 className="text-2xl font-semibold mb-3">UI/UX Design</h2>
-          <p>User-centered design that enhances the user experience.</p>
+        <div className="border border-border p-6 rounded-lg bg-card">
+          <h2 className="text-2xl font-semibold mb-3 text-foreground">UI/UX Design</h2>
+          <p className="text-muted-foreground">User-centered design that enhances the user experience.</p>
         </div>
-        <div className="border p-6 rounded-lg">
-          <h2 className="text-2xl font-semibold mb-3">Consulting</h2>
-          <p>Expert advice on technology solutions for your business.</p>
+        <div className="border border-border p-6 rounded-lg bg-card">
+          <h2 className="text-2xl font-semibold mb-3 text-foreground">Consulting</h2>
+          <p className="text-muted-foreground">Expert advice on technology solutions for your business.</p>
         </div>
       </div>
 
