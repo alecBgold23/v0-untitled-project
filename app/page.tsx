@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { AlertTriangle, ArrowRight, Star, Leaf, Clock, Shield, CreditCard } from "lucide-react"
+
+import { ArrowRight, Star, Leaf, Clock, Shield, CreditCard } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import ContentAnimation from "@/components/content-animation"
@@ -26,16 +27,6 @@ export default function Home() {
 
   return (
     <div className="bg-gray-50">
-      {/* Announcement Bar */}
-      <ContentAnimation>
-        <div className="bg-gradient-to-r from-gray-900 to-red-900 py-2 px-4 text-center flex items-center justify-center shadow-md">
-          <AlertTriangle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
-          <span className="text-red-500 text-xs">
-            Unfortunately, all services are currently unavailable. We'll notify you once they're back up and running.
-          </span>
-        </div>
-      </ContentAnimation>
-
       {/* Hero Section - White Background */}
       <section className="bg-white pt-6 pb-12 md:pt-8 md:pb-16">
         <div className="container mx-auto px-4">

@@ -2,10 +2,10 @@ import type React from "react"
 import "@/app/globals.css"
 import { Inter, Poppins, Roboto } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
-import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import PageTransition from "@/components/page-transition"
 import { validateEnv } from "@/lib/env"
+import Navbar from "@/components/navbar"
 
 // Validate environment variables during build/startup
 validateEnv()

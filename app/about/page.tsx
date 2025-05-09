@@ -1,5 +1,4 @@
 import Link from "next/link"
-import Image from "next/image"
 import AnimatedSection from "@/components/animated-section"
 
 export default function AboutPage() {
@@ -42,9 +41,6 @@ export default function AboutPage() {
             <AnimatedSection delay={0.1}>
               <div className="bg-gray-50 p-8 rounded-xl">
                 <h2 className="section-header mb-4">Our Approach</h2>
-                <div className="relative w-full max-w-md mx-auto aspect-[16/9] rounded-xl overflow-hidden mb-6">
-                  <Image src="/images/our-approach.jpg" alt="Our Approach" fill className="object-cover" />
-                </div>
                 <p className="text-gray-600">
                   Unlike traditional online marketplaces that require significant time investment in creating listings,
                   communicating with potential buyers, and arranging meetings, BluBerry offers a comprehensive service

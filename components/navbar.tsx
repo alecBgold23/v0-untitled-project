@@ -17,6 +17,7 @@ export default function Navbar() {
   const [navLeft, setNavLeft] = useState(0)
   const [dropdownWidth, setDropdownWidth] = useState(0)
   const [homeContactDistance, setHomeContactDistance] = useState(0)
+  const [animationKey, setAnimationKey] = useState(0) // Force re-render of animations
 
   // Use refs instead of state for positions to avoid re-renders
   const activeIndexRef = useRef<number | null>(null)
@@ -141,7 +142,7 @@ export default function Navbar() {
     }
   }, [])
 
-  // Handle hover with delay
+  // Handle hover with animation
   const handleLinkHover = (href: string) => {
     if (href === activeDropdown) return
 
@@ -149,15 +150,21 @@ export default function Navbar() {
     const prevIndex = navLinks.findIndex((link) => link.href === activeDropdown)
 
     if (prevIndex !== -1 && index !== prevIndex) {
+      // Determine slide direction based on index position
       setSlideDirection(index > prevIndex ? "right" : "left")
-    } else {
-      setSlideDirection(null)
-    }
 
-    // Small delay for smoother transitions
-    setTimeout(() => {
+      // Force animation to restart by updating the key
+      setAnimationKey((prev) => prev + 1)
+
+      // Set the active dropdown after a very short delay
+      setTimeout(() => {
+        setActiveDropdown(href)
+      }, 10)
+    } else {
+      // First hover, no animation needed
+      setSlideDirection(null)
       setActiveDropdown(href)
-    }, 30)
+    }
   }
 
   // Handle scroll events
@@ -215,33 +222,80 @@ export default function Navbar() {
   return (
     <>
       <style jsx global>{`
-        @keyframes slideInFromRight {
-          0% { transform: translateX(80px); opacity: 0; }
+        /* Base animations */
+        @keyframes slideInRight {
+          0% { transform: translateX(100px); opacity: 0; }
           100% { transform: translateX(0); opacity: 1; }
         }
         
-        @keyframes slideInFromLeft {
-          0% { transform: translateX(-80px); opacity: 0; }
+        @keyframes slideInLeft {
+          0% { transform: translateX(-100px); opacity: 0; }
           100% { transform: translateX(0); opacity: 1; }
         }
         
-        @keyframes fadeOut {
-          0% { opacity: 1; }
-          100% { opacity: 0; }
+        /* Feature item animations */
+        @keyframes featureSlideRight {
+          0% { transform: translateX(50px); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
         }
         
-        .slide-in-right {
-          animation: slideInFromRight 0.65s forwards cubic-bezier(0.22, 1, 0.36, 1);
+        @keyframes featureSlideLeft {
+          0% { transform: translateX(-50px); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
         }
         
-        .slide-in-left {
-          animation: slideInFromLeft 0.65s forwards cubic-bezier(0.22, 1, 0.36, 1);
+        /* Apply animations based on direction */
+        .slide-right .dropdown-content-inner {
+          animation: slideInRight 0.3s ease forwards;
         }
         
-        .fade-out {
-          animation: fadeOut 0.3s forwards ease-out;
+        .slide-left .dropdown-content-inner {
+          animation: slideInLeft 0.3s ease forwards;
         }
         
+        /* Feature animations with delays */
+        .slide-right .feature-item {
+          opacity: 0;
+        }
+        
+        .slide-right .feature-item:nth-child(1) {
+          animation: featureSlideRight 0.3s ease forwards 0.05s;
+        }
+        
+        .slide-right .feature-item:nth-child(2) {
+          animation: featureSlideRight 0.3s ease forwards 0.1s;
+        }
+        
+        .slide-right .feature-item:nth-child(3) {
+          animation: featureSlideRight 0.3s ease forwards 0.15s;
+        }
+        
+        .slide-left .feature-item {
+          opacity: 0;
+        }
+        
+        .slide-left .feature-item:nth-child(1) {
+          animation: featureSlideLeft 0.3s ease forwards 0.05s;
+        }
+        
+        .slide-left .feature-item:nth-child(2) {
+          animation: featureSlideLeft 0.3s ease forwards 0.1s;
+        }
+        
+        .slide-left .feature-item:nth-child(3) {
+          animation: featureSlideLeft 0.3s ease forwards 0.15s;
+        }
+        
+        /* Description animations */
+        .slide-right .dropdown-description {
+          animation: featureSlideRight 0.3s ease forwards;
+        }
+        
+        .slide-left .dropdown-description {
+          animation: featureSlideLeft 0.3s ease forwards;
+        }
+        
+        /* Container styles */
         .nav-links-container {
           position: relative;
         }
@@ -253,6 +307,10 @@ export default function Navbar() {
           display: flex;
           justify-content: center;
           z-index: 40;
+        }
+        
+        .dropdown-content {
+          overflow: hidden;
         }
       `}</style>
       <header
@@ -342,7 +400,7 @@ export default function Navbar() {
           }}
         >
           <div
-            className="dropdown-content transition-all duration-300"
+            className="dropdown-content"
             style={{
               // Position the dropdown to be centered between Home and Contact
               position: "absolute",
@@ -355,20 +413,21 @@ export default function Navbar() {
               overflow: "hidden",
             }}
           >
-            <div className="p-4 relative overflow-hidden">
-              <div
-                className={`grid grid-cols-4 gap-4 ${
-                  slideDirection === "right" ? "slide-in-right" : slideDirection === "left" ? "slide-in-left" : ""
-                }`}
-                key={activeDropdown} // Add key to force re-render on dropdown change
-              >
+            {/* Apply slide direction class to animate content */}
+            <div
+              className={`p-4 relative overflow-hidden ${
+                slideDirection === "right" ? "slide-right" : slideDirection === "left" ? "slide-left" : ""
+              }`}
+              key={`${activeDropdown}-${animationKey}`} // Force re-render on dropdown change
+            >
+              <div className="dropdown-content-inner grid grid-cols-4 gap-4">
                 {/* Left column - Icon and description */}
                 <div className="col-span-1">
                   <div className="flex items-center gap-2 mb-1">
                     {activeLink?.icon}
                     <h3 className="font-medium text-sm text-gray-900">{activeLink?.label}</h3>
                   </div>
-                  <p className="text-xs text-gray-600 mb-2">{activeLink?.description}</p>
+                  <p className="text-xs text-gray-600 mb-2 dropdown-description">{activeLink?.description}</p>
                   <a
                     href={activeLink?.href}
                     className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors duration-200"
@@ -384,7 +443,10 @@ export default function Navbar() {
                 {/* Right columns - Features */}
                 <div className="col-span-3 grid grid-cols-3 gap-3">
                   {activeLink?.features.map((feature, index) => (
-                    <div key={index} className="group transition-all duration-200 hover:translate-y-[-2px]">
+                    <div
+                      key={index}
+                      className="group transition-all duration-200 hover:translate-y-[-2px] feature-item"
+                    >
                       <h4 className="font-medium text-xs text-gray-900 mb-0.5 group-hover:text-blue-600 transition-colors duration-200">
                         {feature.title}
                       </h4>
