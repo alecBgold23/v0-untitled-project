@@ -209,7 +209,7 @@ export default function Home() {
       </section>
 
       {/* Combined Testimonials and Environmental Mission Section - With 3D Shadow Effect */}
-      <section className="py-16 bg-gradient-to-b from-gray-100 to-gray-50 relative rounded-t-[30px] rounded-b-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15),0_10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-b border-gray-200 z-20 mb-24 mt-[-60px]">
+      <section className="py-16 pb-32 bg-gradient-to-b from-gray-100 to-gray-50 relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15),0_10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-gray-200 z-20 mt-[-60px]">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <h2 className="text-2xl md:text-3xl font-light mb-8 text-center tracking-wide">
@@ -314,7 +314,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section - Completely White with 3D Shadow Effect */}
-      <section className="py-16 bg-white relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-gray-200 z-30 mt-[-60px]">
+      <section className="py-16 bg-white relative rounded-t-[30px] shadow-[0_-15px_25px_-15px_rgba(0,0,0,0.2)] border-t border-gray-200 z-30 mt-[-100px]">
         <div className="container mx-auto px-4 max-w-3xl pb-8">
           <ContentAnimation>
             <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px] border border-gray-100">
