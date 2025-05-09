@@ -21,6 +21,7 @@ export default function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
+  const [submitError, setSubmitError] = useState("")
 
   useEffect(() => {
     setIsFormValid(name.trim() !== "" && email.trim() !== "" && inquiryType !== "" && message.trim() !== "")
@@ -40,45 +41,61 @@ export default function ContactPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setSubmitError("")
 
     if (validateForm()) {
       setIsSubmitting(true)
 
       try {
-        // Submit to Formspree
-        const formspreeResponse = await fetch("https://formspree.io/f/xqaqprdw", {
-          method: "POST",
-          body: JSON.stringify({
-            name,
-            email,
-            inquiryType,
-            message,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        })
-
-        // Also send via our own API
-        const emailResponse = await fetch("/api/send-email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: "alecgold808@gmail.com", // Send to your email
-            subject: `New Contact Form: ${inquiryType} from ${name}`,
-            message: `
+        // Format the message with all form details
+        const formattedMessage = `
 Name: ${name}
 Email: ${email}
 Inquiry Type: ${inquiryType}
-Message: ${message}
+Message:
+${message}
+
+Submitted: ${new Date().toLocaleString()}
+        `
+
+        // Send to the recipient (BluBerry)
+        const recipientResponse = await fetch("/api/send-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: "alecgold808@gmail.com", // Your email address
+            subject: `New Contact Form: ${inquiryType} from ${name}`,
+            message: formattedMessage,
+          }),
+        })
+
+        // Send confirmation to the user
+        const userResponse = await fetch("/api/send-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email, // User's email address
+            subject: "Thank you for contacting BluBerry",
+            message: `
+Dear ${name},
+
+Thank you for contacting BluBerry. We have received your message and will get back to you within 24 hours.
+
+Your inquiry details:
+- Type: ${inquiryType}
+- Message: ${message}
+
+Best regards,
+The BluBerry Team
             `,
           }),
         })
 
-        if (formspreeResponse.ok && emailResponse.ok) {
+        if (recipientResponse.ok) {
           // Show success state
           setIsSubmitting(false)
           setIsSubmitted(true)
@@ -95,7 +112,7 @@ Message: ${message}
       } catch (error) {
         console.error("Error submitting form:", error)
         setIsSubmitting(false)
-        // You could add error handling UI here
+        setSubmitError("There was an error submitting your message. Please try again or contact us directly.")
       }
     }
   }
@@ -237,6 +254,13 @@ Message: ${message}
                         />
                         {formErrors.message && <ErrorMessage message={formErrors.message} />}
                       </div>
+
+                      {submitError && (
+                        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+                          <AlertCircle className="inline-block h-4 w-4 mr-2" />
+                          {submitError}
+                        </div>
+                      )}
 
                       <Button
                         type="submit"
