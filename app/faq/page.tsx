@@ -9,8 +9,10 @@ export default function FAQPage() {
       <section className="py-12 bg-gradient-to-b from-background to-secondary">
         <div className="container mx-auto px-4">
           <ContentAnimation>
-            <h1 className="page-header text-white dark:text-white text-center font-[var(--font-roboto)] font-light tracking-tight">
-              Frequently Asked Questions
+            <h1 className="page-header text-center font-[var(--font-roboto)] font-light tracking-tight">
+              <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
+                Frequently Asked Questions
+              </span>
             </h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>

@@ -374,7 +374,7 @@ export default function SellItemPage() {
       <div className="container mx-auto py-16 px-4 max-w-5xl">
         <ContentAnimation>
           <div className="text-center mb-12 relative">
-            <h1 className="font-light text-4xl md:text-5xl tracking-tight mb-4">
+            <h1 className="font-light text-4xl md:text-5xl tracking-tight mb-4 font-[var(--font-roboto)]">
               <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
                 Sell Your Item
               </span>

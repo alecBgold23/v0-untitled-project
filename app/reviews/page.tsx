@@ -120,8 +120,10 @@ export default function ReviewsPage() {
       <section className="py-8 bg-background border-b border-border">
         <div className="container mx-auto px-4">
           <ContentAnimation>
-            <h1 className="page-header text-white dark:text-white text-center font-[var(--font-roboto)] font-light tracking-tight">
-              Customer Reviews
+            <h1 className="page-header text-center font-[var(--font-roboto)] font-light tracking-tight">
+              <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
+                Customer Reviews
+              </span>
             </h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>
@@ -139,8 +141,10 @@ export default function ReviewsPage() {
             <ContentAnimation delay={0.2}>
               <div>
                 <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
-                  <h2 className="section-header text-foreground mb-6 font-[var(--font-roboto)] font-light tracking-tight">
-                    Share Your Experience
+                  <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight">
+                    <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
+                      Share Your Experience
+                    </span>
                   </h2>
 
                   {submitSuccess ? (
@@ -244,8 +248,10 @@ export default function ReviewsPage() {
             {/* Reviews List */}
             <ContentAnimation delay={0.3}>
               <div>
-                <h2 className="section-header text-foreground mb-6 font-[var(--font-roboto)] font-light tracking-tight">
-                  Customer Feedback
+                <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight">
+                  <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
+                    Customer Feedback
+                  </span>
                 </h2>
 
                 <div className="space-y-6">

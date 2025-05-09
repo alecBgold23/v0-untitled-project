@@ -10,7 +10,9 @@ export default function HowItWorksPage() {
         <div className="container mx-auto px-4">
           <ContentAnimation>
             <h1 className="text-3xl md:text-5xl font-bold mb-4 text-center font-[var(--font-roboto)] font-light tracking-tight">
-              How BluBerry Works
+              <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
+                How BluBerry Works
+              </span>
             </h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>
@@ -159,7 +161,9 @@ export default function HowItWorksPage() {
           <ContentAnimation>
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight font-[var(--font-roboto)] font-light">
-                We Handle Everything For You
+                <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
+                  We Handle Everything For You
+                </span>
               </h2>
               <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
