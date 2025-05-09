@@ -9,7 +9,7 @@ import ContentAnimation from "@/components/content-animation"
 
 export default function Home() {
   const router = useRouter()
-  const [showInitialLine, setShowInitialLine] = useState(false)
+  const [showInitialLine, setShowInitialLine] = useState(true)
 
   // Function to navigate to sell item page
   const navigateToSellItem = () => {
@@ -47,7 +47,7 @@ export default function Home() {
               <div
                 className={`w-full max-w-md h-1 bg-gradient-to-r from-transparent via-[#0066ff] to-transparent rounded-full ${
                   showInitialLine
-                    ? "opacity-100 transition-opacity duration-50 animate-line-wipe"
+                    ? "opacity-100 animate-line-wipe"
                     : "opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 }`}
               ></div>
