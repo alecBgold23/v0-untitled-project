@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Mail, Phone, Clock, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
-import Image from "next/image"
 import ContentAnimation from "@/components/content-animation"
 import ConfettiEffect from "@/components/confetti-effect"
 
@@ -137,10 +136,6 @@ export default function ContactPage() {
                     <p className="text-gray-600">Monday-Friday: 9am-5pm EST</p>
                     <p className="text-gray-600">Saturday: 10am-2pm EST</p>
                     <p className="text-gray-600">Sunday: Closed</p>
-                  </div>
-
-                  <div className="relative w-full h-48 rounded-xl overflow-hidden mt-4">
-                    <Image src="/placeholder.svg?key=sbgcf" alt="Customer Support" fill className="object-cover" />
                   </div>
                 </div>
               </div>

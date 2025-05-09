@@ -517,17 +517,17 @@ export default function SellItemPage() {
                         <span className="text-sm font-normal">(at least 3)</span>
                       </Label>
                       <div
-                        className={`p-6 border border-dashed rounded-lg ${
+                        className={`p-4 border border-dashed rounded-lg ${
                           formErrors.itemPhotos ? "border-red-300" : "border-blue-200"
                         } bg-blue-50 hover:bg-blue-100 transition-colors duration-200 relative cursor-pointer`}
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        <div className="flex flex-col items-center justify-center gap-4">
-                          <div className="flex flex-wrap gap-4 w-full mb-4 min-h-[100px]" ref={photosContainerRef}>
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="flex flex-wrap gap-3 w-full mb-3 min-h-[80px]" ref={photosContainerRef}>
                             {itemPhotos.map((photo, index) => (
                               <div
                                 key={photo.id || index}
-                                className="relative w-24 h-24 rounded-lg overflow-hidden border border-blue-100 shadow-sm group"
+                                className="relative w-16 h-16 rounded-lg overflow-hidden border border-blue-100 shadow-sm group"
                                 onClick={(e) => e.stopPropagation()} // Prevent triggering the parent onClick
                               >
                                 <img
@@ -550,9 +550,9 @@ export default function SellItemPage() {
                               </div>
                             ))}
                             {itemPhotos.length === 0 && (
-                              <div className="w-full text-center text-gray-500 py-8">
-                                <ImageIcon className="w-16 h-16 mx-auto mb-4 text-blue-200" />
-                                <p>Click anywhere in this area to upload photos</p>
+                              <div className="w-full text-center text-gray-500 py-4">
+                                <ImageIcon className="w-12 h-12 mx-auto mb-2 text-blue-200" />
+                                <p className="text-sm">Click to upload photos</p>
                               </div>
                             )}
                           </div>
@@ -564,9 +564,9 @@ export default function SellItemPage() {
                                 e.stopPropagation()
                                 fileInputRef.current?.click()
                               }}
-                              className="flex items-center gap-2 border border-[#0066ff] text-[#0066ff] hover:bg-[#0066ff] hover:text-white px-4 py-2 rounded-full shadow-sm transition-all duration-300"
+                              className="flex items-center gap-1 border border-[#0066ff] text-[#0066ff] hover:bg-[#0066ff] hover:text-white px-3 py-1 text-sm rounded-full shadow-sm transition-all duration-300"
                             >
-                              <Upload className="w-4 h-4" />
+                              <Upload className="w-3 h-3" />
                               <span>Add file</span>
                             </button>
 
@@ -576,9 +576,9 @@ export default function SellItemPage() {
                                 e.stopPropagation()
                                 cameraInputRef.current?.click()
                               }}
-                              className="flex items-center gap-2 border border-[#0066ff] text-[#0066ff] hover:bg-[#0066ff] hover:text-white px-4 py-2 rounded-full shadow-sm transition-all duration-300"
+                              className="flex items-center gap-1 border border-[#0066ff] text-[#0066ff] hover:bg-[#0066ff] hover:text-white px-3 py-1 text-sm rounded-full shadow-sm transition-all duration-300"
                             >
-                              <Camera className="w-4 h-4" />
+                              <Camera className="w-3 h-3" />
                               <span>Take photo</span>
                             </button>
 
