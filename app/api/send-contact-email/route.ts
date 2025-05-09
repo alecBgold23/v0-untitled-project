@@ -2,30 +2,51 @@ import { NextResponse } from "next/server"
 import { Resend } from "resend"
 
 // Initialize Resend client with your API key
-const resend = new Resend("re_ScJSZp6x_8Gq33AABtqtiMLPUGqGaicCt")
+const resendApiKey = "re_ScJSZp6x_8Gq33AABtqtiMLPUGqGaicCt"
+const resend = new Resend(resendApiKey)
 
 export async function POST(request) {
-  try {
-    const body = await request.json()
-    const { name, email, message } = body
+  console.log("Contact email API route called")
 
+  try {
+    // Parse the request body
+    const body = await request.json()
+    console.log("Request body:", body)
+
+    const { name, email, inquiryType, message } = body
+
+    // Create email content
     const emailContent = `
       New contact form submission:
-      - Name: ${name}
-      - Email: ${email}
-      - Message: ${message}
+      - Name: ${name || "Not provided"}
+      - Email: ${email || "Not provided"}
+      - Inquiry Type: ${inquiryType || "Not provided"}
+      - Message: ${message || "Not provided"}
+      
+      Submitted on: ${new Date().toLocaleString()}
     `
 
-    const response = await resend.emails.send({
-      from: "onboarding@resend.dev", // Default verified sender
-      to: ["alecgold808@gmail.com"], // Your email address
-      subject: `New Contact Form Submission from ${name}`,
+    console.log("Preparing to send email with content:", emailContent)
+    console.log("Using Resend API key:", resendApiKey.substring(0, 5) + "...")
+
+    // Send the email
+    const { data, error } = await resend.emails.send({
+      from: "BluBerry <onboarding@resend.dev>",
+      to: ["alecgold808@gmail.com"],
+      subject: `New Contact Form Submission from ${name || "Unknown User"}`,
       text: emailContent,
     })
 
-    return NextResponse.json({ message: "Email sent successfully!", data: response })
+    // Log the response
+    if (error) {
+      console.error("Resend API error:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    console.log("Email sent successfully:", data)
+    return NextResponse.json({ success: true, data })
   } catch (error) {
-    console.error("Error sending email:", error)
-    return NextResponse.json({ error: "Failed to send email" }, { status: 500 })
+    console.error("Error in send-contact-email API route:", error)
+    return NextResponse.json({ error: "Failed to send email: " + (error.message || "Unknown error") }, { status: 500 })
   }
 }
