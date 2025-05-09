@@ -26,6 +26,11 @@ export default function PageTransition({ children }: { children: React.ReactNode
         ease: [0.33, 1, 0.68, 1], // Custom cubic-bezier for smoother transitions
       }}
       className="w-full h-full bg-background will-change-opacity"
+      style={{
+        transformStyle: "preserve-3d",
+        backfaceVisibility: "hidden",
+        transform: "translateZ(0)",
+      }}
     >
       {children}
     </motion.div>

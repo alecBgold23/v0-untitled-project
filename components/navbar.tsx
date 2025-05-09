@@ -7,6 +7,7 @@ import SearchModal from "./search"
 import { ThemeToggle } from "./theme-toggle"
 import { BluberryLogoSVG } from "./blueberry-logo-svg"
 import { ThemeDebug } from "./theme-debug"
+import Link from "next/link"
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -66,15 +67,16 @@ export default function Navbar() {
             {/* Desktop navigation */}
             <div className="hidden md:flex space-x-8">
               {navLinks.map((link) => (
-                <a
+                <Link
                   key={link.href}
                   href={link.href}
                   className={`text-sm hover:text-primary transition-all duration-200 py-1 ${
                     pathname === link.href ? "text-primary font-medium" : "text-foreground/80"
                   }`}
+                  style={{ display: "inline-block", width: "auto" }}
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
             </div>
 
@@ -103,15 +105,16 @@ export default function Navbar() {
           {isMenuOpen && (
             <div className="md:hidden py-4 flex flex-col gap-6 items-center bg-background">
               {navLinks.map((link) => (
-                <a
+                <Link
                   key={link.href}
                   href={link.href}
                   className={`text-sm hover:text-primary transition-all duration-200 ${
                     pathname === link.href ? "text-primary font-medium" : "text-foreground/80"
                   }`}
+                  style={{ display: "inline-block", width: "auto" }}
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
             </div>
           )}
