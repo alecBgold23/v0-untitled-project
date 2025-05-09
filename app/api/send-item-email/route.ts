@@ -10,20 +10,18 @@ export async function POST(request) {
     const { itemName, itemDescription, itemCondition, pickupLocation, email } = body
 
     const emailContent = `
-      New item submission:
-      - Item Name: ${itemName || "Not provided"}
-      - Item Description: ${itemDescription || "Not provided"}
-      - Item Condition: ${itemCondition || "Not provided"}
-      - Pickup Location: ${pickupLocation || "Not provided"}
-      - Customer Email: ${email || "Not provided"}
-      
-      This submission was received on ${new Date().toLocaleString()}.
+      New item submission details:
+      - Item Name: ${itemName}
+      - Item Description: ${itemDescription}
+      - Item Condition: ${itemCondition}
+      - Pickup Location: ${pickupLocation}
+      - Customer Email: ${email}
     `
 
     const response = await resend.emails.send({
       from: "onboarding@resend.dev", // Default verified sender
       to: ["alecgold808@gmail.com"], // Your email address
-      subject: `New Item Submission: ${itemName || "Unnamed Item"}`,
+      subject: `New Item Submission: ${itemName}`,
       text: emailContent,
     })
 
