@@ -4,16 +4,14 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { Mail, Phone, Clock, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
+import { Mail, Phone, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import ConfettiEffect from "@/components/confetti-effect"
 
 export default function ContactPage() {
+  // Update the state variables to remove inquiryType
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [inquiryType, setInquiryType] = useState("")
   const [message, setMessage] = useState("")
   const [formErrors, setFormErrors] = useState({})
   const [isFormValid, setIsFormValid] = useState(false)
@@ -22,22 +20,24 @@ export default function ContactPage() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [submitError, setSubmitError] = useState("")
 
+  // Update the useEffect to remove inquiryType from validation
   useEffect(() => {
-    setIsFormValid(name.trim() !== "" && email.trim() !== "" && inquiryType !== "" && message.trim() !== "")
-  }, [name, email, inquiryType, message])
+    setIsFormValid(name.trim() !== "" && email.trim() !== "" && message.trim() !== "")
+  }, [name, email, message])
 
+  // Update the validateForm function to remove inquiryType
   const validateForm = () => {
     const errors = {}
 
     if (!name.trim()) errors.name = "Please enter your name"
     if (!email.trim()) errors.email = "Please enter your email address"
-    if (!inquiryType) errors.inquiryType = "Please select an inquiry type"
     if (!message.trim()) errors.message = "Please enter your message"
 
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
 
+  // Update the handleSubmit function to remove inquiryType
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitError("")
@@ -55,7 +55,6 @@ export default function ContactPage() {
           body: JSON.stringify({
             name,
             email,
-            inquiryType,
             message,
           }),
         })
@@ -71,7 +70,6 @@ export default function ContactPage() {
           // Reset form
           setName("")
           setEmail("")
-          setInquiryType("")
           setMessage("")
         } else {
           throw new Error(result.error || "Failed to send message")
@@ -116,37 +114,27 @@ export default function ContactPage() {
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="grid md:grid-cols-2 gap-12">
+            {/* Simplify the contact information section */}
             <ContentAnimation>
               <div className="text-center">
                 <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight text-foreground">
                   Contact Information
                 </h2>
-                <div className="space-y-6">
-                  <div className="flex flex-col items-center">
-                    <Phone className="w-5 h-5 text-[#3B82F6] mb-2" />
-                    <h3 className="font-medium text-foreground font-[var(--font-roboto)]">Phone</h3>
-                    <p className="text-foreground/80">847-510-3229</p>
-                    <p className="text-sm text-muted-foreground mt-1">Monday-Friday, 9am-5pm EST</p>
-                  </div>
-
-                  <div className="flex flex-col items-center">
-                    <Mail className="w-5 h-5 text-[#8A4FFF] mb-2" />
-                    <h3 className="font-medium text-foreground font-[var(--font-roboto)]">Email</h3>
+                <div className="space-y-4">
+                  <div>
+                    <Mail className="w-5 h-5 text-[#8A4FFF] mx-auto mb-2" />
                     <p className="text-foreground/80">alecgold808@gmail.com</p>
-                    <p className="text-sm text-muted-foreground mt-1">Response within 24 hours</p>
                   </div>
 
-                  <div className="flex flex-col items-center">
-                    <Clock className="w-5 h-5 text-[#3B82F6] mb-2" />
-                    <h3 className="font-medium text-foreground font-[var(--font-roboto)]">Hours</h3>
-                    <p className="text-foreground/80">Monday-Friday: 9am-5pm EST</p>
-                    <p className="text-foreground/80">Saturday: 10am-2pm EST</p>
-                    <p className="text-foreground/80">Sunday: Closed</p>
+                  <div>
+                    <Phone className="w-5 h-5 text-[#3B82F6] mx-auto mb-2" />
+                    <p className="text-foreground/80">847-510-3229</p>
                   </div>
                 </div>
               </div>
             </ContentAnimation>
 
+            {/* Replace the form section with a simplified version */}
             <ContentAnimation delay={0.1}>
               <div className="text-center">
                 {!isSubmitted ? (
@@ -156,71 +144,41 @@ export default function ContactPage() {
                     </h2>
                     <form className="space-y-4" onSubmit={handleSubmit}>
                       <div>
-                        <Label htmlFor="name" className="text-sm font-medium text-foreground">
-                          Name <span className="text-red-500">*</span>
-                        </Label>
                         <Input
                           id="name"
                           name="name"
                           placeholder="Your name"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          className={`mt-1 rounded-lg ${formErrors.name ? "border-red-500" : "border-input"}`}
+                          className={`rounded-lg ${formErrors.name ? "border-red-500" : "border-input"}`}
                           required
                         />
                         {formErrors.name && <ErrorMessage message={formErrors.name} />}
                       </div>
 
                       <div>
-                        <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                          Email <span className="text-red-500">*</span>
-                        </Label>
                         <Input
                           id="email"
                           name="email"
                           type="email"
-                          placeholder="your.email@example.com"
+                          placeholder="Your email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className={`mt-1 rounded-lg ${formErrors.email ? "border-red-500" : "border-input"}`}
+                          className={`rounded-lg ${formErrors.email ? "border-red-500" : "border-input"}`}
                           required
                         />
                         {formErrors.email && <ErrorMessage message={formErrors.email} />}
                       </div>
 
                       <div>
-                        <Label htmlFor="inquiry-type" className="text-sm font-medium text-foreground">
-                          Type of Inquiry <span className="text-red-500">*</span>
-                        </Label>
-                        <Select value={inquiryType} onValueChange={setInquiryType} name="inquiryType" required>
-                          <SelectTrigger
-                            id="inquiry-type"
-                            className={`mt-1 rounded-lg ${formErrors.inquiryType ? "border-red-500" : "border-input"}`}
-                          >
-                            <SelectValue placeholder="Select an option" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="selling">Question about selling</SelectItem>
-                            <SelectItem value="pickup">Question about pickup</SelectItem>
-                            <SelectItem value="payment">Question about payment</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {formErrors.inquiryType && <ErrorMessage message={formErrors.inquiryType} />}
-                      </div>
-
-                      <div>
-                        <Label htmlFor="message" className="text-sm font-medium text-foreground">
-                          Message <span className="text-red-500">*</span>
-                        </Label>
                         <Textarea
                           id="message"
                           name="message"
                           placeholder="How can we help you?"
-                          rows={5}
+                          rows={4}
                           value={message}
                           onChange={(e) => setMessage(e.target.value)}
-                          className={`mt-1 rounded-lg ${formErrors.message ? "border-red-500" : "border-input"}`}
+                          className={`rounded-lg ${formErrors.message ? "border-red-500" : "border-input"}`}
                           required
                         />
                         {formErrors.message && <ErrorMessage message={formErrors.message} />}
@@ -233,11 +191,7 @@ export default function ContactPage() {
                         </div>
                       )}
 
-                      <Button
-                        type="submit"
-                        disabled={!isFormValid || isSubmitting}
-                        className="apple-button apple-button-primary w-full gradient-button hover:bg-white hover:text-[#0071e3] hover:border hover:border-[#0071e3] transition-all duration-300"
-                      >
+                      <Button type="submit" disabled={!isFormValid || isSubmitting} className="w-full">
                         {isSubmitting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -250,22 +204,13 @@ export default function ContactPage() {
                     </form>
                   </>
                 ) : (
-                  <div className="text-center py-12 bg-card rounded-xl shadow-sm border border-border p-8">
-                    <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg transform transition-all duration-500 hover:scale-105">
-                      <CheckCircle className="w-8 h-8 text-white" />
-                    </div>
-                    <h2 className="text-2xl md:text-3xl font-light mb-4 text-foreground tracking-wider">
-                      Message Sent!
-                    </h2>
-                    <div className="w-32 h-1 mx-auto mb-6 bg-gradient-to-r from-[#4f46e5] via-[#7c3aed] to-[#2563eb] rounded-full shadow-sm"></div>
-                    <p className="text-lg mb-8 text-foreground/80">
-                      Thank you for contacting BluBerry. Your message has been received and we'll respond within 24
-                      hours.
+                  <div className="text-center py-8 bg-card rounded-lg shadow-sm border border-border p-6">
+                    <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-medium mb-2 text-foreground">Message Sent!</h2>
+                    <p className="text-foreground/80 mb-4">
+                      Thank you for contacting BluBerry. We'll respond within 24 hours.
                     </p>
-                    <Button
-                      onClick={() => setIsSubmitted(false)}
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all duration-300 rounded-lg px-6 py-2"
-                    >
+                    <Button onClick={() => setIsSubmitted(false)} variant="outline" size="sm">
                       Send Another Message
                     </Button>
                   </div>
