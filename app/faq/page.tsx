@@ -9,7 +9,9 @@ export default function FAQPage() {
       <section className="py-12 bg-gradient-to-b from-background to-secondary">
         <div className="container mx-auto px-4">
           <ContentAnimation>
-            <h1 className="page-header text-white dark:text-white text-center">Frequently Asked Questions</h1>
+            <h1 className="page-header text-white dark:text-white text-center font-[var(--font-roboto)] font-light tracking-tight">
+              Frequently Asked Questions
+            </h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>
             <p className="text-muted-foreground text-center mt-2 mb-0">
@@ -25,7 +27,7 @@ export default function FAQPage() {
           <ContentAnimation delay={0.2}>
             <Accordion type="single" collapsible className="space-y-6">
               <AccordionItem value="item-1" className="border rounded-lg p-2 shadow-sm bg-card">
-                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4">
+                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4 font-[var(--font-roboto)]">
                   What is BluBerry?
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 text-foreground/80">
@@ -35,7 +37,7 @@ export default function FAQPage() {
               </AccordionItem>
 
               <AccordionItem value="item-2" className="border rounded-lg p-2 shadow-sm bg-card">
-                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4">
+                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4 font-[var(--font-roboto)]">
                   How do I submit my items?
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 text-foreground/80">
@@ -45,7 +47,7 @@ export default function FAQPage() {
               </AccordionItem>
 
               <AccordionItem value="item-3" className="border rounded-lg p-2 shadow-sm bg-card">
-                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4">
+                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4 font-[var(--font-roboto)]">
                   What types of items can I send?
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 text-foreground/80">
@@ -55,7 +57,7 @@ export default function FAQPage() {
               </AccordionItem>
 
               <AccordionItem value="item-4" className="border rounded-lg p-2 shadow-sm bg-card">
-                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4">
+                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4 font-[var(--font-roboto)]">
                   Is there anything BluBerry doesn't accept?
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 text-foreground/80">
@@ -65,7 +67,7 @@ export default function FAQPage() {
               </AccordionItem>
 
               <AccordionItem value="item-5" className="border rounded-lg p-2 shadow-sm bg-card">
-                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4">
+                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4 font-[var(--font-roboto)]">
                   How do I get paid?
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 text-foreground/80">
@@ -75,7 +77,7 @@ export default function FAQPage() {
               </AccordionItem>
 
               <AccordionItem value="item-6" className="border rounded-lg p-2 shadow-sm bg-card">
-                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4">
+                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4 font-[var(--font-roboto)]">
                   What does it cost to use BluBerry?
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 text-foreground/80">
@@ -85,7 +87,7 @@ export default function FAQPage() {
               </AccordionItem>
 
               <AccordionItem value="item-7" className="border rounded-lg p-2 shadow-sm bg-card">
-                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4">
+                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4 font-[var(--font-roboto)]">
                   How is pricing decided?
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 text-foreground/80">
@@ -95,7 +97,7 @@ export default function FAQPage() {
               </AccordionItem>
 
               <AccordionItem value="item-8" className="border rounded-lg p-2 shadow-sm bg-card">
-                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4">
+                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4 font-[var(--font-roboto)]">
                   Can I cancel a submission?
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 text-foreground/80">
@@ -105,7 +107,7 @@ export default function FAQPage() {
               </AccordionItem>
 
               <AccordionItem value="item-9" className="border rounded-lg p-2 shadow-sm bg-card">
-                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4">
+                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4 font-[var(--font-roboto)]">
                   Is BluBerry available nationwide?
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 text-foreground/80">
@@ -115,7 +117,7 @@ export default function FAQPage() {
               </AccordionItem>
 
               <AccordionItem value="item-10" className="border rounded-lg p-2 shadow-sm bg-card">
-                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4">
+                <AccordionTrigger className="text-lg font-medium text-[#3B82F6] hover:text-[#0066ff] px-4 font-[var(--font-roboto)]">
                   How is BluBerry different?
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 text-foreground/80">

@@ -99,7 +99,9 @@ export default function ContactPage() {
       <section className="apple-section bg-background border-b border-border">
         <div className="container mx-auto px-4">
           <ContentAnimation>
-            <h1 className="page-header text-white dark:text-white">Contact Us</h1>
+            <h1 className="page-header text-white dark:text-white font-[var(--font-roboto)] font-light tracking-tight">
+              Contact Us
+            </h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>
             <p className="apple-subheading text-muted-foreground mb-8">
@@ -114,25 +116,27 @@ export default function ContactPage() {
           <div className="grid md:grid-cols-2 gap-12">
             <ContentAnimation>
               <div className="text-center">
-                <h2 className="section-header text-foreground mb-6">Contact Information</h2>
+                <h2 className="section-header text-foreground mb-6 font-[var(--font-roboto)] font-light tracking-tight">
+                  Contact Information
+                </h2>
                 <div className="space-y-6">
                   <div className="flex flex-col items-center">
                     <Phone className="w-5 h-5 text-[#3B82F6] mb-2" />
-                    <h3 className="font-medium text-foreground">Phone</h3>
+                    <h3 className="font-medium text-foreground font-[var(--font-roboto)]">Phone</h3>
                     <p className="text-foreground/80">847-510-3229</p>
                     <p className="text-sm text-muted-foreground mt-1">Monday-Friday, 9am-5pm EST</p>
                   </div>
 
                   <div className="flex flex-col items-center">
                     <Mail className="w-5 h-5 text-[#8A4FFF] mb-2" />
-                    <h3 className="font-medium text-foreground">Email</h3>
+                    <h3 className="font-medium text-foreground font-[var(--font-roboto)]">Email</h3>
                     <p className="text-foreground/80">alecgold808@gmail.com</p>
                     <p className="text-sm text-muted-foreground mt-1">Response within 24 hours</p>
                   </div>
 
                   <div className="flex flex-col items-center">
                     <Clock className="w-5 h-5 text-[#3B82F6] mb-2" />
-                    <h3 className="font-medium text-foreground">Hours</h3>
+                    <h3 className="font-medium text-foreground font-[var(--font-roboto)]">Hours</h3>
                     <p className="text-foreground/80">Monday-Friday: 9am-5pm EST</p>
                     <p className="text-foreground/80">Saturday: 10am-2pm EST</p>
                     <p className="text-foreground/80">Sunday: Closed</p>
@@ -145,7 +149,9 @@ export default function ContactPage() {
               <div className="text-center">
                 {!isSubmitted ? (
                   <>
-                    <h2 className="section-header text-foreground mb-6">Send a Message</h2>
+                    <h2 className="section-header text-foreground mb-6 font-[var(--font-roboto)] font-light tracking-tight">
+                      Send a Message
+                    </h2>
                     <form className="space-y-4" onSubmit={handleSubmit}>
                       <div>
                         <Label htmlFor="name" className="text-sm font-medium text-foreground">
@@ -272,12 +278,16 @@ export default function ContactPage() {
       <section className="apple-section bg-muted/50">
         <div className="container mx-auto px-4 max-w-4xl">
           <ContentAnimation>
-            <h2 className="page-header text-white dark:text-white mb-12">Frequently Asked Questions</h2>
+            <h2 className="page-header text-white dark:text-white mb-12 font-[var(--font-roboto)] font-light tracking-tight">
+              Frequently Asked Questions
+            </h2>
           </ContentAnimation>
           <div className="space-y-8">
             <ContentAnimation delay={0.1}>
               <div className="text-center">
-                <h3 className="text-xl font-semibold mb-2 text-foreground">What types of items do you accept?</h3>
+                <h3 className="text-xl font-semibold mb-2 text-foreground font-[var(--font-roboto)]">
+                  What types of items do you accept?
+                </h3>
                 <p className="text-foreground/80">
                   We accept a wide variety of quality used items in good condition, including furniture, electronics,
                   appliances, sporting equipment, musical instruments, tools, and collectibles.
@@ -286,7 +296,7 @@ export default function ContactPage() {
             </ContentAnimation>
             <ContentAnimation delay={0.2}>
               <div className="text-center">
-                <h3 className="text-xl font-semibold mb-2 text-foreground">
+                <h3 className="text-xl font-semibold mb-2 text-foreground font-[var(--font-roboto)]">
                   How do you determine the price for my item?
                 </h3>
                 <p className="text-foreground/80">
@@ -297,7 +307,9 @@ export default function ContactPage() {
             </ContentAnimation>
             <ContentAnimation delay={0.3}>
               <div className="text-center">
-                <h3 className="text-xl font-semibold mb-2 text-foreground">How soon can you pick up my item?</h3>
+                <h3 className="text-xl font-semibold mb-2 text-foreground font-[var(--font-roboto)]">
+                  How soon can you pick up my item?
+                </h3>
                 <p className="text-foreground/80">
                   Upon acceptance of our offer, we typically schedule pickup within 2-3 business days, depending on your
                   location and availability.
@@ -306,7 +318,9 @@ export default function ContactPage() {
             </ContentAnimation>
             <ContentAnimation delay={0.4}>
               <div className="text-center">
-                <h3 className="text-xl font-semibold mb-2 text-foreground">What payment methods do you offer?</h3>
+                <h3 className="text-xl font-semibold mb-2 text-foreground font-[var(--font-roboto)]">
+                  What payment methods do you offer?
+                </h3>
                 <p className="text-foreground/80">
                   We provide payment via cash, check, or digital payment methods such as Venmo or PayPal, according to
                   your preference.

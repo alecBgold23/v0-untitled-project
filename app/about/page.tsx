@@ -8,7 +8,9 @@ export default function AboutPage() {
       <section className="apple-section bg-gradient-to-b from-background to-secondary">
         <div className="container mx-auto px-4">
           <AnimatedSection>
-            <h1 className="page-header text-white dark:text-white">About BluBerry</h1>
+            <h1 className="page-header text-white dark:text-white font-[var(--font-roboto)] font-light tracking-tight">
+              About BluBerry
+            </h1>
           </AnimatedSection>
           <AnimatedSection delay={0.1}>
             <p className="apple-subheading mb-8 text-muted-foreground">
@@ -24,7 +26,9 @@ export default function AboutPage() {
           <div className="space-y-12 text-center">
             <AnimatedSection>
               <div>
-                <h2 className="section-header mb-4 text-foreground">Our Mission</h2>
+                <h2 className="section-header mb-4 text-foreground font-[var(--font-roboto)] font-light tracking-tight">
+                  Our Mission
+                </h2>
                 {/* Image removed as requested */}
                 <p className="text-muted-foreground">
                   At BluBerry, our mission is clear: <strong>Selling made simpler</strong>. We've created a service that
@@ -40,7 +44,9 @@ export default function AboutPage() {
 
             <AnimatedSection delay={0.1}>
               <div className="bg-secondary p-8 rounded-xl">
-                <h2 className="section-header mb-4 text-foreground">Our Approach</h2>
+                <h2 className="section-header mb-4 text-foreground font-[var(--font-roboto)] font-light tracking-tight">
+                  Our Approach
+                </h2>
                 <p className="text-muted-foreground">
                   Unlike traditional online marketplaces that require significant time investment in creating listings,
                   communicating with potential buyers, and arranging meetings, BluBerry offers a comprehensive service
@@ -56,7 +62,9 @@ export default function AboutPage() {
 
             <AnimatedSection>
               <div>
-                <h2 className="section-header mb-6 text-foreground">Our Core Values</h2>
+                <h2 className="section-header mb-6 text-foreground font-[var(--font-roboto)] font-light tracking-tight">
+                  Our Core Values
+                </h2>
                 {/* Core Values image removed as requested */}
                 <div className="flex flex-col items-center space-y-6">
                   <div className="flex flex-col items-center">
@@ -107,7 +115,9 @@ export default function AboutPage() {
 
             <AnimatedSection delay={0.1}>
               <div className="bg-secondary p-8 rounded-xl">
-                <h2 className="section-header mb-4 text-foreground">Who We Serve</h2>
+                <h2 className="section-header mb-4 text-foreground font-[var(--font-roboto)] font-light tracking-tight">
+                  Who We Serve
+                </h2>
                 {/* Who We Serve image removed as requested */}
                 <p className="text-muted-foreground mb-4">
                   BluBerry is designed for anyone seeking a convenient selling solution, with particular benefits for:
@@ -123,7 +133,9 @@ export default function AboutPage() {
 
             <AnimatedSection>
               <div className="text-center mt-12">
-                <h2 className="section-header mb-4 text-foreground">Begin Your Selling Experience</h2>
+                <h2 className="section-header mb-4 text-foreground font-[var(--font-roboto)] font-light tracking-tight">
+                  Begin Your Selling Experience
+                </h2>
                 <p className="text-xl mb-6 text-foreground">
                   Let us help you convert unused items into value with our professional service.
                 </p>

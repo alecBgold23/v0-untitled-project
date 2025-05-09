@@ -120,7 +120,9 @@ export default function ReviewsPage() {
       <section className="py-8 bg-background border-b border-border">
         <div className="container mx-auto px-4">
           <ContentAnimation>
-            <h1 className="page-header text-white dark:text-white text-center">Customer Reviews</h1>
+            <h1 className="page-header text-white dark:text-white text-center font-[var(--font-roboto)] font-light tracking-tight">
+              Customer Reviews
+            </h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>
             <p className="text-muted-foreground text-center mt-2">
@@ -137,7 +139,9 @@ export default function ReviewsPage() {
             <ContentAnimation delay={0.2}>
               <div>
                 <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
-                  <h2 className="section-header text-foreground mb-6">Share Your Experience</h2>
+                  <h2 className="section-header text-foreground mb-6 font-[var(--font-roboto)] font-light tracking-tight">
+                    Share Your Experience
+                  </h2>
 
                   {submitSuccess ? (
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-start mb-6">
@@ -240,7 +244,9 @@ export default function ReviewsPage() {
             {/* Reviews List */}
             <ContentAnimation delay={0.3}>
               <div>
-                <h2 className="section-header text-foreground mb-6">Customer Feedback</h2>
+                <h2 className="section-header text-foreground mb-6 font-[var(--font-roboto)] font-light tracking-tight">
+                  Customer Feedback
+                </h2>
 
                 <div className="space-y-6">
                   {reviews.map((review) => (
