@@ -15,7 +15,7 @@ interface ContentAnimationProps {
 
 const variants = {
   fadeUp: {
-    hidden: { opacity: 0, y: 10 },
+    hidden: { opacity: 0, y: 5 },
     visible: { opacity: 1, y: 0 },
   },
   fadeIn: {
@@ -23,11 +23,11 @@ const variants = {
     visible: { opacity: 1 },
   },
   fadeLeft: {
-    hidden: { opacity: 0, x: -50 },
+    hidden: { opacity: 0, x: -20 },
     visible: { opacity: 1, x: 0 },
   },
   fadeRight: {
-    hidden: { opacity: 0, x: 50 },
+    hidden: { opacity: 0, x: 20 },
     visible: { opacity: 1, x: 0 },
   },
 }
@@ -49,9 +49,9 @@ export default function ContentAnimation({
       animate={inView ? "visible" : "hidden"}
       variants={variants[animation]}
       transition={{
-        type: "tween",
-        ease: "easeOut",
-        duration: duration || 0.3,
+        type: "spring",
+        stiffness: 100,
+        damping: 15,
         delay: delay || 0,
       }}
       className={`content-animation-wrapper ${className}`}

@@ -25,7 +25,7 @@ export default function AnimatedSection({
   // Animation variants
   const variants = {
     fadeUp: {
-      hidden: { opacity: 0, y: 10 },
+      hidden: { opacity: 0, y: 5 },
       visible: { opacity: 1, y: 0 },
     },
     fadeIn: {
@@ -33,7 +33,7 @@ export default function AnimatedSection({
       visible: { opacity: 1 },
     },
     scaleUp: {
-      hidden: { opacity: 0, scale: 0.95 },
+      hidden: { opacity: 0, scale: 0.98 },
       visible: { opacity: 1, scale: 1 },
     },
   }
@@ -45,9 +45,9 @@ export default function AnimatedSection({
       animate={inView ? "visible" : "hidden"}
       variants={variants[animation]}
       transition={{
-        type: "tween",
-        ease: "easeOut",
-        duration: 0.3,
+        type: "spring",
+        stiffness: 100,
+        damping: 15,
         delay: delay,
       }}
       className={className}

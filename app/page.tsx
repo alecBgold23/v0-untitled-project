@@ -30,7 +30,7 @@ export default function Home() {
       <section className="bg-background pt-6 pb-12 md:pt-8 md:pb-16">
         <div className="container mx-auto px-4">
           {/* Clickable hero content */}
-          <ContentAnimation duration={0.3} delay={0}>
+          <ContentAnimation duration={0.3} delay={0} animation="fadeIn">
             <div
               className="flex flex-col items-center text-center cursor-pointer group mb-4"
               onClick={navigateToSellItem}
@@ -334,9 +334,20 @@ export default function Home() {
         @keyframes shimmer {
           0% {
             transform: translateX(-100%);
+            opacity: 0;
+          }
+          10% {
+            opacity: 0.5;
+          }
+          50% {
+            opacity: 0.8;
+          }
+          90% {
+            opacity: 0.5;
           }
           100% {
             transform: translateX(100%);
+            opacity: 0;
           }
         }
         
@@ -357,6 +368,10 @@ export default function Home() {
         
         .animate-line-wipe {
           animation: lineWipe 100ms ease-out forwards;
+        }
+
+        .content-animation-wrapper {
+          will-change: transform, opacity;
         }
       `}</style>
     </div>
