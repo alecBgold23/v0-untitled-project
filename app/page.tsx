@@ -93,8 +93,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works Section - REDESIGNED */}
-      <section className="py-32 bg-gradient-to-b from-gray-100 to-white relative shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.05),0_15px_15px_-15px_rgba(0,0,0,0.05)]">
+      {/* How It Works Section - REDESIGNED with 3D shadow effect */}
+      <section className="py-32 bg-gradient-to-b from-gray-100 to-white relative rounded-t-[40px] shadow-[0_-15px_30px_-10px_rgba(0,0,0,0.1)] transform translate-y-[-1px] border-t border-gray-200">
         <div className="container mx-auto px-4 max-w-6xl">
           <ContentAnimation>
             <h2 className="text-3xl md:text-4xl font-light mb-16 text-center tracking-wide">
@@ -131,6 +131,7 @@ export default function Home() {
                         boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
                         display: "block",
                       }}
+                      className="hover:shadow-lg transition-shadow duration-300"
                     />
                   </div>
                 </div>
@@ -160,6 +161,7 @@ export default function Home() {
                         boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
                         display: "block",
                       }}
+                      className="hover:shadow-lg transition-shadow duration-300"
                     />
                   </div>
                 </div>
@@ -189,6 +191,7 @@ export default function Home() {
                         boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
                         display: "block",
                       }}
+                      className="hover:shadow-lg transition-shadow duration-300"
                     />
                   </div>
                 </div>
@@ -264,8 +267,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials Section - REDESIGNED */}
-      <section className="py-32 bg-gradient-to-b from-gray-100 to-white relative shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.05),0_15px_15px_-15px_rgba(0,0,0,0.05)]">
+      {/* Testimonials Section - REDESIGNED with 3D shadow effect */}
+      <section className="py-32 bg-gradient-to-b from-gray-100 to-white relative rounded-t-[40px] shadow-[0_-15px_30px_-10px_rgba(0,0,0,0.1)] transform translate-y-[-1px] border-t border-gray-200">
         <div className="container mx-auto px-4 max-w-6xl">
           <ContentAnimation>
             <h2 className="text-3xl md:text-4xl font-light mb-20 text-center tracking-wide">

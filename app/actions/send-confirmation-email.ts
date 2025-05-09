@@ -22,7 +22,6 @@ export async function sendConfirmationEmail(data) {
       itemDescription: data.itemDescription || "No description provided",
       itemIssues: data.itemIssues || "None reported",
       phone: data.phone || "Not provided",
-      zipCode: data.zipCode || "Not provided",
       address: data.address || "Not provided",
       pickupDate: data.pickupDate || "Not specified",
     }
@@ -72,7 +71,6 @@ Customer Information:
 - Name: ${safeData.fullName}
 - Email: ${safeData.email}
 - Phone: ${safeData.phone}
-- ZIP Code: ${safeData.zipCode}
 - Address: ${safeData.address}
 - Preferred Pickup Date: ${safeData.pickupDate}
 

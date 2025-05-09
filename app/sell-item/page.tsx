@@ -31,18 +31,15 @@ export default function SellItemPage() {
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
-  const [zipCode, setZipCode] = useState("")
+  const [address, setAddress] = useState("")
+  const [addressSuggestions, setAddressSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [pickupDate, setPickupDate] = useState("")
   const [termsAccepted, setTermsAccepted] = useState(false)
 
   // Animation states
   const [animatingFiles, setAnimatingFiles] = useState([])
   const photosContainerRef = useRef(null)
-
-  // Address autocomplete
-  const [address, setAddress] = useState("")
-  const [addressSuggestions, setAddressSuggestions] = useState([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [pickupDate, setPickupDate] = useState("")
 
   // Mock address suggestions - in a real app, this would come from an API
   const mockAddresses = [
@@ -91,18 +88,28 @@ export default function SellItemPage() {
 
   // Validate step 1
   useEffect(() => {
-    setStep1Valid(itemName.trim() !== "" && itemCategory !== "")
+    setStep1Valid(
+      itemName.trim() !== "" && itemCategory !== "" && itemDescription.trim() !== "" && itemPhotos.length >= 3,
+    )
   }, [itemCategory, itemName, itemDescription, itemPhotos])
 
   // Validate step 2
   useEffect(() => {
-    setStep2Valid(itemCondition !== "")
+    setStep2Valid(itemCondition !== "" && itemIssues.trim() !== "")
   }, [itemCondition, itemIssues])
 
   // Validate step 3
   useEffect(() => {
-    setStep3Valid(fullName.trim() !== "" && email.trim() !== "" && email.includes("@") && termsAccepted)
-  }, [fullName, email, phone, zipCode, address, pickupDate, termsAccepted])
+    setStep3Valid(
+      fullName.trim() !== "" &&
+        email.trim() !== "" &&
+        email.includes("@") &&
+        phone.trim() !== "" &&
+        address.trim() !== "" &&
+        pickupDate !== "" &&
+        termsAccepted,
+    )
+  }, [fullName, email, phone, address, pickupDate, termsAccepted])
 
   const validateStep1 = () => {
     const errors = {}
@@ -112,6 +119,12 @@ export default function SellItemPage() {
     if (!itemCategory) {
       errors.itemCategory = "Please select a category"
     }
+    if (!itemDescription.trim()) {
+      errors.itemDescription = "Item description is required"
+    }
+    if (itemPhotos.length < 3) {
+      errors.itemPhotos = "Please upload at least 3 photos"
+    }
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -120,6 +133,9 @@ export default function SellItemPage() {
     const errors = {}
     if (!itemCondition) {
       errors.itemCondition = "Please select the item condition"
+    }
+    if (!itemIssues.trim()) {
+      errors.itemIssues = "Please describe any issues or indicate 'None'"
     }
     setFormErrors(errors)
     return Object.keys(errors).length === 0
@@ -134,6 +150,15 @@ export default function SellItemPage() {
       errors.email = "Email is required"
     } else if (!email.includes("@")) {
       errors.email = "Please enter a valid email address"
+    }
+    if (!phone.trim()) {
+      errors.phone = "Phone number is required"
+    }
+    if (!address.trim()) {
+      errors.address = "Pickup address is required"
+    }
+    if (!pickupDate) {
+      errors.pickupDate = "Pickup date is required"
     }
     if (!termsAccepted) {
       errors.terms = "You must accept the terms to continue"
@@ -254,7 +279,6 @@ export default function SellItemPage() {
           fullName,
           email,
           phone,
-          zipCode,
           address,
           pickupDate,
         })
@@ -269,7 +293,6 @@ export default function SellItemPage() {
           itemDescription,
           itemIssues,
           phone,
-          zipCode,
           address,
           pickupDate,
         })
@@ -430,9 +453,9 @@ export default function SellItemPage() {
                   <div className="space-y-8" id="section1" ref={section1Ref}>
                     <div className="transition-all duration-300">
                       <Label htmlFor="item-category" className="text-base font-medium mb-2 block">
-                        Item Category
+                        Item Category <span className="text-red-500">*</span>
                       </Label>
-                      <Select value={itemCategory} onValueChange={setItemCategory} name="category">
+                      <Select value={itemCategory} onValueChange={setItemCategory} name="category" required>
                         <SelectTrigger
                           id="item-category"
                           className={`w-full border ${
@@ -453,7 +476,7 @@ export default function SellItemPage() {
 
                     <div className="transition-all duration-300">
                       <Label htmlFor="item-name" className="text-base font-medium mb-2 block">
-                        Item Name
+                        Item Name <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="item-name"
@@ -464,13 +487,14 @@ export default function SellItemPage() {
                         className={`w-full border ${
                           formErrors.itemName ? "border-red-300" : "border-indigo-100"
                         } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        required
                       />
                       {formErrors.itemName && <ErrorMessage message={formErrors.itemName} />}
                     </div>
 
                     <div className="transition-all duration-300">
                       <Label htmlFor="item-description" className="text-base font-medium mb-2 block">
-                        Brief Description
+                        Brief Description <span className="text-red-500">*</span>
                       </Label>
                       <Textarea
                         id="item-description"
@@ -482,13 +506,15 @@ export default function SellItemPage() {
                         className={`w-full border ${
                           formErrors.itemDescription ? "border-red-300" : "border-indigo-100"
                         } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        required
                       />
                       {formErrors.itemDescription && <ErrorMessage message={formErrors.itemDescription} />}
                     </div>
 
                     <div className="transition-all duration-300">
                       <Label className="text-base font-medium mb-2 block">
-                        Item Photos <span className="text-sm font-normal">(optional)</span>
+                        Item Photos <span className="text-red-500">*</span>{" "}
+                        <span className="text-sm font-normal">(at least 3)</span>
                       </Label>
                       <div
                         className={`p-6 border border-dashed rounded-lg ${
@@ -564,6 +590,7 @@ export default function SellItemPage() {
                               multiple
                               onChange={handleFileChange}
                               className="hidden"
+                              required={itemPhotos.length < 3}
                             />
 
                             <input
@@ -576,9 +603,9 @@ export default function SellItemPage() {
                             />
                           </div>
 
-                          <p className={`text-sm ${itemPhotos.length > 0 ? "text-green-600" : "text-gray-500"}`}>
-                            {itemPhotos.length} photos uploaded
-                            {itemPhotos.length > 0 && " ✓"}
+                          <p className={`text-sm ${itemPhotos.length >= 3 ? "text-green-600" : "text-red-500"}`}>
+                            {itemPhotos.length} of 3 required photos uploaded
+                            {itemPhotos.length >= 3 && " ✓"}
                           </p>
                         </div>
                       </div>
@@ -601,7 +628,9 @@ export default function SellItemPage() {
                 {formStep === 2 && (
                   <div className="space-y-8" id="section2" ref={section2Ref}>
                     <div className="transition-all duration-300">
-                      <Label className="text-base font-medium mb-4 block">Item Condition</Label>
+                      <Label className="text-base font-medium mb-4 block">
+                        Item Condition <span className="text-red-500">*</span>
+                      </Label>
                       <div className="space-y-4">
                         {/* Clickable condition options */}
                         <div
@@ -704,18 +733,19 @@ export default function SellItemPage() {
 
                     <div className="transition-all duration-300">
                       <Label htmlFor="item-issues" className="text-base font-medium mb-2 block">
-                        Any issues or defects?
+                        Any issues or defects? <span className="text-red-500">*</span>
                       </Label>
                       <Textarea
                         id="item-issues"
                         name="issues"
                         value={itemIssues}
                         onChange={(e) => setItemIssues(e.target.value)}
-                        placeholder="Please describe any scratches, dents, missing parts, or functional issues"
+                        placeholder="Please describe any scratches, dents, missing parts, or functional issues. If none, please write 'None'."
                         rows={4}
                         className={`w-full border ${
                           formErrors.itemIssues ? "border-red-300" : "border-indigo-100"
                         } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        required
                       />
                       {formErrors.itemIssues && <ErrorMessage message={formErrors.itemIssues} />}
                     </div>
@@ -750,7 +780,7 @@ export default function SellItemPage() {
                   <div className="space-y-8" id="section3" ref={section3Ref}>
                     <div className="transition-all duration-300">
                       <Label htmlFor="full-name" className="text-base font-medium mb-2 block">
-                        Full Name
+                        Full Name <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="full-name"
@@ -761,13 +791,14 @@ export default function SellItemPage() {
                         className={`w-full border ${
                           formErrors.fullName ? "border-red-300" : "border-indigo-100"
                         } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        required
                       />
                       {formErrors.fullName && <ErrorMessage message={formErrors.fullName} />}
                     </div>
 
                     <div className="transition-all duration-300">
                       <Label htmlFor="email" className="text-base font-medium mb-2 block">
-                        Email Address
+                        Email Address <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="email"
@@ -779,13 +810,14 @@ export default function SellItemPage() {
                         className={`w-full border ${
                           formErrors.email ? "border-red-300" : "border-indigo-100"
                         } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        required
                       />
                       {formErrors.email && <ErrorMessage message={formErrors.email} />}
                     </div>
 
                     <div className="transition-all duration-300">
                       <Label htmlFor="phone" className="text-base font-medium mb-2 block">
-                        Phone Number
+                        Phone Number <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="phone"
@@ -797,31 +829,15 @@ export default function SellItemPage() {
                         className={`w-full border ${
                           formErrors.phone ? "border-red-300" : "border-indigo-100"
                         } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        required
                       />
                       {formErrors.phone && <ErrorMessage message={formErrors.phone} />}
-                    </div>
-
-                    <div className="transition-all duration-300">
-                      <Label htmlFor="zip" className="text-base font-medium mb-2 block">
-                        ZIP Code
-                      </Label>
-                      <Input
-                        id="zip"
-                        name="zipCode"
-                        value={zipCode}
-                        onChange={(e) => setZipCode(e.target.value)}
-                        placeholder="12345"
-                        className={`w-full border ${
-                          formErrors.zipCode ? "border-red-300" : "border-indigo-100"
-                        } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
-                      />
-                      {formErrors.zipCode && <ErrorMessage message={formErrors.zipCode} />}
                     </div>
 
                     {/* Address Autocomplete */}
                     <div className="transition-all duration-300">
                       <Label htmlFor="pickup_address" className="text-base font-medium mb-2 block">
-                        Pickup Address
+                        Pickup Address <span className="text-red-500">*</span>
                       </Label>
                       <div className="relative">
                         <Input
@@ -837,6 +853,7 @@ export default function SellItemPage() {
                           className={`w-full border ${
                             formErrors.address ? "border-red-300" : "border-indigo-100"
                           } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                          required
                         />
 
                         {/* Address suggestions dropdown */}
@@ -860,7 +877,7 @@ export default function SellItemPage() {
                     {/* Pickup Date */}
                     <div className="transition-all duration-300">
                       <Label htmlFor="pickup_date" className="text-base font-medium mb-2 block">
-                        Preferred Pickup Date
+                        Preferred Pickup Date <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="pickup_date"
@@ -871,6 +888,7 @@ export default function SellItemPage() {
                         className={`w-full border ${
                           formErrors.pickupDate ? "border-red-300" : "border-indigo-100"
                         } rounded-lg focus:ring-[#4f46e5] focus:border-[#4f46e5] bg-white shadow-sm hover:border-indigo-300 transition-all duration-200`}
+                        required
                       />
                       {formErrors.pickupDate && <ErrorMessage message={formErrors.pickupDate} />}
                     </div>
@@ -883,10 +901,11 @@ export default function SellItemPage() {
                           checked={termsAccepted}
                           onCheckedChange={setTermsAccepted}
                           className={`mt-1 border-blue-300 text-[#0066ff] focus:ring-[#0066ff] ${formErrors.terms ? "border-red-300" : ""}`}
+                          required
                         />
                         <div>
                           <Label htmlFor="consent" className="font-medium">
-                            I consent to being contacted by BluBerry
+                            I consent to being contacted by BluBerry <span className="text-red-500">*</span>
                           </Label>
                           <p className="text-sm text-gray-500">
                             By submitting this form, you agree to our{" "}
