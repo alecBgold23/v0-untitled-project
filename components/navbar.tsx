@@ -12,75 +12,16 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
-  const [dropdownPosition, setDropdownPosition] = useState({ left: 0, width: 0 })
-  const [navDimensions, setNavDimensions] = useState({ left: 0, width: 0 })
+  const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null)
+
+  // Use refs instead of state for positions to avoid re-renders
+  const activeIndexRef = useRef<number | null>(null)
+  const prevActiveIndexRef = useRef<number | null>(null)
+
   const navRef = useRef<HTMLDivElement>(null)
   const linkRefs = useRef<Map<string, HTMLAnchorElement>>(new Map())
-
-  // Add scroll event listener to detect when page is scrolled
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setScrolled(true)
-      } else {
-        setScrolled(false)
-      }
-    }
-
-    // Add event listener
-    window.addEventListener("scroll", handleScroll)
-
-    // Clean up
-    return () => {
-      window.removeEventListener("scroll", handleScroll)
-    }
-  }, [])
-
-  // Calculate nav dimensions on mount and window resize
-  useEffect(() => {
-    const calculateNavDimensions = () => {
-      if (navRef.current) {
-        const navRect = navRef.current.getBoundingClientRect()
-        setNavDimensions({
-          left: navRect.left,
-          width: navRect.width,
-        })
-      }
-    }
-
-    calculateNavDimensions()
-    window.addEventListener("resize", calculateNavDimensions)
-
-    return () => {
-      window.removeEventListener("resize", calculateNavDimensions)
-    }
-  }, [])
-
-  // Update dropdown position when active link changes
-  useEffect(() => {
-    if (activeDropdown && linkRefs.current.has(activeDropdown)) {
-      const linkElement = linkRefs.current.get(activeDropdown)!
-      const navElement = navRef.current
-
-      if (linkElement && navElement) {
-        const linkRect = linkElement.getBoundingClientRect()
-        const navRect = navElement.getBoundingClientRect()
-
-        setDropdownPosition({
-          left: linkRect.left - navRect.left,
-          width: linkRect.width,
-        })
-      }
-    }
-  }, [activeDropdown])
-
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen)
-  }
-
-  const toggleSearch = () => {
-    setIsSearchOpen(!isSearchOpen)
-  }
+  const contentRef = useRef<HTMLDivElement>(null)
+  const isInitialRender = useRef(true)
 
   const navLinks = [
     {
@@ -162,11 +103,103 @@ export default function Navbar() {
     },
   ]
 
+  // Handle hover
+  const handleLinkHover = (href: string) => {
+    setActiveDropdown(href)
+  }
+
+  // Handle scroll events
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setScrolled(true)
+      } else {
+        setScrolled(false)
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // Handle resize
+  useEffect(() => {
+    // Skip first render to avoid layout issues
+    if (isInitialRender.current) {
+      isInitialRender.current = false
+      return
+    }
+
+    // Add resize listener
+    const handleResize = () => {
+      // Only need to handle resize for dropdown positioning
+    }
+
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
+  // Handle dropdown hover effects
+  useEffect(() => {
+    if (!activeDropdown) return
+
+    const index = navLinks.findIndex((link) => link.href === activeDropdown)
+    const prevIndex = activeIndexRef.current
+
+    // Determine slide direction
+    if (prevIndex !== null && index !== prevIndex) {
+      setSlideDirection(index > prevIndex ? "right" : "left")
+    } else {
+      setSlideDirection(null)
+    }
+
+    prevActiveIndexRef.current = activeIndexRef.current
+    activeIndexRef.current = index
+  }, [activeDropdown, navLinks])
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen)
+  }
+
+  const toggleSearch = () => {
+    setIsSearchOpen(!isSearchOpen)
+  }
+
   // Find the active link data
   const activeLink = activeDropdown ? navLinks.find((link) => link.href === activeDropdown) : null
 
+  // Calculate dropdown position
+  const getDropdownPosition = () => {
+    if (!navRef.current) return { left: 0, width: 0 }
+
+    const navRect = navRef.current.getBoundingClientRect()
+    return {
+      left: navRect.left,
+      width: navRect.width,
+    }
+  }
+
   return (
     <>
+      <style jsx global>{`
+        @keyframes slideInFromRight {
+          from { transform: translateX(30px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideInFromLeft {
+          from { transform: translateX(-30px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .slide-in-right {
+          animation: slideInFromRight 0.25s forwards cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        
+        .slide-in-left {
+          animation: slideInFromLeft 0.25s forwards cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+      `}</style>
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled ? "bg-white/95 backdrop-blur-sm shadow-sm" : "bg-transparent"
@@ -198,24 +231,13 @@ export default function Navbar() {
                     if (el) linkRefs.current.set(link.href, el)
                   }}
                   className={`text-sm hover:text-[#3B82F6] transition-all duration-200 py-1 ${
-                    pathname === link.href ? "text-[#3B82F6]" : "text-gray-600"
+                    pathname === link.href ? "text-[#3B82F6] font-medium" : "text-gray-600"
                   }`}
-                  onMouseEnter={() => setActiveDropdown(link.href)}
+                  onMouseEnter={() => handleLinkHover(link.href)}
                 >
                   {link.label}
                 </a>
               ))}
-
-              {/* Indicator line that moves with hover */}
-              {activeDropdown && (
-                <div
-                  className="absolute h-0.5 bg-blue-500 bottom-0 transition-all duration-300 ease-in-out"
-                  style={{
-                    left: `${dropdownPosition.left}px`,
-                    width: `${dropdownPosition.width}px`,
-                  }}
-                ></div>
-              )}
             </div>
 
             <div className="flex items-center">
@@ -246,7 +268,7 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href}
                   className={`text-sm hover:text-[#3B82F6] transition-all duration-200 ${
-                    pathname === link.href ? "text-[#3B82F6]" : "text-gray-600"
+                    pathname === link.href ? "text-[#3B82F6] font-medium" : "text-gray-600"
                   }`}
                 >
                   {link.label}
@@ -260,16 +282,19 @@ export default function Navbar() {
         {activeDropdown && (
           <div className="relative">
             <div
-              className="absolute bg-white border border-gray-200 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out z-50"
+              className="absolute bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50"
               style={{
-                left: navDimensions.left,
-                width: navDimensions.width,
-                opacity: activeDropdown ? 1 : 0,
-                transform: activeDropdown ? "translateY(0)" : "translateY(-8px)",
+                left: getDropdownPosition().left,
+                width: getDropdownPosition().width,
+                transition: "transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)",
               }}
             >
-              <div className="p-6">
-                <div className="grid grid-cols-4 gap-8">
+              <div className="p-6 relative overflow-hidden" ref={contentRef}>
+                <div
+                  className={`grid grid-cols-4 gap-8 ${
+                    slideDirection === "right" ? "slide-in-right" : slideDirection === "left" ? "slide-in-left" : ""
+                  }`}
+                >
                   {/* Left column - Icon and description */}
                   <div className="col-span-1">
                     <div className="flex items-center gap-3 mb-2">
