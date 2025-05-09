@@ -103,9 +103,23 @@ export default function Navbar() {
     },
   ]
 
-  // Handle hover
+  // Handle hover with delay
   const handleLinkHover = (href: string) => {
-    setActiveDropdown(href)
+    if (href === activeDropdown) return
+
+    const index = navLinks.findIndex((link) => link.href === href)
+    const prevIndex = navLinks.findIndex((link) => link.href === activeDropdown)
+
+    if (prevIndex !== -1 && index !== prevIndex) {
+      setSlideDirection(index > prevIndex ? "right" : "left")
+    } else {
+      setSlideDirection(null)
+    }
+
+    // Small delay for smoother transitions
+    setTimeout(() => {
+      setActiveDropdown(href)
+    }, 30)
   }
 
   // Handle scroll events
@@ -136,7 +150,7 @@ export default function Navbar() {
     }
 
     window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
+    return () => window.removeEventListener("scroll", handleResize)
   }, [])
 
   // Handle dropdown hover effects
@@ -173,8 +187,10 @@ export default function Navbar() {
     if (!navRef.current) return { left: 0, width: 0 }
 
     const navRect = navRef.current.getBoundingClientRect()
+    const containerRect = document.querySelector(".container")?.getBoundingClientRect() || { left: 0 }
+
     return {
-      left: navRect.left,
+      left: navRect.left - containerRect.left,
       width: navRect.width,
     }
   }
@@ -183,21 +199,30 @@ export default function Navbar() {
     <>
       <style jsx global>{`
         @keyframes slideInFromRight {
-          from { transform: translateX(30px); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
+          0% { transform: translateX(80px); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
         }
         
         @keyframes slideInFromLeft {
-          from { transform: translateX(-30px); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
+          0% { transform: translateX(-80px); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+          0% { opacity: 1; }
+          100% { opacity: 0; }
         }
         
         .slide-in-right {
-          animation: slideInFromRight 0.25s forwards cubic-bezier(0.2, 0.8, 0.2, 1);
+          animation: slideInFromRight 0.65s forwards cubic-bezier(0.22, 1, 0.36, 1);
         }
         
         .slide-in-left {
-          animation: slideInFromLeft 0.25s forwards cubic-bezier(0.2, 0.8, 0.2, 1);
+          animation: slideInFromLeft 0.65s forwards cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        
+        .fade-out {
+          animation: fadeOut 0.3s forwards ease-out;
         }
       `}</style>
       <header
@@ -282,11 +307,11 @@ export default function Navbar() {
         {activeDropdown && (
           <div className="relative">
             <div
-              className="absolute bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50"
+              className="absolute bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50 transition-all duration-300"
               style={{
                 left: getDropdownPosition().left,
                 width: getDropdownPosition().width,
-                transition: "transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)",
+                transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
               }}
             >
               <div className="p-6 relative overflow-hidden" ref={contentRef}>
@@ -294,6 +319,7 @@ export default function Navbar() {
                   className={`grid grid-cols-4 gap-8 ${
                     slideDirection === "right" ? "slide-in-right" : slideDirection === "left" ? "slide-in-left" : ""
                   }`}
+                  key={activeDropdown} // Add key to force re-render on dropdown change
                 >
                   {/* Left column - Icon and description */}
                   <div className="col-span-1">
@@ -304,17 +330,21 @@ export default function Navbar() {
                     <p className="text-gray-600 mb-4">{activeLink?.description}</p>
                     <a
                       href={activeLink?.href}
-                      className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
+                      className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-200"
                     >
-                      Learn more <ArrowRight size={14} className="ml-1" />
+                      Learn more{" "}
+                      <ArrowRight
+                        size={14}
+                        className="ml-1 transition-transform duration-200 group-hover:translate-x-1"
+                      />
                     </a>
                   </div>
 
                   {/* Right columns - Features */}
                   <div className="col-span-3 grid grid-cols-3 gap-6">
                     {activeLink?.features.map((feature, index) => (
-                      <div key={index} className="group">
-                        <h4 className="font-medium text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                      <div key={index} className="group transition-all duration-200 hover:translate-y-[-2px]">
+                        <h4 className="font-medium text-gray-900 mb-1 group-hover:text-blue-600 transition-colors duration-200">
                           {feature.title}
                         </h4>
                         <p className="text-sm text-gray-500">{feature.description}</p>
