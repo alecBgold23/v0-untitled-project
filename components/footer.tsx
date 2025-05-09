@@ -20,27 +20,27 @@ export default function Footer() {
   }
 
   return (
-    <footer className="apple-footer">
+    <footer className="apple-footer py-4">
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center justify-center text-center">
-          <div className="mb-4 flex justify-center w-full">
+          <div className="mb-2 flex justify-center w-full">
             <div className="inline-flex items-center">
-              <div className="relative w-6 h-6 mr-1.5">
+              <div className="relative w-5 h-5 mr-1">
                 <Image
                   src="/images/BluBerry_Logo_Transparent.png"
                   alt="BluBerry Logo"
-                  width={24}
-                  height={24}
+                  width={20}
+                  height={20}
                   className="object-contain bg-transparent"
                 />
               </div>
-              <span className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+              <span className="text-xs font-medium bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
                 BluBerry
               </span>
             </div>
           </div>
 
-          <div className="space-y-1 mb-4">
+          <div className="space-y-0.5 mb-2">
             <p className="text-xs text-gray-500">847-510-3229</p>
             <p>
               <a
@@ -53,7 +53,7 @@ export default function Footer() {
           </div>
 
           <div className="text-center text-xs text-gray-400">
-            <p className="mb-1">Copyright © {new Date().getFullYear()} BluBerry. All rights reserved.</p>
+            <p className="mb-0.5">Copyright © {new Date().getFullYear()} BluBerry. All rights reserved.</p>
             <a
               href="/privacy-policy"
               onClick={(e) => handleNavigation("/privacy-policy", e)}
