@@ -22,6 +22,7 @@ export default function Navbar() {
   const linkRefs = useRef<Map<string, HTMLAnchorElement>>(new Map())
   const contentRef = useRef<HTMLDivElement>(null)
   const isInitialRender = useRef(true)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const navLinks = [
     {
@@ -182,19 +183,38 @@ export default function Navbar() {
   // Find the active link data
   const activeLink = activeDropdown ? navLinks.find((link) => link.href === activeDropdown) : null
 
-  // Calculate dropdown position - centered between navbar links
+  // Calculate dropdown position - centered between Home and Contact links
   const getDropdownPosition = () => {
     if (!navRef.current) return { left: 0, width: 0 }
 
     const navRect = navRef.current.getBoundingClientRect()
-    const containerRect = document.querySelector(".container")?.getBoundingClientRect() || { left: 0 }
+    const containerRect = containerRef.current?.getBoundingClientRect() || { left: 0 }
+
+    // Get the first and last link positions if available
+    const homeLink = linkRefs.current.get("/")
+    const contactLink = linkRefs.current.get("/contact")
 
     // Fixed width for the dropdown
-    const dropdownWidth = 600 // Set a fixed width for the dropdown
+    const dropdownWidth = 600
 
-    // Calculate center position
-    const navCenter = navRect.left + navRect.width / 2
-    const dropdownLeft = navCenter - dropdownWidth / 2
+    let dropdownLeft = 0
+
+    if (homeLink && contactLink) {
+      // If we have both links, center the dropdown between them
+      const homeLinkRect = homeLink.getBoundingClientRect()
+      const contactLinkRect = contactLink.getBoundingClientRect()
+
+      // Calculate the center point between the first and last links
+      const centerBetweenLinks = homeLinkRect.left + (contactLinkRect.right - homeLinkRect.left) / 2
+
+      // Position the dropdown centered on this point
+      dropdownLeft = centerBetweenLinks - dropdownWidth / 2
+    } else {
+      // Fallback to the previous calculation with a slightly reduced offset
+      const navLinksCenter = navRect.left + navRect.width / 2
+      const rightOffset = 22 // Reduced from 30 to move slightly more to the left
+      dropdownLeft = navLinksCenter - dropdownWidth / 2 + rightOffset
+    }
 
     // Adjust for container position
     const adjustedLeft = dropdownLeft - containerRect.left
@@ -241,7 +261,7 @@ export default function Navbar() {
         }`}
         onMouseLeave={() => setActiveDropdown(null)}
       >
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4" ref={containerRef}>
           <nav className="flex justify-between items-center h-12">
             {/* Logo - static link */}
             <a href="/" className="flex items-center">
