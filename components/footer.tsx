@@ -20,7 +20,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="apple-footer py-4">
+    <footer className="apple-footer py-4 bg-white">
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center justify-center text-center">
           <div className="mb-2 flex justify-center w-full">

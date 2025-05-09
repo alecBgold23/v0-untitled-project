@@ -25,7 +25,7 @@ export default function Home() {
   }, [])
 
   return (
-    <div>
+    <div className="bg-white">
       {/* Announcement Bar */}
       <ContentAnimation>
         <div className="bg-gradient-to-r from-gray-900 to-red-900 py-2 px-4 text-center flex items-center justify-center shadow-md">
@@ -36,7 +36,7 @@ export default function Home() {
         </div>
       </ContentAnimation>
 
-      {/* Hero Section - Condensed */}
+      {/* Hero Section - White Background */}
       <section className="bg-white pt-6 pb-12 md:pt-8 md:pb-16">
         <div className="container mx-auto px-4">
           {/* Clickable hero content */}
@@ -85,18 +85,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works Section - Condensed */}
-      <section className="py-16 bg-gradient-to-b from-gray-100 to-white relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] transform translate-y-[-1px] border-t border-gray-200">
+      {/* Combined How It Works & Why Choose BluBerry Section - Lighter Gray Background */}
+      <section className="py-16 bg-gradient-to-b from-gray-100 to-gray-50 relative rounded-t-[30px] rounded-b-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1),0_10px_20px_-10px_rgba(0,0,0,0.1)] transform translate-y-[-1px] border-t border-b border-gray-200 z-10 mb-8">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <h2 className="text-2xl md:text-3xl font-light mb-8 text-center tracking-wide">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
-                How It Works
+                How BluBerry Works
               </span>
             </h2>
           </ContentAnimation>
 
-          <div className="grid md:grid-cols-3 gap-4 relative">
+          {/* Process Steps */}
+          <div className="grid md:grid-cols-3 gap-4 relative mb-12">
             {/* Line connecting steps on desktop */}
             <div className="hidden md:block absolute top-12 left-1/6 right-1/6 h-0.5 bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] opacity-20"></div>
 
@@ -142,26 +143,22 @@ export default function Home() {
               </div>
             </ContentAnimation>
           </div>
-        </div>
-      </section>
 
-      {/* Features Section - Condensed */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <ContentAnimation>
-            <h2 className="text-2xl md:text-3xl font-light mb-2 text-center tracking-wide">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
+          {/* Why Choose BluBerry */}
+          <ContentAnimation delay={0.4}>
+            <h3 className="text-xl font-medium mb-6 text-center">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
                 Why Choose BluBerry
               </span>
-            </h2>
+            </h3>
             <p className="text-gray-500 mb-8 text-center max-w-2xl mx-auto text-xs">
               The simplest way to sell your used items with a professional service
             </p>
           </ContentAnimation>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <ContentAnimation delay={0.1}>
-              <div className="p-4 rounded-lg hover:bg-gray-50 transition-all duration-300 group">
+            <ContentAnimation delay={0.5}>
+              <div className="p-4 rounded-lg bg-white hover:bg-gray-50 transition-all duration-300 group shadow-sm">
                 <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mb-3 group-hover:bg-[#3B82F6]/20 transition-all duration-300">
                   <Clock className="h-4 w-4 text-[#3B82F6]" />
                 </div>
@@ -172,8 +169,8 @@ export default function Home() {
               </div>
             </ContentAnimation>
 
-            <ContentAnimation delay={0.2}>
-              <div className="p-4 rounded-lg hover:bg-gray-50 transition-all duration-300 group">
+            <ContentAnimation delay={0.6}>
+              <div className="p-4 rounded-lg bg-white hover:bg-gray-50 transition-all duration-300 group shadow-sm">
                 <div className="w-10 h-10 rounded-full bg-[#8c52ff]/10 flex items-center justify-center mb-3 group-hover:bg-[#8c52ff]/20 transition-all duration-300">
                   <Shield className="h-4 w-4 text-[#8c52ff]" />
                 </div>
@@ -184,8 +181,8 @@ export default function Home() {
               </div>
             </ContentAnimation>
 
-            <ContentAnimation delay={0.3}>
-              <div className="p-4 rounded-lg hover:bg-gray-50 transition-all duration-300 group">
+            <ContentAnimation delay={0.7}>
+              <div className="p-4 rounded-lg bg-white hover:bg-gray-50 transition-all duration-300 group shadow-sm">
                 <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mb-3 group-hover:bg-[#3B82F6]/20 transition-all duration-300">
                   <CreditCard className="h-4 w-4 text-[#3B82F6]" />
                 </div>
@@ -196,8 +193,8 @@ export default function Home() {
               </div>
             </ContentAnimation>
 
-            <ContentAnimation delay={0.4}>
-              <div className="p-4 rounded-lg hover:bg-gray-50 transition-all duration-300 group">
+            <ContentAnimation delay={0.8}>
+              <div className="p-4 rounded-lg bg-white hover:bg-gray-50 transition-all duration-300 group shadow-sm">
                 <div className="w-10 h-10 rounded-full bg-[#8c52ff]/10 flex items-center justify-center mb-3 group-hover:bg-[#8c52ff]/20 transition-all duration-300">
                   <Leaf className="h-4 w-4 text-[#8c52ff]" />
                 </div>
@@ -211,8 +208,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials Section - Condensed */}
-      <section className="py-16 bg-gradient-to-b from-gray-100 to-white relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] transform translate-y-[-1px] border-t border-gray-200">
+      {/* Combined Testimonials and Environmental Mission Section */}
+      <section className="py-16 bg-gradient-to-b from-gray-100 to-gray-50 relative rounded-t-[30px] rounded-b-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1),0_10px_20px_-10px_rgba(0,0,0,0.1)] border-t border-b border-gray-200 z-10 mb-8">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <h2 className="text-2xl md:text-3xl font-light mb-8 text-center tracking-wide">
@@ -222,7 +219,8 @@ export default function Home() {
             </h2>
           </ContentAnimation>
 
-          <div className="grid md:grid-cols-3 gap-4">
+          {/* Testimonials */}
+          <div className="grid md:grid-cols-3 gap-4 mb-12">
             <ContentAnimation delay={0.1}>
               <div className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
                 <div className="flex items-center mb-3">
@@ -283,45 +281,43 @@ export default function Home() {
               </div>
             </ContentAnimation>
           </div>
-        </div>
-      </section>
 
-      {/* Environmental Mission Section - Condensed */}
-      <section className="py-16 bg-white overflow-hidden">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <ContentAnimation delay={0.2}>
-            <h2 className="text-2xl md:text-3xl font-light mb-3 tracking-wide text-center">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
-                Reducing Waste,
-              </span>{" "}
-              Creating Value
-            </h2>
-            <p className="text-gray-600 mb-3 text-xs leading-relaxed text-center max-w-2xl mx-auto">
-              At BluBerry, we're committed to extending the lifecycle of quality items. By facilitating the resale of
-              used goods, we help reduce waste and environmental impact.
-            </p>
-            <p className="text-gray-600 text-xs leading-relaxed text-center max-w-2xl mx-auto">
-              Every item we help sell is one less item in a landfill and one more opportunity to create value for both
-              sellers and future owners.
-            </p>
-
-            <div className="mt-4 flex items-center justify-center">
-              <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mr-3">
-                <Leaf className="h-4 w-4 text-[#3B82F6]" />
-              </div>
-              <p className="text-xs text-gray-500 italic">
-                "Our mission is to create a more sustainable future through thoughtful commerce."
+          {/* Environmental Mission */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <ContentAnimation delay={0.4}>
+              <h3 className="text-xl font-medium mb-3 tracking-wide text-center">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                  Reducing Waste,
+                </span>{" "}
+                Creating Value
+              </h3>
+              <p className="text-gray-600 mb-3 text-xs leading-relaxed text-center max-w-2xl mx-auto">
+                At BluBerry, we're committed to extending the lifecycle of quality items. By facilitating the resale of
+                used goods, we help reduce waste and environmental impact.
               </p>
-            </div>
-          </ContentAnimation>
+              <p className="text-gray-600 text-xs leading-relaxed text-center max-w-2xl mx-auto">
+                Every item we help sell is one less item in a landfill and one more opportunity to create value for both
+                sellers and future owners.
+              </p>
+
+              <div className="mt-4 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mr-3 shadow-sm">
+                  <Leaf className="h-4 w-4 text-[#3B82F6]" />
+                </div>
+                <p className="text-xs text-gray-500 italic">
+                  "Our mission is to create a more sustainable future through thoughtful commerce."
+                </p>
+              </div>
+            </ContentAnimation>
+          </div>
         </div>
       </section>
 
-      {/* CTA Section - Condensed */}
-      <section className="py-16 bg-gradient-to-b from-gray-100 to-white relative shadow-[0_-10px_15px_-15px_rgba(0,0,0,0.05)]">
-        <div className="container mx-auto px-4 max-w-3xl">
+      {/* CTA Section - Completely White */}
+      <section className="py-16 bg-white relative z-10">
+        <div className="container mx-auto px-4 max-w-3xl pb-8">
           <ContentAnimation>
-            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px] border border-gray-100">
               <h2 className="text-2xl md:text-3xl font-light mb-2 tracking-wide text-center">
                 <span className="text-black font-medium">Ready to Declutter?</span>
               </h2>
