@@ -120,7 +120,7 @@ export default function ReviewsPage() {
       <section className="py-8 bg-background border-b border-border">
         <div className="container mx-auto px-4">
           <ContentAnimation>
-            <h1 className="page-header text-foreground text-center">Customer Reviews</h1>
+            <h1 className="page-header text-white dark:text-white text-center">Customer Reviews</h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>
             <p className="text-muted-foreground text-center mt-2">

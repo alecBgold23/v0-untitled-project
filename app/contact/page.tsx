@@ -99,7 +99,7 @@ export default function ContactPage() {
       <section className="apple-section bg-background border-b border-border">
         <div className="container mx-auto px-4">
           <ContentAnimation>
-            <h1 className="page-header text-foreground">Contact Us</h1>
+            <h1 className="page-header text-white dark:text-white">Contact Us</h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>
             <p className="apple-subheading text-muted-foreground mb-8">
@@ -272,7 +272,7 @@ export default function ContactPage() {
       <section className="apple-section bg-muted/50">
         <div className="container mx-auto px-4 max-w-4xl">
           <ContentAnimation>
-            <h2 className="page-header text-foreground mb-12">Frequently Asked Questions</h2>
+            <h2 className="page-header text-white dark:text-white mb-12">Frequently Asked Questions</h2>
           </ContentAnimation>
           <div className="space-y-8">
             <ContentAnimation delay={0.1}>

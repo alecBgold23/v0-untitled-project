@@ -5,8 +5,8 @@ import ContentAnimation from "@/components/content-animation"
 export default function FAQPage() {
   return (
     <div className="bg-background">
-      {/* Minimized Hero Section */}
-      <section className="py-8 bg-background border-b border-border">
+      {/* Minimized Hero Section with shadowy blend effect */}
+      <section className="py-12 bg-gradient-to-b from-background to-secondary">
         <div className="container mx-auto px-4">
           <ContentAnimation>
             <h1 className="page-header text-white dark:text-white text-center">Frequently Asked Questions</h1>

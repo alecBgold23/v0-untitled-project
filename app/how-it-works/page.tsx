@@ -4,11 +4,13 @@ import ContentAnimation from "@/components/content-animation"
 export default function HowItWorksPage() {
   return (
     <div className="bg-background text-foreground">
-      {/* Hero Section */}
-      <section className="py-16 md:py-24 bg-background">
+      {/* Hero Section with shadowy blend effect */}
+      <section className="py-16 md:py-24 bg-gradient-to-b from-background to-secondary">
         <div className="container mx-auto px-4">
           <ContentAnimation>
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center text-foreground">How BluBerry Works</h1>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center text-white dark:text-white">
+              How BluBerry Works
+            </h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>
             <p className="text-xl text-center max-w-2xl mx-auto mb-8 text-muted-foreground">
