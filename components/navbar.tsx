@@ -150,7 +150,7 @@ export default function Navbar() {
     }
 
     window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("scroll", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
   }, [])
 
   // Handle dropdown hover effects
@@ -182,16 +182,26 @@ export default function Navbar() {
   // Find the active link data
   const activeLink = activeDropdown ? navLinks.find((link) => link.href === activeDropdown) : null
 
-  // Calculate dropdown position
+  // Calculate dropdown position - centered between navbar links
   const getDropdownPosition = () => {
     if (!navRef.current) return { left: 0, width: 0 }
 
     const navRect = navRef.current.getBoundingClientRect()
     const containerRect = document.querySelector(".container")?.getBoundingClientRect() || { left: 0 }
 
+    // Fixed width for the dropdown
+    const dropdownWidth = 600 // Set a fixed width for the dropdown
+
+    // Calculate center position
+    const navCenter = navRect.left + navRect.width / 2
+    const dropdownLeft = navCenter - dropdownWidth / 2
+
+    // Adjust for container position
+    const adjustedLeft = dropdownLeft - containerRect.left
+
     return {
-      left: navRect.left - containerRect.left,
-      width: navRect.width,
+      left: adjustedLeft,
+      width: dropdownWidth,
     }
   }
 
@@ -303,7 +313,7 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mega dropdown - spans only the navigation width */}
+        {/* Mega dropdown - centered between navbar links */}
         {activeDropdown && (
           <div className="relative">
             <div
