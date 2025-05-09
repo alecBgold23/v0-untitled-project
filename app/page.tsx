@@ -21,7 +21,7 @@ export default function Home() {
     setShowInitialLine(true)
     const hideTimer = setTimeout(() => {
       setShowInitialLine(false)
-    }, 200)
+    }, 100) // Changed from 200ms to 100ms
     return () => clearTimeout(hideTimer)
   }, [])
 
@@ -48,7 +48,7 @@ export default function Home() {
               <div
                 className={`w-full max-w-md h-1 bg-gradient-to-r from-transparent via-[#0066ff] to-transparent rounded-full ${
                   showInitialLine
-                    ? "opacity-100 transition-opacity duration-50"
+                    ? "opacity-100 transition-opacity duration-50 animate-line-wipe"
                     : "opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 }`}
               ></div>
@@ -343,6 +343,21 @@ export default function Home() {
         
         .shimmer {
           animation: shimmer 2.5s infinite;
+        }
+
+        @keyframes lineWipe {
+          0% {
+            transform: scaleX(0);
+            transform-origin: left;
+          }
+          100% {
+            transform: scaleX(1);
+            transform-origin: left;
+          }
+        }
+        
+        .animate-line-wipe {
+          animation: lineWipe 100ms ease-out forwards;
         }
       `}</style>
     </div>
