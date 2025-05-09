@@ -211,7 +211,7 @@ export default function Home() {
               </span>
             </h2>
             <p className="text-gray-500 mb-20 text-center max-w-2xl mx-auto text-sm">
-              The simplest way to sell your unused items with a professional service
+              The simplest way to sell your used items with a professional service
             </p>
           </ContentAnimation>
 
@@ -419,7 +419,7 @@ export default function Home() {
                 <span className="text-black font-medium">Ready to Declutter?</span>
               </h2>
               <p className="text-gray-500 mb-8 max-w-xl mx-auto text-sm">
-                Start the simple process today and turn your unused items into cash with our professional service.
+                Start the simple process today and turn your used items into cash with our professional service.
               </p>
               <div className="flex justify-center">
                 <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
