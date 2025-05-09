@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Mail, Phone, Clock, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
 import Image from "next/image"
 import ContentAnimation from "@/components/content-animation"
+import { sendContactFormEmail } from "@/app/actions/email-actions"
+import ConfettiEffect from "@/components/confetti-effect"
 
 export default function ContactPage() {
   const [name, setName] = useState("")
@@ -19,6 +21,7 @@ export default function ContactPage() {
   const [isFormValid, setIsFormValid] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
 
   useEffect(() => {
     setIsFormValid(name.trim() !== "" && email.trim() !== "" && inquiryType !== "" && message.trim() !== "")
@@ -36,23 +39,51 @@ export default function ContactPage() {
     return Object.keys(errors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
     if (validateForm()) {
       setIsSubmitting(true)
 
-      // Form will be submitted to Formspree
-      // This is just to show loading state
-      setTimeout(() => {
+      try {
+        // Create FormData object
+        const formData = new FormData()
+        formData.append("name", name)
+        formData.append("email", email)
+        formData.append("inquiryType", inquiryType)
+        formData.append("message", message)
+
+        // Submit to Formspree
+        const response = await fetch("https://formspree.io/f/xqaqprdw", {
+          method: "POST",
+          body: formData,
+          headers: {
+            Accept: "application/json",
+          },
+        })
+
+        if (response.ok) {
+          // Also send via our server action for email notification
+          await sendContactFormEmail(formData)
+
+          // Show success state
+          setIsSubmitting(false)
+          setIsSubmitted(true)
+          setShowConfetti(true)
+
+          // Reset form
+          setName("")
+          setEmail("")
+          setInquiryType("")
+          setMessage("")
+        } else {
+          throw new Error("Form submission failed")
+        }
+      } catch (error) {
+        console.error("Error submitting form:", error)
         setIsSubmitting(false)
-        setIsSubmitted(true)
-        // Reset form
-        setName("")
-        setEmail("")
-        setInquiryType("")
-        setMessage("")
-      }, 1000)
-    } else {
-      e.preventDefault()
+        // You could add error handling UI here
+      }
     }
   }
 
@@ -65,6 +96,8 @@ export default function ContactPage() {
 
   return (
     <div>
+      {showConfetti && <ConfettiEffect duration={3000} onComplete={() => setShowConfetti(false)} />}
+
       {/* Hero Section */}
       <section className="apple-section bg-gradient-to-b from-white to-gray-50">
         <div className="container mx-auto px-4">
@@ -120,12 +153,7 @@ export default function ContactPage() {
                 {!isSubmitted ? (
                   <>
                     <h2 className="section-header mb-6">Send a Message</h2>
-                    <form
-                      action="https://formspree.io/f/xqaqprdw"
-                      method="POST"
-                      className="space-y-4"
-                      onSubmit={handleSubmit}
-                    >
+                    <form className="space-y-4" onSubmit={handleSubmit}>
                       <div>
                         <Label htmlFor="name" className="text-sm font-medium text-gray-700">
                           Name <span className="text-red-500">*</span>
@@ -214,18 +242,18 @@ export default function ContactPage() {
                     </form>
                   </>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-[#F5F5F7] rounded-full flex items-center justify-center mx-auto mb-6">
-                      <CheckCircle className="w-8 h-8 text-[#3B82F6]" />
+                  <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-sm border border-blue-100 p-8">
+                    <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <CheckCircle className="w-8 h-8 text-white" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-4">Message Sent</h2>
+                    <h2 className="text-2xl font-bold mb-4 text-gray-800">Message Sent!</h2>
                     <p className="text-gray-600 mb-6">
-                      Thank you for contacting us. Your message has been sent to alecgold808@gmail.com. We'll respond
-                      within 24 hours.
+                      Thank you for contacting BluBerry. Your message has been received and we'll respond within 24
+                      hours.
                     </p>
                     <Button
                       onClick={() => setIsSubmitted(false)}
-                      className="apple-button apple-button-primary gradient-button hover:bg-white hover:text-[#0071e3] hover:border hover:border-[#0071e3] transition-all duration-300"
+                      className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all duration-300 rounded-lg px-6 py-2"
                     >
                       Send Another Message
                     </Button>
