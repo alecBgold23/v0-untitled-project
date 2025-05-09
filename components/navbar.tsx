@@ -15,6 +15,8 @@ export default function Navbar() {
   const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null)
   const [navWidth, setNavWidth] = useState(0)
   const [navLeft, setNavLeft] = useState(0)
+  const [dropdownWidth, setDropdownWidth] = useState(0)
+  const [homeContactDistance, setHomeContactDistance] = useState(0)
 
   // Use refs instead of state for positions to avoid re-renders
   const activeIndexRef = useRef<number | null>(null)
@@ -29,7 +31,7 @@ export default function Navbar() {
     {
       href: "/",
       label: "Home",
-      icon: <Home className="text-blue-500" size={24} />,
+      icon: <Home className="text-blue-500" size={20} />,
       description: "Return to our homepage",
       features: [
         { title: "Latest Updates", description: "See what's new on our platform" },
@@ -40,7 +42,7 @@ export default function Navbar() {
     {
       href: "/about",
       label: "About",
-      icon: <Info className="text-blue-500" size={24} />,
+      icon: <Info className="text-blue-500" size={20} />,
       description: "Learn about our company",
       features: [
         { title: "Our Story", description: "How we started and where we're going" },
@@ -51,7 +53,7 @@ export default function Navbar() {
     {
       href: "/faq",
       label: "FAQ",
-      icon: <HelpCircle className="text-blue-500" size={24} />,
+      icon: <HelpCircle className="text-blue-500" size={20} />,
       description: "Frequently asked questions",
       features: [
         { title: "Shipping Info", description: "How we handle pickups and deliveries" },
@@ -62,7 +64,7 @@ export default function Navbar() {
     {
       href: "/how-it-works",
       label: "How It Works",
-      icon: <BookOpen className="text-blue-500" size={24} />,
+      icon: <BookOpen className="text-blue-500" size={20} />,
       description: "Our simple 3-step process",
       features: [
         { title: "Submit Your Item", description: "Fill out our easy form with details" },
@@ -73,7 +75,7 @@ export default function Navbar() {
     {
       href: "/reviews",
       label: "Reviews",
-      icon: <Star className="text-blue-500" size={24} />,
+      icon: <Star className="text-blue-500" size={20} />,
       description: "What our customers say",
       features: [
         { title: "Testimonials", description: "Hear from our satisfied customers" },
@@ -84,7 +86,7 @@ export default function Navbar() {
     {
       href: "/sell-item",
       label: "Sell Your Item",
-      icon: <ShoppingBag className="text-blue-500" size={24} />,
+      icon: <ShoppingBag className="text-blue-500" size={20} />,
       description: "Start selling today",
       features: [
         { title: "Easy Submission", description: "Our streamlined process takes minutes" },
@@ -95,7 +97,7 @@ export default function Navbar() {
     {
       href: "/contact",
       label: "Contact",
-      icon: <Mail className="text-blue-500" size={24} />,
+      icon: <Mail className="text-blue-500" size={20} />,
       description: "Get in touch with us",
       features: [
         { title: "Support Team", description: "Our friendly team is here to help" },
@@ -116,12 +118,17 @@ export default function Navbar() {
         // Calculate the distance from the left edge of Home to the right edge of Contact
         const totalWidth = contactRect.right - homeRect.left
 
+        // Calculate the distance between Home and Contact
+        const distance = contactRect.left - homeRect.right
+
         // Calculate the left position relative to the container
         const leftPosition = homeRect.left - navContainerRect.left
 
         // Set the width and left position for the nav container
         setNavWidth(totalWidth)
         setNavLeft(leftPosition)
+        setHomeContactDistance(distance)
+        setDropdownWidth(distance)
       }
     }
 
@@ -247,15 +254,6 @@ export default function Navbar() {
           justify-content: center;
           z-index: 40;
         }
-        
-        .dropdown-content {
-          width: 600px;
-          background: white;
-          border: 1px solid #e2e8f0;
-          border-radius: 0.5rem;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-          overflow: hidden;
-        }
       `}</style>
       <header
         ref={headerRef}
@@ -346,44 +344,51 @@ export default function Navbar() {
           <div
             className="dropdown-content transition-all duration-300"
             style={{
-              // Center the dropdown between Home and Contact links
-              transform: `translateX(${navLeft + navWidth / 2 - 300}px)`,
+              // Position the dropdown to be centered between Home and Contact
+              position: "absolute",
+              width: `${dropdownWidth}px`,
+              left: `${homeRef.current ? homeRef.current.getBoundingClientRect().right : 0}px`,
+              background: "white",
+              border: "1px solid #e2e8f0",
+              borderRadius: "0.5rem",
+              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+              overflow: "hidden",
             }}
           >
-            <div className="p-6 relative overflow-hidden">
+            <div className="p-4 relative overflow-hidden">
               <div
-                className={`grid grid-cols-4 gap-8 ${
+                className={`grid grid-cols-4 gap-4 ${
                   slideDirection === "right" ? "slide-in-right" : slideDirection === "left" ? "slide-in-left" : ""
                 }`}
                 key={activeDropdown} // Add key to force re-render on dropdown change
               >
                 {/* Left column - Icon and description */}
                 <div className="col-span-1">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-2 mb-1">
                     {activeLink?.icon}
-                    <h3 className="font-medium text-lg text-gray-900">{activeLink?.label}</h3>
+                    <h3 className="font-medium text-sm text-gray-900">{activeLink?.label}</h3>
                   </div>
-                  <p className="text-gray-600 mb-4">{activeLink?.description}</p>
+                  <p className="text-xs text-gray-600 mb-2">{activeLink?.description}</p>
                   <a
                     href={activeLink?.href}
-                    className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-200"
+                    className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors duration-200"
                   >
                     Learn more{" "}
                     <ArrowRight
-                      size={14}
+                      size={12}
                       className="ml-1 transition-transform duration-200 group-hover:translate-x-1"
                     />
                   </a>
                 </div>
 
                 {/* Right columns - Features */}
-                <div className="col-span-3 grid grid-cols-3 gap-6">
+                <div className="col-span-3 grid grid-cols-3 gap-3">
                   {activeLink?.features.map((feature, index) => (
                     <div key={index} className="group transition-all duration-200 hover:translate-y-[-2px]">
-                      <h4 className="font-medium text-gray-900 mb-1 group-hover:text-blue-600 transition-colors duration-200">
+                      <h4 className="font-medium text-xs text-gray-900 mb-0.5 group-hover:text-blue-600 transition-colors duration-200">
                         {feature.title}
                       </h4>
-                      <p className="text-sm text-gray-500">{feature.description}</p>
+                      <p className="text-xs text-gray-500">{feature.description}</p>
                     </div>
                   ))}
                 </div>
