@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { Mail, Phone, Clock, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
 import Image from "next/image"
 import ContentAnimation from "@/components/content-animation"
-import { sendContactFormEmail } from "@/app/actions/email-actions"
 import ConfettiEffect from "@/components/confetti-effect"
 
 export default function ContactPage() {
@@ -46,26 +45,40 @@ export default function ContactPage() {
       setIsSubmitting(true)
 
       try {
-        // Create FormData object
-        const formData = new FormData()
-        formData.append("name", name)
-        formData.append("email", email)
-        formData.append("inquiryType", inquiryType)
-        formData.append("message", message)
-
         // Submit to Formspree
-        const response = await fetch("https://formspree.io/f/xqaqprdw", {
+        const formspreeResponse = await fetch("https://formspree.io/f/xqaqprdw", {
           method: "POST",
-          body: formData,
+          body: JSON.stringify({
+            name,
+            email,
+            inquiryType,
+            message,
+          }),
           headers: {
+            "Content-Type": "application/json",
             Accept: "application/json",
           },
         })
 
-        if (response.ok) {
-          // Also send via our server action for email notification
-          await sendContactFormEmail(formData)
+        // Also send via our own API
+        const emailResponse = await fetch("/api/send-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: "alecgold808@gmail.com", // Send to your email
+            subject: `New Contact Form: ${inquiryType} from ${name}`,
+            message: `
+Name: ${name}
+Email: ${email}
+Inquiry Type: ${inquiryType}
+Message: ${message}
+            `,
+          }),
+        })
 
+        if (formspreeResponse.ok && emailResponse.ok) {
           // Show success state
           setIsSubmitting(false)
           setIsSubmitted(true)

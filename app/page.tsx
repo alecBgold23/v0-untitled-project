@@ -53,8 +53,11 @@ export default function Home() {
               className="flex flex-col items-center text-center cursor-pointer group mb-8"
               onClick={navigateToSellItem}
             >
-              <h1 className="text-4xl md:text-5xl font-medium mb-2 sparkle-text drop-shadow-sm pb-1 transition-transform duration-300 group-hover:scale-105 gradient-header">
-                BluBerry
+              <h1 className="text-4xl md:text-5xl font-medium mb-2 drop-shadow-sm pb-1 transition-transform duration-300 group-hover:scale-105 relative">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                  BluBerry
+                </span>
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/70 to-transparent shimmer"></span>
               </h1>
               <p className="text-xl md:text-2xl text-black mb-8 transition-all duration-300 group-hover:text-[#0066ff]">
                 Selling made simpler.
@@ -430,6 +433,21 @@ export default function Home() {
           </ContentAnimation>
         </div>
       </section>
+
+      <style jsx global>{`
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+        
+        .shimmer {
+          animation: shimmer 2.5s infinite;
+        }
+      `}</style>
     </div>
   )
 }
