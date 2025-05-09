@@ -8,7 +8,7 @@ export default function AboutPage() {
       <section className="apple-section bg-gradient-to-b from-background to-secondary">
         <div className="container mx-auto px-4">
           <AnimatedSection>
-            <h1 className="page-header text-foreground">About BluBerry</h1>
+            <h1 className="page-header text-white dark:text-white">About BluBerry</h1>
           </AnimatedSection>
           <AnimatedSection delay={0.1}>
             <p className="apple-subheading mb-8 text-muted-foreground">
