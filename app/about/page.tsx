@@ -28,10 +28,8 @@ export default function AboutPage() {
           <div className="space-y-12 text-center">
             <AnimatedSection>
               <div>
-                <h2 className="section-header mb-4 font-[var(--font-roboto)] font-light tracking-tight">
-                  <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
-                    Our Mission
-                  </span>
+                <h2 className="section-header mb-4 text-foreground font-[var(--font-roboto)] font-light tracking-tight">
+                  Our Mission
                 </h2>
                 {/* Image removed as requested */}
                 <p className="text-muted-foreground">
@@ -48,10 +46,8 @@ export default function AboutPage() {
 
             <AnimatedSection delay={0.1}>
               <div className="bg-secondary p-8 rounded-xl">
-                <h2 className="section-header mb-4 font-[var(--font-roboto)] font-light tracking-tight">
-                  <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
-                    Our Approach
-                  </span>
+                <h2 className="section-header mb-4 text-foreground font-[var(--font-roboto)] font-light tracking-tight">
+                  Our Approach
                 </h2>
                 <p className="text-muted-foreground">
                   Unlike traditional online marketplaces that require significant time investment in creating listings,
@@ -68,10 +64,8 @@ export default function AboutPage() {
 
             <AnimatedSection>
               <div>
-                <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight">
-                  <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
-                    Our Core Values
-                  </span>
+                <h2 className="section-header mb-6 text-foreground font-[var(--font-roboto)] font-light tracking-tight">
+                  Our Core Values
                 </h2>
                 {/* Core Values image removed as requested */}
                 <div className="flex flex-col items-center space-y-6">
@@ -123,10 +117,8 @@ export default function AboutPage() {
 
             <AnimatedSection delay={0.1}>
               <div className="bg-secondary p-8 rounded-xl">
-                <h2 className="section-header mb-4 font-[var(--font-roboto)] font-light tracking-tight">
-                  <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
-                    Who We Serve
-                  </span>
+                <h2 className="section-header mb-4 text-foreground font-[var(--font-roboto)] font-light tracking-tight">
+                  Who We Serve
                 </h2>
                 {/* Who We Serve image removed as requested */}
                 <p className="text-muted-foreground mb-4">
@@ -143,10 +135,8 @@ export default function AboutPage() {
 
             <AnimatedSection>
               <div className="text-center mt-12">
-                <h2 className="section-header mb-4 font-[var(--font-roboto)] font-light tracking-tight">
-                  <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
-                    Begin Your Selling Experience
-                  </span>
+                <h2 className="section-header mb-4 text-foreground font-[var(--font-roboto)] font-light tracking-tight">
+                  Begin Your Selling Experience
                 </h2>
                 <p className="text-xl mb-6 text-foreground">
                   Let us help you convert unused items into value with our professional service.

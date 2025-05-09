@@ -36,7 +36,7 @@ export default function HowItWorksPage() {
                 <div className="flex flex-col md:flex-row md:items-center md:space-x-8 relative">
                   <div className="md:w-1/2 md:text-right md:pr-8">
                     <div className="hidden md:block absolute right-0 top-6 w-4 h-4 rounded-full bg-[#3B82F6] md:transform md:translate-x-2 z-10"></div>
-                    <h2 className="text-2xl font-semibold mb-3 tracking-tight flex md:justify-end items-center font-[var(--font-roboto)]">
+                    <h2 className="text-2xl font-semibold mb-3 tracking-tight flex md:justify-end items-center font-[var(--font-roboto)] text-foreground">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#3B82F6] text-white mr-3 md:hidden text-sm">
                         1
                       </span>
@@ -71,7 +71,7 @@ export default function HowItWorksPage() {
                   </div>
                   <div className="md:w-1/2 md:pl-8">
                     <div className="hidden md:block absolute left-0 top-6 w-4 h-4 rounded-full bg-[#8A4FFF] md:transform md:-translate-x-2 z-10"></div>
-                    <h2 className="text-2xl font-semibold mb-3 tracking-tight flex items-center font-[var(--font-roboto)]">
+                    <h2 className="text-2xl font-semibold mb-3 tracking-tight flex items-center font-[var(--font-roboto)] text-foreground">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#8A4FFF] text-white mr-3 md:hidden text-sm">
                         2
                       </span>
@@ -96,7 +96,7 @@ export default function HowItWorksPage() {
                 <div className="flex flex-col md:flex-row md:items-center md:space-x-8 relative mt-12">
                   <div className="md:w-1/2 md:text-right md:pr-8">
                     <div className="hidden md:block absolute right-0 top-6 w-4 h-4 rounded-full bg-[#3B82F6] md:transform md:translate-x-2 z-10"></div>
-                    <h2 className="text-2xl font-semibold mb-3 tracking-tight flex md:justify-end items-center font-[var(--font-roboto)]">
+                    <h2 className="text-2xl font-semibold mb-3 tracking-tight flex md:justify-end items-center font-[var(--font-roboto)] text-foreground">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#3B82F6] text-white mr-3 md:hidden text-sm">
                         3
                       </span>
@@ -131,7 +131,7 @@ export default function HowItWorksPage() {
                   </div>
                   <div className="md:w-1/2 md:pl-8">
                     <div className="hidden md:block absolute left-0 top-6 w-4 h-4 rounded-full bg-[#8A4FFF] md:transform md:-translate-x-2 z-10"></div>
-                    <h2 className="text-2xl font-semibold mb-3 tracking-tight flex items-center font-[var(--font-roboto)]">
+                    <h2 className="text-2xl font-semibold mb-3 tracking-tight flex items-center font-[var(--font-roboto)] text-foreground">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#8A4FFF] text-white mr-3 md:hidden text-sm">
                         4
                       </span>
@@ -160,10 +160,8 @@ export default function HowItWorksPage() {
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight font-[var(--font-roboto)] font-light">
-                <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
-                  We Handle Everything For You
-                </span>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight font-[var(--font-roboto)] font-light text-foreground">
+                We Handle Everything For You
               </h2>
               <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -178,7 +176,7 @@ export default function HowItWorksPage() {
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#3B82F6]/70 flex items-center justify-center mb-4 mx-auto">
                   <Package className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3 text-center font-[var(--font-roboto)]">
+                <h3 className="text-xl font-semibold mb-3 text-center font-[var(--font-roboto)] text-foreground">
                   No Listings to Create
                 </h3>
                 <p className="text-muted-foreground text-center flex-grow">
@@ -203,7 +201,7 @@ export default function HowItWorksPage() {
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8A4FFF] to-[#8A4FFF]/70 flex items-center justify-center mb-4 mx-auto">
                   <MessageSquare className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3 text-center font-[var(--font-roboto)]">
+                <h3 className="text-xl font-semibold mb-3 text-center font-[var(--font-roboto)] text-foreground">
                   No Buyer Negotiations
                 </h3>
                 <p className="text-muted-foreground text-center flex-grow">
@@ -227,7 +225,7 @@ export default function HowItWorksPage() {
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#8A4FFF] flex items-center justify-center mb-4 mx-auto">
                   <Truck className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3 text-center font-[var(--font-roboto)]">
+                <h3 className="text-xl font-semibold mb-3 text-center font-[var(--font-roboto)] text-foreground">
                   No Logistics Hassle
                 </h3>
                 <p className="text-muted-foreground text-center flex-grow">

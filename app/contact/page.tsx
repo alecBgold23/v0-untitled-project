@@ -118,10 +118,8 @@ export default function ContactPage() {
           <div className="grid md:grid-cols-2 gap-12">
             <ContentAnimation>
               <div className="text-center">
-                <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight">
-                  <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
-                    Contact Information
-                  </span>
+                <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight text-foreground">
+                  Contact Information
                 </h2>
                 <div className="space-y-6">
                   <div className="flex flex-col items-center">
@@ -153,10 +151,8 @@ export default function ContactPage() {
               <div className="text-center">
                 {!isSubmitted ? (
                   <>
-                    <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight">
-                      <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
-                        Send a Message
-                      </span>
+                    <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight text-foreground">
+                      Send a Message
                     </h2>
                     <form className="space-y-4" onSubmit={handleSubmit}>
                       <div>
@@ -284,10 +280,8 @@ export default function ContactPage() {
       <section className="apple-section bg-muted/50">
         <div className="container mx-auto px-4 max-w-4xl">
           <ContentAnimation>
-            <h2 className="page-header mb-12 font-[var(--font-roboto)] font-light tracking-tight">
-              <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
-                Frequently Asked Questions
-              </span>
+            <h2 className="page-header mb-12 font-[var(--font-roboto)] font-light tracking-tight text-foreground">
+              Frequently Asked Questions
             </h2>
           </ContentAnimation>
           <div className="space-y-8">
