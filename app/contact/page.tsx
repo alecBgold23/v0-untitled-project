@@ -47,55 +47,23 @@ export default function ContactPage() {
       setIsSubmitting(true)
 
       try {
-        // Format the message with all form details
-        const formattedMessage = `
-Name: ${name}
-Email: ${email}
-Inquiry Type: ${inquiryType}
-Message:
-${message}
-
-Submitted: ${new Date().toLocaleString()}
-        `
-
-        // Send to the recipient (BluBerry)
-        const recipientResponse = await fetch("/api/send-email", {
+        // Send email using the new API endpoint
+        const response = await fetch("/api/send-contact-email", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: "alecgold808@gmail.com", // Your email address
-            subject: `New Contact Form: ${inquiryType} from ${name}`,
-            message: formattedMessage,
+            name,
+            email,
+            inquiryType,
+            message,
           }),
         })
 
-        // Send confirmation to the user
-        const userResponse = await fetch("/api/send-email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email, // User's email address
-            subject: "Thank you for contacting BluBerry",
-            message: `
-Dear ${name},
+        const result = await response.json()
 
-Thank you for contacting BluBerry. We have received your message and will get back to you within 24 hours.
-
-Your inquiry details:
-- Type: ${inquiryType}
-- Message: ${message}
-
-Best regards,
-The BluBerry Team
-            `,
-          }),
-        })
-
-        if (recipientResponse.ok) {
+        if (response.ok) {
           // Show success state
           setIsSubmitting(false)
           setIsSubmitted(true)
@@ -107,7 +75,7 @@ The BluBerry Team
           setInquiryType("")
           setMessage("")
         } else {
-          throw new Error("Form submission failed")
+          throw new Error(result.error || "Failed to send message")
         }
       } catch (error) {
         console.error("Error submitting form:", error)
