@@ -18,10 +18,9 @@ export default function Home() {
 
   // Effect to show and hide the line on initial load
   useEffect(() => {
-    setShowInitialLine(true)
     const hideTimer = setTimeout(() => {
       setShowInitialLine(false)
-    }, 100) // Changed from 200ms to 100ms
+    }, 100)
     return () => clearTimeout(hideTimer)
   }, [])
 
@@ -31,7 +30,7 @@ export default function Home() {
       <section className="bg-background pt-6 pb-12 md:pt-8 md:pb-16">
         <div className="container mx-auto px-4">
           {/* Clickable hero content */}
-          <ContentAnimation>
+          <ContentAnimation duration={0.3} delay={0}>
             <div
               className="flex flex-col items-center text-center cursor-pointer group mb-4"
               onClick={navigateToSellItem}

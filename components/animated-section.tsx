@@ -25,7 +25,7 @@ export default function AnimatedSection({
   // Animation variants
   const variants = {
     fadeUp: {
-      hidden: { opacity: 0, y: 20 },
+      hidden: { opacity: 0, y: 10 },
       visible: { opacity: 1, y: 0 },
     },
     fadeIn: {
@@ -47,7 +47,7 @@ export default function AnimatedSection({
       transition={{
         type: "tween",
         ease: "easeOut",
-        duration: 0.4,
+        duration: 0.3,
         delay: delay,
       }}
       className={className}

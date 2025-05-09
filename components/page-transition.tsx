@@ -18,10 +18,10 @@ export default function PageTransition({ children }: { children: React.ReactNode
   return (
     <motion.div
       key={pathname}
-      initial={isFirstMount ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 8 }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
+      initial={isFirstMount ? { opacity: 1 } : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
       className="w-full h-full bg-background"
     >
       {children}
