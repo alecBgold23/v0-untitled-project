@@ -310,7 +310,7 @@ export default function Home() {
           <ContentAnimation>
             <div className="bg-card p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px] border border-border">
               <h2 className="text-2xl md:text-3xl font-light mb-2 tracking-wide text-center">
-                <span className="text-foreground font-medium">Ready to Declutter?</span>
+                <span className="text-foreground font-medium">Ready to Sell?</span>
               </h2>
               <p className="text-muted-foreground mb-4 max-w-xl mx-auto text-xs text-center">
                 Start the simple process today and turn your used items into cash with our professional service.
