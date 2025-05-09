@@ -22,17 +22,17 @@ export default function SellItemPage() {
   const [submitResult, setSubmitResult] = useState(null)
 
   // Form field states
-  const [itemCategory, setItemCategory] = useState("electronics") // Default value
-  const [itemName, setItemName] = useState("Test Item") // Default value
+  const [itemCategory, setItemCategory] = useState("")
+  const [itemName, setItemName] = useState("")
   const [itemDescription, setItemDescription] = useState("")
   const [itemPhotos, setItemPhotos] = useState([])
-  const [itemCondition, setItemCondition] = useState("good") // Default value
+  const [itemCondition, setItemCondition] = useState("")
   const [itemIssues, setItemIssues] = useState("")
-  const [fullName, setFullName] = useState("Test User") // Default value
-  const [email, setEmail] = useState("test@example.com") // Default value
+  const [fullName, setFullName] = useState("")
+  const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [zipCode, setZipCode] = useState("")
-  const [termsAccepted, setTermsAccepted] = useState(true) // Default to true for testing
+  const [termsAccepted, setTermsAccepted] = useState(false)
 
   // Animation states
   const [animatingFiles, setAnimatingFiles] = useState([])
@@ -76,9 +76,9 @@ export default function SellItemPage() {
   }
 
   // Validation states
-  const [step1Valid, setStep1Valid] = useState(true) // Default to true for testing
-  const [step2Valid, setStep2Valid] = useState(true) // Default to true for testing
-  const [step3Valid, setStep3Valid] = useState(true) // Default to true for testing
+  const [step1Valid, setStep1Valid] = useState(false)
+  const [step2Valid, setStep2Valid] = useState(false)
+  const [step3Valid, setStep3Valid] = useState(false)
 
   // Refs
   const fileInputRef = useRef(null)
@@ -91,38 +91,55 @@ export default function SellItemPage() {
 
   // Validate step 1
   useEffect(() => {
-    // All fields are optional now
-    setStep1Valid(true)
+    setStep1Valid(itemName.trim() !== "" && itemCategory !== "")
   }, [itemCategory, itemName, itemDescription, itemPhotos])
 
   // Validate step 2
   useEffect(() => {
-    // All fields are optional now
-    setStep2Valid(true)
+    setStep2Valid(itemCondition !== "")
   }, [itemCondition, itemIssues])
 
   // Validate step 3
   useEffect(() => {
-    // All fields are optional now
-    setStep3Valid(true)
+    setStep3Valid(fullName.trim() !== "" && email.trim() !== "" && email.includes("@") && termsAccepted)
   }, [fullName, email, phone, zipCode, address, pickupDate, termsAccepted])
 
   const validateStep1 = () => {
-    // All fields are optional now
-    setFormErrors({})
-    return true
+    const errors = {}
+    if (!itemName.trim()) {
+      errors.itemName = "Item name is required"
+    }
+    if (!itemCategory) {
+      errors.itemCategory = "Please select a category"
+    }
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
   const validateStep2 = () => {
-    // All fields are optional now
-    setFormErrors({})
-    return true
+    const errors = {}
+    if (!itemCondition) {
+      errors.itemCondition = "Please select the item condition"
+    }
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
   const validateStep3 = () => {
-    // All fields are optional now
-    setFormErrors({})
-    return true
+    const errors = {}
+    if (!fullName.trim()) {
+      errors.fullName = "Full name is required"
+    }
+    if (!email.trim()) {
+      errors.email = "Email is required"
+    } else if (!email.includes("@")) {
+      errors.email = "Please enter a valid email address"
+    }
+    if (!termsAccepted) {
+      errors.terms = "You must accept the terms to continue"
+    }
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
   // Scroll to the top of the page with smooth animation
@@ -223,51 +240,38 @@ export default function SellItemPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-
-    // Log form data for debugging
-    console.log("Form submission data:", {
-      itemCategory,
-      itemName,
-      itemCondition,
-      fullName,
-      email,
-    })
-
     if (validateStep3()) {
       setIsSubmitting(true)
 
       try {
-        // Create FormData object
-        const formData = new FormData()
-        formData.append("itemCategory", itemCategory || "electronics")
-        formData.append("itemName", itemName || "Test Item")
-        formData.append("itemDescription", itemDescription)
-        formData.append("itemCondition", itemCondition || "good")
-        formData.append("itemIssues", itemIssues)
-        formData.append("fullName", fullName || "Test User")
-        formData.append("email", email || "test@example.com")
-        formData.append("phone", phone)
-        formData.append("zipCode", zipCode)
-        formData.append("address", address)
-        formData.append("pickupDate", pickupDate)
-
-        // Add photos to FormData - ensure all photos are included
-        itemPhotos.forEach((photo, index) => {
-          if (photo.file) {
-            formData.append(`photos`, photo.file)
-            console.log(`Adding photo ${index} to form submission: ${photo.name}`)
-          }
+        // Log form data for debugging
+        console.log("Form submission data:", {
+          itemCategory,
+          itemName,
+          itemDescription,
+          itemCondition,
+          itemIssues,
+          fullName,
+          email,
+          phone,
+          zipCode,
+          address,
+          pickupDate,
         })
 
-        console.log("Submitting form data:", Object.fromEntries(formData.entries()))
-
-        // Send confirmation email
+        // Send confirmation email using Resend API
         const emailResult = await sendConfirmationEmail({
-          fullName: fullName || "Test User",
-          email: email || "test@example.com",
-          itemName: itemName || "Test Item",
-          itemCategory: itemCategory || "electronics",
-          itemCondition: itemCondition || "good",
+          fullName,
+          email,
+          itemName,
+          itemCategory,
+          itemCondition,
+          itemDescription,
+          itemIssues,
+          phone,
+          zipCode,
+          address,
+          pickupDate,
         })
 
         console.log("Email result:", emailResult)
@@ -419,9 +423,6 @@ export default function SellItemPage() {
 
             <ContentAnimation delay={0.3}>
               <form
-                action="https://formspree.io/f/xqaqprdw"
-                method="POST"
-                encType="multipart/form-data"
                 onSubmit={handleSubmit}
                 className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 transform transition-all duration-300 hover:shadow-xl"
               >
@@ -487,7 +488,7 @@ export default function SellItemPage() {
 
                     <div className="transition-all duration-300">
                       <Label className="text-base font-medium mb-2 block">
-                        Item Photos <span className="text-sm font-normal">(at least 3)</span>
+                        Item Photos <span className="text-sm font-normal">(optional)</span>
                       </Label>
                       <div
                         className={`p-6 border border-dashed rounded-lg ${
@@ -575,9 +576,9 @@ export default function SellItemPage() {
                             />
                           </div>
 
-                          <p className={`text-sm ${itemPhotos.length >= 3 ? "text-green-600" : "text-gray-500"}`}>
-                            {itemPhotos.length} of 3 required photos uploaded
-                            {itemPhotos.length >= 3 && " ✓"}
+                          <p className={`text-sm ${itemPhotos.length > 0 ? "text-green-600" : "text-gray-500"}`}>
+                            {itemPhotos.length} photos uploaded
+                            {itemPhotos.length > 0 && " ✓"}
                           </p>
                         </div>
                       </div>
