@@ -13,16 +13,17 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null)
+  const [navWidth, setNavWidth] = useState(0)
+  const [navLeft, setNavLeft] = useState(0)
 
   // Use refs instead of state for positions to avoid re-renders
   const activeIndexRef = useRef<number | null>(null)
   const prevActiveIndexRef = useRef<number | null>(null)
-
-  const navRef = useRef<HTMLDivElement>(null)
-  const linkRefs = useRef<Map<string, HTMLAnchorElement>>(new Map())
-  const contentRef = useRef<HTMLDivElement>(null)
   const isInitialRender = useRef(true)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const homeRef = useRef<HTMLAnchorElement>(null)
+  const contactRef = useRef<HTMLAnchorElement>(null)
+  const navContainerRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLElement>(null)
 
   const navLinks = [
     {
@@ -104,6 +105,35 @@ export default function Navbar() {
     },
   ]
 
+  // Calculate the width between Home and Contact links
+  useEffect(() => {
+    const calculateNavDimensions = () => {
+      if (homeRef.current && contactRef.current && navContainerRef.current) {
+        const homeRect = homeRef.current.getBoundingClientRect()
+        const contactRect = contactRef.current.getBoundingClientRect()
+        const navContainerRect = navContainerRef.current.getBoundingClientRect()
+
+        // Calculate the distance from the left edge of Home to the right edge of Contact
+        const totalWidth = contactRect.right - homeRect.left
+
+        // Calculate the left position relative to the container
+        const leftPosition = homeRect.left - navContainerRect.left
+
+        // Set the width and left position for the nav container
+        setNavWidth(totalWidth)
+        setNavLeft(leftPosition)
+      }
+    }
+
+    // Calculate on mount and when window resizes
+    calculateNavDimensions()
+    window.addEventListener("resize", calculateNavDimensions)
+
+    return () => {
+      window.removeEventListener("resize", calculateNavDimensions)
+    }
+  }, [])
+
   // Handle hover with delay
   const handleLinkHover = (href: string) => {
     if (href === activeDropdown) return
@@ -144,14 +174,6 @@ export default function Navbar() {
       isInitialRender.current = false
       return
     }
-
-    // Add resize listener
-    const handleResize = () => {
-      // Only need to handle resize for dropdown positioning
-    }
-
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
   }, [])
 
   // Handle dropdown hover effects
@@ -183,48 +205,6 @@ export default function Navbar() {
   // Find the active link data
   const activeLink = activeDropdown ? navLinks.find((link) => link.href === activeDropdown) : null
 
-  // Calculate dropdown position - centered between Home and Contact links
-  const getDropdownPosition = () => {
-    if (!navRef.current) return { left: 0, width: 0 }
-
-    const navRect = navRef.current.getBoundingClientRect()
-    const containerRect = containerRef.current?.getBoundingClientRect() || { left: 0 }
-
-    // Get the first and last link positions if available
-    const homeLink = linkRefs.current.get("/")
-    const contactLink = linkRefs.current.get("/contact")
-
-    // Fixed width for the dropdown
-    const dropdownWidth = 600
-
-    let dropdownLeft = 0
-
-    if (homeLink && contactLink) {
-      // If we have both links, center the dropdown between them
-      const homeLinkRect = homeLink.getBoundingClientRect()
-      const contactLinkRect = contactLink.getBoundingClientRect()
-
-      // Calculate the center point between the first and last links
-      const centerBetweenLinks = homeLinkRect.left + (contactLinkRect.right - homeLinkRect.left) / 2
-
-      // Position the dropdown centered on this point
-      dropdownLeft = centerBetweenLinks - dropdownWidth / 2
-    } else {
-      // Fallback to the previous calculation with a slightly reduced offset
-      const navLinksCenter = navRect.left + navRect.width / 2
-      const rightOffset = 22 // Reduced from 30 to move slightly more to the left
-      dropdownLeft = navLinksCenter - dropdownWidth / 2 + rightOffset
-    }
-
-    // Adjust for container position
-    const adjustedLeft = dropdownLeft - containerRect.left
-
-    return {
-      left: adjustedLeft,
-      width: dropdownWidth,
-    }
-  }
-
   return (
     <>
       <style jsx global>{`
@@ -254,14 +234,37 @@ export default function Navbar() {
         .fade-out {
           animation: fadeOut 0.3s forwards ease-out;
         }
+        
+        .nav-links-container {
+          position: relative;
+        }
+        
+        .dropdown-container {
+          position: fixed;
+          left: 0;
+          right: 0;
+          display: flex;
+          justify-content: center;
+          z-index: 40;
+        }
+        
+        .dropdown-content {
+          width: 600px;
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.5rem;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          overflow: hidden;
+        }
       `}</style>
       <header
+        ref={headerRef}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled ? "bg-white/95 backdrop-blur-sm shadow-sm" : "bg-transparent"
         }`}
         onMouseLeave={() => setActiveDropdown(null)}
       >
-        <div className="container mx-auto px-4" ref={containerRef}>
+        <div className="container mx-auto px-4">
           <nav className="flex justify-between items-center h-12">
             {/* Logo - static link */}
             <a href="/" className="flex items-center">
@@ -277,14 +280,12 @@ export default function Navbar() {
             </a>
 
             {/* Desktop navigation - static links */}
-            <div className="hidden md:flex space-x-8 relative" ref={navRef}>
-              {navLinks.map((link) => (
+            <div className="hidden md:flex space-x-8 relative nav-links-container" ref={navContainerRef}>
+              {navLinks.map((link, index) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  ref={(el) => {
-                    if (el) linkRefs.current.set(link.href, el)
-                  }}
+                  ref={link.href === "/" ? homeRef : link.href === "/contact" ? contactRef : null}
                   className={`text-sm hover:text-[#3B82F6] transition-all duration-200 py-1 ${
                     pathname === link.href ? "text-[#3B82F6] font-medium" : "text-gray-600"
                   }`}
@@ -332,61 +333,65 @@ export default function Navbar() {
             </div>
           )}
         </div>
+      </header>
 
-        {/* Mega dropdown - centered between navbar links */}
-        {activeDropdown && (
-          <div className="relative">
-            <div
-              className="absolute bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50 transition-all duration-300"
-              style={{
-                left: getDropdownPosition().left,
-                width: getDropdownPosition().width,
-                transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
-              }}
-            >
-              <div className="p-6 relative overflow-hidden" ref={contentRef}>
-                <div
-                  className={`grid grid-cols-4 gap-8 ${
-                    slideDirection === "right" ? "slide-in-right" : slideDirection === "left" ? "slide-in-left" : ""
-                  }`}
-                  key={activeDropdown} // Add key to force re-render on dropdown change
-                >
-                  {/* Left column - Icon and description */}
-                  <div className="col-span-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      {activeLink?.icon}
-                      <h3 className="font-medium text-lg text-gray-900">{activeLink?.label}</h3>
+      {/* Mega dropdown - positioned below the navbar */}
+      {activeDropdown && (
+        <div
+          className="dropdown-container"
+          style={{
+            top: headerRef.current ? headerRef.current.offsetHeight : 48,
+          }}
+        >
+          <div
+            className="dropdown-content transition-all duration-300"
+            style={{
+              // Center the dropdown between Home and Contact links
+              transform: `translateX(${navLeft + navWidth / 2 - 300}px)`,
+            }}
+          >
+            <div className="p-6 relative overflow-hidden">
+              <div
+                className={`grid grid-cols-4 gap-8 ${
+                  slideDirection === "right" ? "slide-in-right" : slideDirection === "left" ? "slide-in-left" : ""
+                }`}
+                key={activeDropdown} // Add key to force re-render on dropdown change
+              >
+                {/* Left column - Icon and description */}
+                <div className="col-span-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    {activeLink?.icon}
+                    <h3 className="font-medium text-lg text-gray-900">{activeLink?.label}</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4">{activeLink?.description}</p>
+                  <a
+                    href={activeLink?.href}
+                    className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-200"
+                  >
+                    Learn more{" "}
+                    <ArrowRight
+                      size={14}
+                      className="ml-1 transition-transform duration-200 group-hover:translate-x-1"
+                    />
+                  </a>
+                </div>
+
+                {/* Right columns - Features */}
+                <div className="col-span-3 grid grid-cols-3 gap-6">
+                  {activeLink?.features.map((feature, index) => (
+                    <div key={index} className="group transition-all duration-200 hover:translate-y-[-2px]">
+                      <h4 className="font-medium text-gray-900 mb-1 group-hover:text-blue-600 transition-colors duration-200">
+                        {feature.title}
+                      </h4>
+                      <p className="text-sm text-gray-500">{feature.description}</p>
                     </div>
-                    <p className="text-gray-600 mb-4">{activeLink?.description}</p>
-                    <a
-                      href={activeLink?.href}
-                      className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-200"
-                    >
-                      Learn more{" "}
-                      <ArrowRight
-                        size={14}
-                        className="ml-1 transition-transform duration-200 group-hover:translate-x-1"
-                      />
-                    </a>
-                  </div>
-
-                  {/* Right columns - Features */}
-                  <div className="col-span-3 grid grid-cols-3 gap-6">
-                    {activeLink?.features.map((feature, index) => (
-                      <div key={index} className="group transition-all duration-200 hover:translate-y-[-2px]">
-                        <h4 className="font-medium text-gray-900 mb-1 group-hover:text-blue-600 transition-colors duration-200">
-                          {feature.title}
-                        </h4>
-                        <p className="text-sm text-gray-500">{feature.description}</p>
-                      </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
-        )}
-      </header>
+        </div>
+      )}
 
       {/* Search Modal */}
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
