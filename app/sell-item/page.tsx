@@ -375,8 +375,8 @@ export default function SellItemPage() {
         <ContentAnimation>
           {/* Update Header Styling */}
           <div className="text-center mb-12 relative">
-            <h1 className="font-light text-4xl md:text-5xl tracking-tight mb-8 font-[var(--font-roboto)]">
-              <span className="bg-gradient-to-r from-[#3b82f6] via-[#8b5cf6] to-[#6366f1] bg-clip-text text-transparent drop-shadow-sm">
+            <h1 className="font-extralight text-4xl md:text-5xl tracking-wider mb-8 font-[var(--font-roboto)]">
+              <span className="bg-gradient-to-r from-[#3b82f6] via-[#8b5cf6] to-[#6366f1] bg-clip-text text-transparent">
                 Sell Your Item
               </span>
             </h1>
