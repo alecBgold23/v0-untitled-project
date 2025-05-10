@@ -3,6 +3,9 @@ import "@/app/globals.css"
 import { Inter, Poppins, Roboto } from "next/font/google"
 import { validateEnv } from "@/lib/env"
 import ClientLayout from "./client-layout"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Analytics } from "@vercel/analytics/next"
+import { Suspense } from "react"
 
 // Validate environment variables during build/startup
 validateEnv()
@@ -37,5 +40,16 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <ClientLayout>{children}</ClientLayout>
+  return (
+    <html lang="en">
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <Suspense>
+            <ClientLayout>{children}</ClientLayout>
+          </Suspense>
+        </ThemeProvider>
+        <Analytics />
+      </body>
+    </html>
+  )
 }
