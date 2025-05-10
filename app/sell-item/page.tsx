@@ -373,14 +373,14 @@ export default function SellItemPage() {
 
       <div className="container mx-auto py-16 px-4 max-w-5xl">
         <ContentAnimation>
-          {/* Update Header Styling */}
+          {/* Restore Header Styling to Original */}
           <div className="text-center mb-12 relative">
-            <h1 className="font-extralight text-4xl md:text-5xl tracking-wider mb-8 font-[var(--font-roboto)]">
-              <span className="bg-gradient-to-r from-[#3b82f6] via-[#8b5cf6] to-[#6366f1] bg-clip-text text-transparent">
+            <h1 className="font-light text-4xl md:text-5xl tracking-tight mb-8 font-[var(--font-roboto)]">
+              <span className="bg-gradient-to-r from-[#4f7bff] via-[#a855f7] to-[#6366f1] bg-clip-text text-transparent">
                 Sell Your Item
               </span>
             </h1>
-            <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#3b82f6]/5 via-[#8b5cf6]/5 to-[#6366f1]/5 blur-3xl rounded-full"></div>
+            <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#4f7bff]/5 via-[#a855f7]/5 to-[#6366f1]/5 blur-3xl rounded-full"></div>
           </div>
         </ContentAnimation>
 
