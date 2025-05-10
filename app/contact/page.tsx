@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Mail, Phone, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
+import { Mail, Phone, AlertCircle, CheckCircle, Loader2, User, MessageSquare } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import ConfettiEffect from "@/components/confetti-effect"
 
@@ -98,7 +98,7 @@ export default function ContactPage() {
         <div className="container mx-auto px-4">
           <ContentAnimation>
             <h1 className="page-header font-[var(--font-roboto)] font-light tracking-tight">
-              <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#4f7bff] via-[#a855f7] to-[#6366f1] bg-clip-text text-transparent">
                 Contact Us
               </span>
             </h1>
@@ -114,71 +114,99 @@ export default function ContactPage() {
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="grid md:grid-cols-2 gap-12">
-            {/* Simplify the contact information section */}
+            {/* Contact information section */}
             <ContentAnimation>
-              <div className="text-center">
-                <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight text-foreground">
+              <div className="text-center md:text-left">
+                <h2 className="section-header mb-8 font-[var(--font-roboto)] font-light tracking-tight text-foreground">
                   Contact Information
                 </h2>
-                <div className="space-y-4">
-                  <div>
-                    <Mail className="w-5 h-5 text-[#8A4FFF] mx-auto mb-2" />
-                    <p className="text-foreground/80">alecgold808@gmail.com</p>
+                <div className="space-y-6">
+                  <div className="flex flex-col md:flex-row items-center md:items-start gap-3 transition-all duration-300 p-4 rounded-xl hover:bg-muted/50">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-[#4f7bff] to-[#a855f7] text-white shadow-md">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium mb-1">Email</h3>
+                      <p className="text-foreground/80">alecgold808@gmail.com</p>
+                    </div>
                   </div>
 
-                  <div>
-                    <Phone className="w-5 h-5 text-[#3B82F6] mx-auto mb-2" />
-                    <p className="text-foreground/80">847-510-3229</p>
+                  <div className="flex flex-col md:flex-row items-center md:items-start gap-3 transition-all duration-300 p-4 rounded-xl hover:bg-muted/50">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-[#a855f7] to-[#6366f1] text-white shadow-md">
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium mb-1">Phone</h3>
+                      <p className="text-foreground/80">847-510-3229</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </ContentAnimation>
 
-            {/* Replace the form section with a simplified version */}
+            {/* Stylish form section */}
             <ContentAnimation delay={0.1}>
-              <div className="text-center">
+              <div>
                 {!isSubmitted ? (
                   <>
-                    <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight text-foreground">
+                    <h2 className="section-header mb-8 font-[var(--font-roboto)] font-light tracking-tight text-foreground text-center md:text-left">
                       Send a Message
                     </h2>
-                    <form className="space-y-4" onSubmit={handleSubmit}>
-                      <div>
+                    <form
+                      className="space-y-5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-[#a855f7]/20"
+                      onSubmit={handleSubmit}
+                    >
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4f7bff]">
+                          <User className="w-5 h-5" />
+                        </div>
                         <Input
                           id="name"
                           name="name"
-                          placeholder="Your name"
+                          placeholder="Your Name"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          className={`rounded-lg ${formErrors.name ? "border-red-500" : "border-input"}`}
+                          className={`pl-12 py-6 rounded-xl border-[#4f7bff]/30 bg-white/90 dark:bg-slate-700/90 backdrop-blur-sm ${
+                            formErrors.name ? "border-red-500" : "border-[#4f7bff]/30 focus:border-[#a855f7]/70"
+                          }`}
                           required
                         />
                         {formErrors.name && <ErrorMessage message={formErrors.name} />}
                       </div>
 
-                      <div>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4f7bff]">
+                          <Mail className="w-5 h-5" />
+                        </div>
                         <Input
                           id="email"
                           name="email"
                           type="email"
-                          placeholder="Your email"
+                          placeholder="Your Email Address"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className={`rounded-lg ${formErrors.email ? "border-red-500" : "border-input"}`}
+                          className={`pl-12 py-6 rounded-xl border-[#4f7bff]/30 bg-white/90 dark:bg-slate-700/90 backdrop-blur-sm ${
+                            formErrors.email ? "border-red-500" : "border-[#4f7bff]/30 focus:border-[#a855f7]/70"
+                          }`}
                           required
                         />
                         {formErrors.email && <ErrorMessage message={formErrors.email} />}
                       </div>
 
-                      <div>
+                      <div className="relative">
+                        <div className="absolute left-3 top-6 text-[#4f7bff]">
+                          <MessageSquare className="w-5 h-5" />
+                        </div>
                         <Textarea
                           id="message"
                           name="message"
-                          placeholder="How can we help you?"
+                          placeholder="How can we help you? Type your message here..."
                           rows={4}
                           value={message}
                           onChange={(e) => setMessage(e.target.value)}
-                          className={`rounded-lg ${formErrors.message ? "border-red-500" : "border-input"}`}
+                          className={`pl-12 pt-6 rounded-xl border-[#4f7bff]/30 bg-white/90 dark:bg-slate-700/90 backdrop-blur-sm ${
+                            formErrors.message ? "border-red-500" : "border-[#4f7bff]/30 focus:border-[#a855f7]/70"
+                          }`}
                           required
                         />
                         {formErrors.message && <ErrorMessage message={formErrors.message} />}
@@ -191,7 +219,11 @@ export default function ContactPage() {
                         </div>
                       )}
 
-                      <Button type="submit" disabled={!isFormValid || isSubmitting} className="w-full">
+                      <Button
+                        type="submit"
+                        disabled={!isFormValid || isSubmitting}
+                        className="w-full py-6 rounded-xl bg-gradient-to-r from-[#4f7bff] via-[#a855f7] to-[#6366f1] hover:opacity-95 transition-opacity shadow-md hover:shadow-[#4f7bff]/20"
+                      >
                         {isSubmitting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -204,13 +236,19 @@ export default function ContactPage() {
                     </form>
                   </>
                 ) : (
-                  <div className="text-center py-8 bg-card rounded-lg shadow-sm border border-border p-6">
-                    <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-medium mb-2 text-foreground">Message Sent!</h2>
-                    <p className="text-foreground/80 mb-4">
+                  <div className="text-center py-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm border border-[#a855f7]/20 p-8">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center">
+                      <CheckCircle className="w-8 h-8 text-white" />
+                    </div>
+                    <h2 className="text-2xl font-medium mb-3 text-foreground">Message Sent!</h2>
+                    <p className="text-foreground/80 mb-6">
                       Thank you for contacting BluBerry. We'll respond within 24 hours.
                     </p>
-                    <Button onClick={() => setIsSubmitted(false)} variant="outline" size="sm">
+                    <Button
+                      onClick={() => setIsSubmitted(false)}
+                      variant="outline"
+                      className="rounded-xl px-6 py-2 border-primary/30 hover:bg-primary/10"
+                    >
                       Send Another Message
                     </Button>
                   </div>
