@@ -373,9 +373,15 @@ export default function SellItemPage() {
 
       <div className="container mx-auto py-16 px-4 max-w-5xl">
         <ContentAnimation>
-          {/* Update Header Styling to make it thicker */}
+          {/* Update Header Styling to use San Francisco font */}
           <div className="text-center mb-12 relative">
-            <h1 className="font-semibold text-4xl md:text-5xl tracking-tight mb-8 font-roboto">
+            <h1
+              className="font-semibold text-4xl md:text-5xl tracking-tight mb-8"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue", Helvetica, Arial, sans-serif',
+              }}
+            >
               <span className="bg-gradient-to-r from-[#4f7bff] via-[#a855f7] to-[#6366f1] bg-clip-text text-transparent">
                 Sell Your Item
               </span>
