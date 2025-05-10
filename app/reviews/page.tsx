@@ -9,39 +9,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Star, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import Image from "next/image"
 import ContentAnimation from "@/components/content-animation"
-
-// Sample reviews data (in a real app, this would come from a database)
-const initialReviews = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    rating: 5,
-    date: "April 15, 2025",
-    comment:
-      "BluBerry made selling my old furniture so easy! The team was professional and I got paid immediately upon pickup.",
-    avatar: "/placeholder.svg?key=tcdlc",
-  },
-  {
-    id: 2,
-    name: "Michael Rodriguez",
-    rating: 4,
-    date: "March 28, 2025",
-    comment: "Great service overall. The pickup was scheduled quickly and everything went smoothly. Would use again!",
-    avatar: "/placeholder.svg?key=46nna",
-  },
-  {
-    id: 3,
-    name: "Emily Chen",
-    rating: 5,
-    date: "March 10, 2025",
-    comment:
-      "I was amazed at how simple the process was. Submitted my items online, got an offer the next day, and had everything picked up within the week. Fantastic service!",
-    avatar: "/placeholder.svg?key=walln",
-  },
-]
+import { toast } from "@/hooks/use-toast"
 
 export default function ReviewsPage() {
-  const [reviews, setReviews] = useState(initialReviews)
+  const [reviews, setReviews] = useState([]) // Initialize with empty array
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [rating, setRating] = useState("")
@@ -49,6 +20,7 @@ export default function ReviewsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [formErrors, setFormErrors] = useState({})
+  const [errorMessage, setErrorMessage] = useState("")
 
   const validateForm = () => {
     const errors = {}
@@ -61,37 +33,81 @@ export default function ReviewsPage() {
     return Object.keys(errors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    setErrorMessage("")
 
     if (!validateForm()) return
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      const newReview = {
-        id: reviews.length + 1,
-        name,
-        rating: Number.parseInt(rating),
-        date: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
-        comment,
-        avatar: "/placeholder.svg?key=zmznp",
+    try {
+      // Use the new API route for submission
+      const response = await fetch("/api/send-review", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          rating,
+          comment,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        // Add the review to the local state
+        const newReview = {
+          id: reviews.length + 1,
+          name,
+          rating: Number.parseInt(rating),
+          date: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+          comment,
+          avatar: "/placeholder.svg?key=zmznp",
+        }
+
+        setReviews([newReview, ...reviews])
+        setName("")
+        setEmail("")
+        setRating("")
+        setComment("")
+        setSubmitSuccess(true)
+
+        // Show success toast
+        toast({
+          title: "Review Submitted",
+          description: "Thank you for sharing your experience!",
+        })
+
+        // Reset success message after 5 seconds
+        setTimeout(() => {
+          setSubmitSuccess(false)
+        }, 5000)
+      } else {
+        // Handle error
+        const errorMsg = result.message || "Failed to submit review. Please try again."
+        setErrorMessage(errorMsg)
+        toast({
+          title: "Submission Failed",
+          description: errorMsg,
+          variant: "destructive",
+        })
+        console.error("Submission error details:", result.error)
       }
-
-      setReviews([newReview, ...reviews])
-      setName("")
-      setEmail("")
-      setRating("")
-      setComment("")
+    } catch (error) {
+      console.error("Error submitting review:", error)
+      setErrorMessage("An error occurred while submitting your review. Please try again.")
+      toast({
+        title: "Submission Error",
+        description: "An error occurred while submitting your review. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
       setIsSubmitting(false)
-      setSubmitSuccess(true)
-
-      // Reset success message after 5 seconds
-      setTimeout(() => {
-        setSubmitSuccess(false)
-      }, 5000)
-    }, 1500)
+    }
   }
 
   const StarRating = ({ value }) => {
@@ -157,6 +173,16 @@ export default function ReviewsPage() {
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-5">
+                      {errorMessage && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start mb-6">
+                          <AlertCircle className="text-red-500 w-5 h-5 mt-0.5 mr-3 flex-shrink-0" />
+                          <div>
+                            <p className="font-medium text-red-800 dark:text-red-300">Submission Error</p>
+                            <p className="text-red-700 dark:text-red-400 text-sm">{errorMessage}</p>
+                          </div>
+                        </div>
+                      )}
+
                       <div>
                         <Label htmlFor="name" className="text-sm font-medium text-foreground">
                           Your Name <span className="text-red-500">*</span>
@@ -250,32 +276,39 @@ export default function ReviewsPage() {
                   Customer Feedback
                 </h2>
 
-                <div className="space-y-6">
-                  {reviews.map((review) => (
-                    <div key={review.id} className="border border-border rounded-lg p-5 shadow-sm bg-card">
-                      <div className="flex items-center mb-3">
-                        <div className="relative w-12 h-12 rounded-full overflow-hidden mr-4">
-                          <Image
-                            src={review.avatar || "/placeholder.svg"}
-                            alt={review.name}
-                            fill
-                            className="object-cover"
-                          />
+                {reviews.length > 0 ? (
+                  <div className="space-y-6">
+                    {reviews.map((review) => (
+                      <div key={review.id} className="border border-border rounded-lg p-5 shadow-sm bg-card">
+                        <div className="flex items-center mb-3">
+                          <div className="relative w-12 h-12 rounded-full overflow-hidden mr-4">
+                            <Image
+                              src={review.avatar || "/placeholder.svg"}
+                              alt={review.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-foreground">{review.name}</h3>
+                            <p className="text-sm text-muted-foreground">{review.date}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium text-foreground">{review.name}</h3>
-                          <p className="text-sm text-muted-foreground">{review.date}</p>
+
+                        <div className="mb-3">
+                          <StarRating value={review.rating} />
                         </div>
-                      </div>
 
-                      <div className="mb-3">
-                        <StarRating value={review.rating} />
+                        <p className="text-foreground/80">{review.comment}</p>
                       </div>
-
-                      <p className="text-foreground/80">{review.comment}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="border border-border rounded-lg p-8 shadow-sm bg-card text-center">
+                    <p className="text-muted-foreground mb-2">No reviews yet</p>
+                    <p className="text-foreground font-medium">Be the first to share your experience!</p>
+                  </div>
+                )}
               </div>
             </ContentAnimation>
           </div>
