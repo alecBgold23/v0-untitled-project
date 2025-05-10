@@ -45,6 +45,10 @@ export default function Navbar() {
     setIsMenuOpen(!isMenuOpen)
   }
 
+  const closeMenu = () => {
+    setIsMenuOpen(false)
+  }
+
   const toggleSearch = () => {
     setIsSearchOpen(!isSearchOpen)
   }
@@ -108,6 +112,7 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  onClick={closeMenu}
                   className={`text-sm hover:text-primary transition-all duration-200 ${
                     pathname === link.href ? "text-primary font-medium" : "text-foreground/80"
                   }`}
