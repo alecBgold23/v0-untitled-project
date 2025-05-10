@@ -153,11 +153,11 @@ export default function ContactPage() {
                       Send a Message
                     </h2>
                     <form
-                      className="space-y-5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-[#a855f7]/20"
+                      className="space-y-5 bg-card/50 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-border/50"
                       onSubmit={handleSubmit}
                     >
                       <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4f7bff]">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                           <User className="w-5 h-5" />
                         </div>
                         <Input
@@ -166,8 +166,8 @@ export default function ContactPage() {
                           placeholder="Your Name"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          className={`pl-12 py-6 rounded-xl border-[#4f7bff]/30 bg-white/90 dark:bg-slate-700/90 backdrop-blur-sm ${
-                            formErrors.name ? "border-red-500" : "border-[#4f7bff]/30 focus:border-[#a855f7]/70"
+                          className={`pl-12 py-6 rounded-xl border-muted bg-background/50 backdrop-blur-sm ${
+                            formErrors.name ? "border-red-500" : "border-input"
                           }`}
                           required
                         />
@@ -175,7 +175,7 @@ export default function ContactPage() {
                       </div>
 
                       <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4f7bff]">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                           <Mail className="w-5 h-5" />
                         </div>
                         <Input
@@ -185,8 +185,8 @@ export default function ContactPage() {
                           placeholder="Your Email Address"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className={`pl-12 py-6 rounded-xl border-[#4f7bff]/30 bg-white/90 dark:bg-slate-700/90 backdrop-blur-sm ${
-                            formErrors.email ? "border-red-500" : "border-[#4f7bff]/30 focus:border-[#a855f7]/70"
+                          className={`pl-12 py-6 rounded-xl border-muted bg-background/50 backdrop-blur-sm ${
+                            formErrors.email ? "border-red-500" : "border-input"
                           }`}
                           required
                         />
@@ -194,7 +194,7 @@ export default function ContactPage() {
                       </div>
 
                       <div className="relative">
-                        <div className="absolute left-3 top-6 text-[#4f7bff]">
+                        <div className="absolute left-3 top-6 text-muted-foreground">
                           <MessageSquare className="w-5 h-5" />
                         </div>
                         <Textarea
@@ -204,8 +204,8 @@ export default function ContactPage() {
                           rows={4}
                           value={message}
                           onChange={(e) => setMessage(e.target.value)}
-                          className={`pl-12 pt-6 rounded-xl border-[#4f7bff]/30 bg-white/90 dark:bg-slate-700/90 backdrop-blur-sm ${
-                            formErrors.message ? "border-red-500" : "border-[#4f7bff]/30 focus:border-[#a855f7]/70"
+                          className={`pl-12 pt-6 rounded-xl border-muted bg-background/50 backdrop-blur-sm ${
+                            formErrors.message ? "border-red-500" : "border-input"
                           }`}
                           required
                         />
@@ -222,7 +222,7 @@ export default function ContactPage() {
                       <Button
                         type="submit"
                         disabled={!isFormValid || isSubmitting}
-                        className="w-full py-6 rounded-xl bg-gradient-to-r from-[#4f7bff] via-[#a855f7] to-[#6366f1] hover:opacity-95 transition-opacity shadow-md hover:shadow-[#4f7bff]/20"
+                        className="w-full py-6 rounded-xl bg-gradient-to-r from-[#4f7bff] via-[#a855f7] to-[#6366f1] hover:opacity-95 transition-opacity"
                       >
                         {isSubmitting ? (
                           <>
@@ -236,7 +236,7 @@ export default function ContactPage() {
                     </form>
                   </>
                 ) : (
-                  <div className="text-center py-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm border border-[#a855f7]/20 p-8">
+                  <div className="text-center py-8 bg-card/50 backdrop-blur-sm rounded-2xl shadow-sm border border-border/50 p-8">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center">
                       <CheckCircle className="w-8 h-8 text-white" />
                     </div>
