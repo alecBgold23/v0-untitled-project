@@ -1,10 +1,8 @@
 import type React from "react"
 import "@/app/globals.css"
 import { Inter, Poppins, Roboto } from "next/font/google"
-import { ThemeProvider } from "@/components/theme-provider"
-import Footer from "@/components/footer"
 import { validateEnv } from "@/lib/env"
-import Navbar from "@/components/navbar"
+import ClientLayout from "./client-layout"
 
 // Validate environment variables during build/startup
 validateEnv()
@@ -39,17 +37,5 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${poppins.variable} ${roboto.variable} min-h-screen overflow-x-hidden`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <div className="flex flex-col min-h-screen bg-background text-foreground">
-            <Navbar />
-            <main className="flex-grow pt-12">{children}</main>
-            <Footer />
-          </div>
-        </ThemeProvider>
-      </body>
-    </html>
-  )
+  return <ClientLayout>{children}</ClientLayout>
 }

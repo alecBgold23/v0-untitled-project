@@ -74,6 +74,18 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  onClick={(e) => {
+                    // Only add this behavior for different pages
+                    if (pathname !== link.href) {
+                      // Wait for navigation to complete
+                      setTimeout(() => {
+                        window.scrollTo({
+                          top: 0,
+                          behavior: "smooth",
+                        })
+                      }, 100)
+                    }
+                  }}
                   className={`text-sm hover:text-primary transition-all duration-200 py-1 ${
                     pathname === link.href ? "text-primary font-medium" : "text-foreground/80"
                   }`}
@@ -112,7 +124,19 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  onClick={closeMenu}
+                  onClick={(e) => {
+                    closeMenu()
+                    // Only add this behavior for different pages
+                    if (pathname !== link.href) {
+                      // Wait for navigation to complete
+                      setTimeout(() => {
+                        window.scrollTo({
+                          top: 0,
+                          behavior: "smooth",
+                        })
+                      }, 100)
+                    }
+                  }}
                   className={`text-sm hover:text-primary transition-all duration-200 ${
                     pathname === link.href ? "text-primary font-medium" : "text-foreground/80"
                   }`}

@@ -15,7 +15,13 @@ export default function Footer() {
 
     // Only navigate if we're going to a different page
     if (href !== pathname) {
-      navigateTo(href)
+      navigateTo(href, () => {
+        // Scroll to top after navigation
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        })
+      })
     }
   }
 
