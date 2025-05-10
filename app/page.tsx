@@ -257,7 +257,7 @@ export default function Home() {
             </h2>
           </ContentAnimation>
 
-          {/* Testimonials */}
+          {/* Placeholder Testimonials */}
           <div className="grid md:grid-cols-3 gap-4 mb-12">
             <ContentAnimation delay={0.1}>
               <div
@@ -266,17 +266,20 @@ export default function Home() {
                 <div className="flex items-center mb-3">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                      <Star key={i} className="h-3 w-3 text-gray-300" />
                     ))}
                   </div>
                 </div>
-                <p className={`${isMobile ? "text-white" : "text-foreground"} mb-3 text-xs leading-relaxed`}>
-                  "I sold 5 items in minutes! The pickup was scheduled for the next day and payment was instant. The
-                  entire process was seamless."
+                <p
+                  className={`${isMobile ? "text-gray-500" : "text-muted-foreground"} mb-3 text-xs leading-relaxed italic`}
+                >
+                  "Reviews coming soon..."
                 </p>
                 <div>
-                  <p className={`font-medium text-xs ${isMobile ? "text-white" : "text-foreground"}`}>Sarah T.</p>
-                  <p className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>Chicago, IL</p>
+                  <p className={`font-medium text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                    Your Name
+                  </p>
+                  <p className={`text-xs ${isMobile ? "text-gray-500" : "text-muted-foreground/70"}`}>Your Location</p>
                 </div>
               </div>
             </ContentAnimation>
@@ -288,17 +291,20 @@ export default function Home() {
                 <div className="flex items-center mb-3">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                      <Star key={i} className="h-3 w-3 text-gray-300" />
                     ))}
                   </div>
                 </div>
-                <p className={`${isMobile ? "text-white" : "text-foreground"} mb-3 text-xs leading-relaxed`}>
-                  "BluBerry made selling my old electronics so easy. No haggling, no meetups with strangers. Just simple
-                  and efficient service."
+                <p
+                  className={`${isMobile ? "text-gray-500" : "text-muted-foreground"} mb-3 text-xs leading-relaxed italic`}
+                >
+                  "Be the first to leave a review..."
                 </p>
                 <div>
-                  <p className={`font-medium text-xs ${isMobile ? "text-white" : "text-foreground"}`}>Michael R.</p>
-                  <p className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>Boston, MA</p>
+                  <p className={`font-medium text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                    Future Customer
+                  </p>
+                  <p className={`text-xs ${isMobile ? "text-gray-500" : "text-muted-foreground/70"}`}>Your City</p>
                 </div>
               </div>
             </ContentAnimation>
@@ -310,17 +316,20 @@ export default function Home() {
                 <div className="flex items-center mb-3">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                      <Star key={i} className="h-3 w-3 text-gray-300" />
                     ))}
                   </div>
                 </div>
-                <p className={`${isMobile ? "text-white" : "text-foreground"} mb-3 text-xs leading-relaxed`}>
-                  "As a senior, I appreciated how easy the whole process was. The team was respectful and professional
-                  throughout the entire experience."
+                <p
+                  className={`${isMobile ? "text-gray-500" : "text-muted-foreground"} mb-3 text-xs leading-relaxed italic`}
+                >
+                  "Share your experience with BluBerry..."
                 </p>
                 <div>
-                  <p className={`font-medium text-xs ${isMobile ? "text-white" : "text-foreground"}`}>Patricia L.</p>
-                  <p className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>Denver, CO</p>
+                  <p className={`font-medium text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                    Valued Customer
+                  </p>
+                  <p className={`text-xs ${isMobile ? "text-gray-500" : "text-muted-foreground/70"}`}>Anywhere, USA</p>
                 </div>
               </div>
             </ContentAnimation>
