@@ -374,17 +374,11 @@ export default function SellItemPage() {
       <div className="container mx-auto py-16 px-4 max-w-5xl">
         <ContentAnimation>
           <div className="text-center mb-12 relative">
-            <h1 className="font-light text-4xl md:text-5xl tracking-tight mb-4 font-[var(--font-roboto)]">
+            <h1 className="font-light text-4xl md:text-5xl tracking-tight mb-8 font-[var(--font-roboto)]">
               <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
                 Sell Your Item
               </span>
             </h1>
-            <div className="w-24 h-1 mx-auto bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] rounded-full mb-6"></div>
-            {!formSubmitted && (
-              <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-                Complete this form to get an offer for your item. We'll respond within 24 hours.
-              </p>
-            )}
             <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#4361ee]/5 via-[#7209b7]/5 to-[#3a0ca3]/5 blur-3xl rounded-full"></div>
           </div>
         </ContentAnimation>
