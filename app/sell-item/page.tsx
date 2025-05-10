@@ -375,11 +375,11 @@ export default function SellItemPage() {
         <ContentAnimation>
           <div className="text-center mb-12 relative">
             <h1 className="font-light text-4xl md:text-5xl tracking-tight mb-8 font-[var(--font-roboto)]">
-              <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#4f7bff] via-[#a855f7] to-[#6366f1] bg-clip-text text-transparent">
                 Sell Your Item
               </span>
             </h1>
-            <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#4361ee]/5 via-[#7209b7]/5 to-[#3a0ca3]/5 blur-3xl rounded-full"></div>
+            <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#4f7bff]/5 via-[#a855f7]/5 to-[#6366f1]/5 blur-3xl rounded-full"></div>
           </div>
         </ContentAnimation>
 
@@ -398,7 +398,7 @@ export default function SellItemPage() {
                   {/* Progress line */}
                   <div className="absolute top-1/2 left-0 w-full h-0.5 bg-muted -translate-y-1/2"></div>
                   <div
-                    className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] -translate-y-1/2 transition-all duration-500"
+                    className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-[#4f7bff] to-[#6366f1] -translate-y-1/2 transition-all duration-500"
                     style={{ width: formStep === 1 ? "0%" : formStep === 2 ? "50%" : "100%" }}
                   ></div>
 
@@ -407,9 +407,9 @@ export default function SellItemPage() {
                     <div
                       className={`w-14 h-14 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
                         getStepStatus(1) === "complete"
-                          ? "bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] text-white"
+                          ? "bg-gradient-to-r from-[#4f7bff] to-[#6366f1] text-white"
                           : getStepStatus(1) === "current"
-                            ? "bg-white border-2 border-[#4361ee] text-[#4361ee]"
+                            ? "bg-white border-2 border-[#4f7bff] text-[#4f7bff]"
                             : "bg-white border border-muted text-muted-foreground"
                       }`}
                     >
@@ -422,7 +422,7 @@ export default function SellItemPage() {
                     <span
                       className={`text-sm font-medium mt-2 ${
                         getStepStatus(1) === "current"
-                          ? "text-[#4361ee]"
+                          ? "text-[#4f7bff]"
                           : getStepStatus(1) === "complete"
                             ? "text-foreground"
                             : "text-muted-foreground"
@@ -437,9 +437,9 @@ export default function SellItemPage() {
                     <div
                       className={`w-14 h-14 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
                         getStepStatus(2) === "complete"
-                          ? "bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] text-white"
+                          ? "bg-gradient-to-r from-[#4f7bff] to-[#6366f1] text-white"
                           : getStepStatus(2) === "current"
-                            ? "bg-white border-2 border-[#4361ee] text-[#4361ee]"
+                            ? "bg-white border-2 border-[#4f7bff] text-[#4f7bff]"
                             : "bg-white border border-muted text-muted-foreground"
                       }`}
                     >
@@ -452,7 +452,7 @@ export default function SellItemPage() {
                     <span
                       className={`text-sm font-medium mt-2 ${
                         getStepStatus(2) === "current"
-                          ? "text-[#4361ee]"
+                          ? "text-[#4f7bff]"
                           : getStepStatus(2) === "complete"
                             ? "text-foreground"
                             : "text-muted-foreground"
@@ -467,9 +467,9 @@ export default function SellItemPage() {
                     <div
                       className={`w-14 h-14 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
                         getStepStatus(3) === "complete"
-                          ? "bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] text-white"
+                          ? "bg-gradient-to-r from-[#4f7bff] to-[#6366f1] text-white"
                           : getStepStatus(3) === "current"
-                            ? "bg-white border-2 border-[#4361ee] text-[#4361ee]"
+                            ? "bg-white border-2 border-[#4f7bff] text-[#4f7bff]"
                             : "bg-white border border-muted text-muted-foreground"
                       }`}
                     >
@@ -478,7 +478,7 @@ export default function SellItemPage() {
                     <span
                       className={`text-sm font-medium mt-2 ${
                         getStepStatus(3) === "current"
-                          ? "text-[#4361ee]"
+                          ? "text-[#4f7bff]"
                           : getStepStatus(3) === "complete"
                             ? "text-foreground"
                             : "text-muted-foreground"
@@ -499,7 +499,7 @@ export default function SellItemPage() {
                 </div>
                 <div className="h-1 w-full bg-muted rounded-full overflow-hidden mb-8 md:hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-[#4f7bff] to-[#6366f1] transition-all duration-500"
                     style={{ width: `${(formStep / 3) * 100}%` }}
                   ></div>
                 </div>
@@ -512,7 +512,7 @@ export default function SellItemPage() {
                 className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-border/40 overflow-hidden transition-all duration-300"
               >
                 {/* Form header */}
-                <div className="bg-gradient-to-r from-[#4361ee]/10 via-[#7209b7]/10 to-[#3a0ca3]/10 p-6 border-b border-border/40">
+                <div className="bg-gradient-to-r from-[#4f7bff]/10 via-[#a855f7]/10 to-[#6366f1]/10 p-6 border-b border-border/40">
                   <h2 className="text-xl font-medium">
                     {formStep === 1
                       ? "Tell us about your item"
@@ -545,7 +545,7 @@ export default function SellItemPage() {
                             placeholder="e.g., Leather Sofa, Samsung TV"
                             className={`w-full border ${
                               formErrors.itemName ? "border-red-300" : "border-input"
-                            } rounded-lg focus-visible:ring-[#4361ee] bg-background shadow-sm transition-all duration-200`}
+                            } rounded-lg focus-visible:ring-[#4f7bff] bg-background shadow-sm transition-all duration-200`}
                             required
                           />
                           {formErrors.itemName && <ErrorMessage message={formErrors.itemName} />}
@@ -560,7 +560,7 @@ export default function SellItemPage() {
                               id="item-category"
                               className={`w-full border ${
                                 formErrors.itemCategory ? "border-red-300" : "border-input"
-                              } rounded-lg focus-visible:ring-[#4361ee] bg-background shadow-sm transition-all duration-200`}
+                              } rounded-lg focus-visible:ring-[#4f7bff] bg-background shadow-sm transition-all duration-200`}
                             >
                               <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
@@ -588,7 +588,7 @@ export default function SellItemPage() {
                           rows={4}
                           className={`w-full border ${
                             formErrors.itemDescription ? "border-red-300" : "border-input"
-                          } rounded-lg focus-visible:ring-[#4361ee] bg-background shadow-sm transition-all duration-200`}
+                          } rounded-lg focus-visible:ring-[#4f7bff] bg-background shadow-sm transition-all duration-200`}
                           required
                         />
                         {formErrors.itemDescription && <ErrorMessage message={formErrors.itemDescription} />}
@@ -649,7 +649,7 @@ export default function SellItemPage() {
                                   e.stopPropagation()
                                   fileInputRef.current?.click()
                                 }}
-                                className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-input text-foreground px-4 py-2 text-sm rounded-lg shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#4361ee]/50"
+                                className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-input text-foreground px-4 py-2 text-sm rounded-lg shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#4f7bff]/50"
                               >
                                 <Upload className="w-4 h-4" />
                                 <span>Upload Files</span>
@@ -661,7 +661,7 @@ export default function SellItemPage() {
                                   e.stopPropagation()
                                   cameraInputRef.current?.click()
                                 }}
-                                className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-input text-foreground px-4 py-2 text-sm rounded-lg shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#4361ee]/50"
+                                className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-input text-foreground px-4 py-2 text-sm rounded-lg shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#4f7bff]/50"
                               >
                                 <Camera className="w-4 h-4" />
                                 <span>Take Photo</span>
@@ -691,7 +691,7 @@ export default function SellItemPage() {
                             <div className="flex items-center gap-2 mt-2">
                               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                                 <div
-                                  className={`h-full ${itemPhotos.length >= 3 ? "bg-green-500" : "bg-[#4361ee]"}`}
+                                  className={`h-full ${itemPhotos.length >= 3 ? "bg-green-500" : "bg-[#4f7bff]"}`}
                                   style={{ width: `${Math.min(100, (itemPhotos.length / 3) * 100)}%` }}
                                 ></div>
                               </div>
@@ -712,7 +712,7 @@ export default function SellItemPage() {
                           type="button"
                           onClick={handleContinueStep1}
                           disabled={!step1Valid}
-                          className="bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] hover:from-[#3b55d9] hover:to-[#2f0a7d] text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+                          className="bg-gradient-to-r from-[#4f7bff] to-[#6366f1] hover:from-[#3b55d9] hover:to-[#5253cc] text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                         >
                           <span>Continue</span>
                           <ChevronRight className="w-4 h-4" />
@@ -731,14 +731,14 @@ export default function SellItemPage() {
                           {/* Clickable condition options */}
                           <div
                             className={`flex flex-col items-center p-4 rounded-lg border ${
-                              itemCondition === "like-new" ? "border-[#4361ee] bg-[#4361ee]/5" : "border-input"
-                            } cursor-pointer hover:border-[#4361ee]/50 hover:bg-[#4361ee]/5 transition-all duration-200`}
+                              itemCondition === "like-new" ? "border-[#4f7bff] bg-[#4f7bff]/5" : "border-input"
+                            } cursor-pointer hover:border-[#4f7bff]/50 hover:bg-[#4f7bff]/5 transition-all duration-200`}
                             onClick={() => setItemCondition("like-new")}
                           >
                             <div
                               className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
                                 itemCondition === "like-new"
-                                  ? "bg-[#4361ee] text-white"
+                                  ? "bg-[#4f7bff] text-white"
                                   : "bg-muted text-muted-foreground"
                               }`}
                             >
@@ -752,14 +752,14 @@ export default function SellItemPage() {
 
                           <div
                             className={`flex flex-col items-center p-4 rounded-lg border ${
-                              itemCondition === "excellent" ? "border-[#4361ee] bg-[#4361ee]/5" : "border-input"
-                            } cursor-pointer hover:border-[#4361ee]/50 hover:bg-[#4361ee]/5 transition-all duration-200`}
+                              itemCondition === "excellent" ? "border-[#4f7bff] bg-[#4f7bff]/5" : "border-input"
+                            } cursor-pointer hover:border-[#4f7bff]/50 hover:bg-[#4f7bff]/5 transition-all duration-200`}
                             onClick={() => setItemCondition("excellent")}
                           >
                             <div
                               className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
                                 itemCondition === "excellent"
-                                  ? "bg-[#4361ee] text-white"
+                                  ? "bg-[#4f7bff] text-white"
                                   : "bg-muted text-muted-foreground"
                               }`}
                             >
@@ -773,13 +773,13 @@ export default function SellItemPage() {
 
                           <div
                             className={`flex flex-col items-center p-4 rounded-lg border ${
-                              itemCondition === "good" ? "border-[#4361ee] bg-[#4361ee]/5" : "border-input"
-                            } cursor-pointer hover:border-[#4361ee]/50 hover:bg-[#4361ee]/5 transition-all duration-200`}
+                              itemCondition === "good" ? "border-[#4f7bff] bg-[#4f7bff]/5" : "border-input"
+                            } cursor-pointer hover:border-[#4f7bff]/50 hover:bg-[#4f7bff]/5 transition-all duration-200`}
                             onClick={() => setItemCondition("good")}
                           >
                             <div
                               className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
-                                itemCondition === "good" ? "bg-[#4361ee] text-white" : "bg-muted text-muted-foreground"
+                                itemCondition === "good" ? "bg-[#4f7bff] text-white" : "bg-muted text-muted-foreground"
                               }`}
                             >
                               <Check className="w-5 h-5" />
@@ -792,13 +792,13 @@ export default function SellItemPage() {
 
                           <div
                             className={`flex flex-col items-center p-4 rounded-lg border ${
-                              itemCondition === "fair" ? "border-[#4361ee] bg-[#4361ee]/5" : "border-input"
-                            } cursor-pointer hover:border-[#4361ee]/50 hover:bg-[#4361ee]/5 transition-all duration-200`}
+                              itemCondition === "fair" ? "border-[#4f7bff] bg-[#4f7bff]/5" : "border-input"
+                            } cursor-pointer hover:border-[#4f7bff]/50 hover:bg-[#4f7bff]/5 transition-all duration-200`}
                             onClick={() => setItemCondition("fair")}
                           >
                             <div
                               className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
-                                itemCondition === "fair" ? "bg-[#4361ee] text-white" : "bg-muted text-muted-foreground"
+                                itemCondition === "fair" ? "bg-[#4f7bff] text-white" : "bg-muted text-muted-foreground"
                               }`}
                             >
                               <Info className="w-5 h-5" />
@@ -811,13 +811,13 @@ export default function SellItemPage() {
 
                           <div
                             className={`flex flex-col items-center p-4 rounded-lg border ${
-                              itemCondition === "poor" ? "border-[#4361ee] bg-[#4361ee]/5" : "border-input"
-                            } cursor-pointer hover:border-[#4361ee]/50 hover:bg-[#4361ee]/5 transition-all duration-200`}
+                              itemCondition === "poor" ? "border-[#4f7bff] bg-[#4f7bff]/5" : "border-input"
+                            } cursor-pointer hover:border-[#4f7bff]/50 hover:bg-[#4f7bff]/5 transition-all duration-200`}
                             onClick={() => setItemCondition("poor")}
                           >
                             <div
                               className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
-                                itemCondition === "poor" ? "bg-[#4361ee] text-white" : "bg-muted text-muted-foreground"
+                                itemCondition === "poor" ? "bg-[#4f7bff] text-white" : "bg-muted text-muted-foreground"
                               }`}
                             >
                               <AlertCircle className="w-5 h-5" />
@@ -844,7 +844,7 @@ export default function SellItemPage() {
                           rows={4}
                           className={`w-full border ${
                             formErrors.itemIssues ? "border-red-300" : "border-input"
-                          } rounded-lg focus-visible:ring-[#4361ee] bg-background shadow-sm transition-all duration-200`}
+                          } rounded-lg focus-visible:ring-[#4f7bff] bg-background shadow-sm transition-all duration-200`}
                           required
                         />
                         {formErrors.itemIssues && <ErrorMessage message={formErrors.itemIssues} />}
@@ -869,7 +869,7 @@ export default function SellItemPage() {
                           type="button"
                           onClick={handleContinueStep2}
                           disabled={!step2Valid}
-                          className="bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] hover:from-[#3b55d9] hover:to-[#2f0a7d] text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+                          className="bg-gradient-to-r from-[#4f7bff] to-[#6366f1] hover:from-[#3b55d9] hover:to-[#5253cc] text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                         >
                           <span>Continue</span>
                           <ChevronRight className="w-4 h-4" />
@@ -896,7 +896,7 @@ export default function SellItemPage() {
                             placeholder="Your full name"
                             className={`w-full border ${
                               formErrors.fullName ? "border-red-300" : "border-input"
-                            } rounded-lg focus-visible:ring-[#4361ee] bg-background shadow-sm transition-all duration-200`}
+                            } rounded-lg focus-visible:ring-[#4f7bff] bg-background shadow-sm transition-all duration-200`}
                             required
                           />
                           {formErrors.fullName && <ErrorMessage message={formErrors.fullName} />}
@@ -918,7 +918,7 @@ export default function SellItemPage() {
                             placeholder="your.email@example.com"
                             className={`w-full border ${
                               formErrors.email ? "border-red-300" : "border-input"
-                            } rounded-lg focus-visible:ring-[#4361ee] bg-background shadow-sm transition-all duration-200`}
+                            } rounded-lg focus-visible:ring-[#4f7bff] bg-background shadow-sm transition-all duration-200`}
                             required
                           />
                           {formErrors.email && <ErrorMessage message={formErrors.email} />}
@@ -942,7 +942,7 @@ export default function SellItemPage() {
                             placeholder="(123) 456-7890"
                             className={`w-full border ${
                               formErrors.phone ? "border-red-300" : "border-input"
-                            } rounded-lg focus-visible:ring-[#4361ee] bg-background shadow-sm transition-all duration-200`}
+                            } rounded-lg focus-visible:ring-[#4f7bff] bg-background shadow-sm transition-all duration-200`}
                             required
                           />
                           {formErrors.phone && <ErrorMessage message={formErrors.phone} />}
@@ -963,7 +963,7 @@ export default function SellItemPage() {
                             onChange={(e) => setPickupDate(e.target.value)}
                             className={`w-full border ${
                               formErrors.pickupDate ? "border-red-300" : "border-input"
-                            } rounded-lg focus-visible:ring-[#4361ee] bg-background shadow-sm transition-all duration-200`}
+                            } rounded-lg focus-visible:ring-[#4f7bff] bg-background shadow-sm transition-all duration-200`}
                             required
                           />
                           {formErrors.pickupDate && <ErrorMessage message={formErrors.pickupDate} />}
@@ -991,7 +991,7 @@ export default function SellItemPage() {
                             placeholder="Start typing your address..."
                             className={`w-full border ${
                               formErrors.address ? "border-red-300" : "border-input"
-                            } rounded-lg focus-visible:ring-[#4361ee] bg-background shadow-sm transition-all duration-200`}
+                            } rounded-lg focus-visible:ring-[#4f7bff] bg-background shadow-sm transition-all duration-200`}
                             required
                           />
 
@@ -1001,7 +1001,7 @@ export default function SellItemPage() {
                               {addressSuggestions.map((suggestion, index) => (
                                 <div
                                   key={index}
-                                  className="px-4 py-2 hover:bg-[#4361ee]/5 cursor-pointer text-foreground text-sm border-b border-border/50 last:border-0"
+                                  className="px-4 py-2 hover:bg-[#4f7bff]/5 cursor-pointer text-foreground text-sm border-b border-border/50 last:border-0"
                                   onClick={() => handleAddressSelect(suggestion)}
                                 >
                                   {suggestion}
@@ -1021,7 +1021,7 @@ export default function SellItemPage() {
                               name="consent"
                               checked={termsAccepted}
                               onCheckedChange={setTermsAccepted}
-                              className={`mt-1 border-[#4361ee] text-[#4361ee] focus-visible:ring-[#4361ee] ${formErrors.terms ? "border-red-300" : ""}`}
+                              className={`mt-1 border-[#4f7bff] text-[#4f7bff] focus-visible:ring-[#4f7bff] ${formErrors.terms ? "border-red-300" : ""}`}
                               required
                             />
                             <div>
@@ -1032,7 +1032,7 @@ export default function SellItemPage() {
                                 By submitting this form, you agree to our{" "}
                                 <Link
                                   href="/privacy-policy"
-                                  className="text-[#4361ee] underline hover:text-[#3b55d9] transition-colors"
+                                  className="text-[#4f7bff] underline hover:text-[#3b55d9] transition-colors"
                                 >
                                   Privacy Policy
                                 </Link>
@@ -1063,9 +1063,9 @@ export default function SellItemPage() {
                         <button
                           type="submit"
                           disabled={!step3Valid || isSubmitting}
-                          className="bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] hover:from-[#3b55d9] hover:to-[#2f0a7d] text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
+                          className="bg-gradient-to-r from-[#4f7bff] to-[#6366f1] hover:from-[#3b55d9] hover:to-[#5253cc] text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
                         >
-                          <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 group-hover:opacity-0 transition-opacity duration-300"></span>
+                          <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-[#4f7bff]/10 via-[#a855f7]/10 to-[#6366f1]/10 group-hover:opacity-0 transition-opacity duration-300"></span>
                           <span className="relative flex items-center justify-center gap-2">
                             {isSubmitting ? (
                               <>
@@ -1091,7 +1091,7 @@ export default function SellItemPage() {
           <ContentAnimation>
             <ConfettiEffect trigger={formSubmitted} />
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-border/40 overflow-hidden transition-all duration-500">
-              <div className="bg-gradient-to-r from-[#4361ee]/10 via-[#7209b7]/10 to-[#3a0ca3]/10 p-6 border-b border-border/40">
+              <div className="bg-gradient-to-r from-[#4f7bff]/10 via-[#a855f7]/10 to-[#6366f1]/10 p-6 border-b border-border/40">
                 <h2 className="text-xl font-medium">Submission Received</h2>
                 <p className="text-muted-foreground text-sm mt-1">
                   Thank you for your submission. We'll be in touch soon.
@@ -1099,15 +1099,15 @@ export default function SellItemPage() {
               </div>
 
               <div className="p-8 text-center">
-                <div className="w-20 h-20 bg-gradient-to-r from-[#4361ee]/10 to-[#3a0ca3]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 className="w-10 h-10 text-[#4361ee]" />
+                <div className="w-20 h-20 bg-gradient-to-r from-[#4f7bff]/10 to-[#6366f1]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle2 className="w-10 h-10 text-[#4f7bff]" />
                 </div>
 
-                <h2 className="text-3xl font-light mb-4 bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] bg-clip-text text-transparent">
+                <h2 className="text-3xl font-light mb-4 bg-gradient-to-r from-[#4f7bff] to-[#6366f1] bg-clip-text text-transparent">
                   Thank You!
                 </h2>
 
-                <div className="w-24 h-1 mx-auto mb-6 bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] rounded-full"></div>
+                <div className="w-24 h-1 mx-auto mb-6 bg-gradient-to-r from-[#4f7bff] to-[#6366f1] rounded-full"></div>
 
                 <p className="text-lg mb-8 text-muted-foreground max-w-xl mx-auto">
                   We've received your submission and will review your item details. You can expect to hear from us
@@ -1115,7 +1115,7 @@ export default function SellItemPage() {
                 </p>
 
                 <div className="bg-muted/30 p-6 rounded-lg max-w-md mx-auto text-left border border-border">
-                  <h3 className="font-medium text-lg mb-3 text-[#4361ee]">Next Steps</h3>
+                  <h3 className="font-medium text-lg mb-3 text-[#4f7bff]">Next Steps</h3>
                   <ol className="space-y-3">
                     {[
                       "Our team will evaluate your item details",
@@ -1124,8 +1124,8 @@ export default function SellItemPage() {
                       "We'll arrive at the scheduled time and provide payment on the spot",
                     ].map((step, index) => (
                       <li key={index} className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-[#4361ee]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-xs font-medium text-[#4361ee]">{index + 1}</span>
+                        <div className="w-6 h-6 rounded-full bg-[#4f7bff]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-xs font-medium text-[#4f7bff]">{index + 1}</span>
                         </div>
                         <span className="text-muted-foreground">{step}</span>
                       </li>
@@ -1136,7 +1136,7 @@ export default function SellItemPage() {
                 <div className="mt-8">
                   <Link
                     href="/"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] hover:from-[#3b55d9] hover:to-[#2f0a7d] text-white px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-[#4f7bff] to-[#6366f1] hover:from-[#3b55d9] hover:to-[#5253cc] text-white px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
                   >
                     <span>Return to Home</span>
                     <ChevronRight className="w-4 h-4" />
