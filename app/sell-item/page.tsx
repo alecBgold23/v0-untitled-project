@@ -380,9 +380,11 @@ export default function SellItemPage() {
               </span>
             </h1>
             <div className="w-24 h-1 mx-auto bg-gradient-to-r from-[#4361ee] to-[#3a0ca3] rounded-full mb-6"></div>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-              Complete this form to get an offer for your item. We'll respond within 24 hours.
-            </p>
+            {!formSubmitted && (
+              <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+                Complete this form to get an offer for your item. We'll respond within 24 hours.
+              </p>
+            )}
             <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#4361ee]/5 via-[#7209b7]/5 to-[#3a0ca3]/5 blur-3xl rounded-full"></div>
           </div>
         </ContentAnimation>
