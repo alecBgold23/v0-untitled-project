@@ -17,34 +17,21 @@ export function BluberryLogoSVG({ width = 40, height = 40 }: { width?: number; h
       {/* Blue circle (berry) */}
       <circle cx="256" cy="256" r="200" fill="#2563EB" />
 
-      {/* Purple flower */}
+      {/* Purple flower - updated to match the provided image */}
       <path
-        d="M256 150
-           C290 150 310 180 310 210
-           C310 240 290 270 256 270
-           C222 270 202 240 202 210
-           C202 180 222 150 256 150Z"
-        fill="#9333EA"
-      />
-      <path
-        d="M256 150
-           C256 184 226 204 196 204
-           C166 204 136 184 136 150
-           C136 116 166 96 196 96
-           C226 96 256 116 256 150Z"
-        fill="#9333EA"
-      />
-      <path
-        d="M256 150
-           C256 116 286 96 316 96
-           C346 96 376 116 376 150
-           C376 184 346 204 316 204
-           C286 204 256 184 256 150Z"
+        d="M256 120
+           C280 120 300 140 320 160
+           C340 180 360 200 360 220
+           C360 240 340 260 320 280
+           C300 300 280 320 256 320
+           C232 320 212 300 192 280
+           C172 260 152 240 152 220
+           C152 200 172 180 192 160
+           C212 140 232 120 256 120Z"
         fill="#9333EA"
       />
 
-      {/* White center */}
-      <circle cx="256" cy="150" r="25" fill="white" />
+      {/* Removed the white center */}
     </svg>
   )
 }

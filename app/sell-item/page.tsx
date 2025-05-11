@@ -609,17 +609,17 @@ export default function SellItemPage() {
                           <span className="text-sm font-normal text-muted-foreground">(at least 3)</span>
                         </Label>
                         <div
-                          className={`p-6 border border-dashed rounded-lg ${
+                          className={`p-3 border border-dashed rounded-lg ${
                             formErrors.itemPhotos ? "border-red-300" : "border-input"
                           } bg-muted/30 hover:bg-muted/50 transition-colors duration-200 relative cursor-pointer`}
                           onClick={() => fileInputRef.current?.click()}
                         >
-                          <div className="flex flex-col items-center justify-center gap-4">
-                            <div className="flex flex-wrap gap-4 w-full mb-4 min-h-[100px]" ref={photosContainerRef}>
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <div className="flex flex-wrap gap-2 w-full mb-2 min-h-[60px]" ref={photosContainerRef}>
                               {itemPhotos.map((photo, index) => (
                                 <div
                                   key={photo.id || index}
-                                  className="relative w-24 h-24 rounded-lg overflow-hidden border border-border shadow-sm group"
+                                  className="relative w-16 h-16 rounded-md overflow-hidden border border-border shadow-sm group"
                                   onClick={(e) => e.stopPropagation()} // Prevent triggering the parent onClick
                                 >
                                   <img
@@ -634,34 +634,32 @@ export default function SellItemPage() {
                                       e.stopPropagation() // Prevent triggering the parent onClick
                                       removePhoto(index)
                                     }}
-                                    className="absolute top-1 right-1 bg-white text-red-500 rounded-full p-1 w-6 h-6 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                    className="absolute top-0.5 right-0.5 bg-white text-red-500 rounded-full p-0.5 w-4 h-4 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                                     aria-label="Remove photo"
                                   >
-                                    <X className="w-4 h-4" />
+                                    <X className="w-3 h-3" />
                                   </button>
                                 </div>
                               ))}
                               {itemPhotos.length === 0 && (
-                                <div className="w-full text-center text-muted-foreground py-8">
-                                  <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <ImageIcon className="w-8 h-8 text-muted-foreground/70" />
-                                  </div>
-                                  <p className="text-sm">Click to upload photos of your item</p>
+                                <div className="w-full text-center text-muted-foreground py-2">
+                                  <ImageIcon className="w-5 h-5 mx-auto mb-1 text-muted-foreground/70" />
+                                  <p className="text-xs">Click to upload photos</p>
                                 </div>
                               )}
                             </div>
 
-                            <div className="flex flex-wrap gap-4 justify-center" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex gap-2 justify-center w-full" onClick={(e) => e.stopPropagation()}>
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   fileInputRef.current?.click()
                                 }}
-                                className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-input text-foreground px-4 py-2 text-sm rounded-lg shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#3b82f6]/50"
+                                className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-input text-foreground px-2 py-1 text-xs rounded-md shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#3b82f6]/50"
                               >
-                                <Upload className="w-4 h-4" />
-                                <span>Upload Files</span>
+                                <Upload className="w-3 h-3" />
+                                <span>Upload</span>
                               </button>
 
                               <button
@@ -670,10 +668,10 @@ export default function SellItemPage() {
                                   e.stopPropagation()
                                   cameraInputRef.current?.click()
                                 }}
-                                className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-input text-foreground px-4 py-2 text-sm rounded-lg shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#3b82f6]/50"
+                                className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-input text-foreground px-2 py-1 text-xs rounded-md shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#3b82f6]/50"
                               >
-                                <Camera className="w-4 h-4" />
-                                <span>Take Photo</span>
+                                <Camera className="w-3 h-3" />
+                                <span>Camera</span>
                               </button>
 
                               <input
@@ -697,18 +695,18 @@ export default function SellItemPage() {
                               />
                             </div>
 
-                            <div className="flex items-center gap-2 mt-2">
-                              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                            <div className="flex items-center gap-1 mt-1 w-full">
+                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                                 <div
                                   className={`h-full ${itemPhotos.length >= 3 ? "bg-green-500" : "bg-[#3b82f6]"}`}
                                   style={{ width: `${Math.min(100, (itemPhotos.length / 3) * 100)}%` }}
                                 ></div>
                               </div>
                               <span
-                                className={`text-sm whitespace-nowrap ${itemPhotos.length >= 3 ? "text-green-600" : "text-muted-foreground"}`}
+                                className={`text-xs whitespace-nowrap ${itemPhotos.length >= 3 ? "text-green-600" : "text-muted-foreground"}`}
                               >
-                                {itemPhotos.length}/3 photos
-                                {itemPhotos.length >= 3 && <Check className="inline-block w-4 h-4 ml-1" />}
+                                {itemPhotos.length}/3
+                                {itemPhotos.length >= 3 && <Check className="inline-block w-3 h-3 ml-0.5" />}
                               </span>
                             </div>
                           </div>
