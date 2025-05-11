@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useEffect } from "react"
 import { ImageIcon, X } from "lucide-react"
 
 interface DragDropUploadProps {
@@ -24,57 +23,78 @@ export default function DragDropUpload({
 }: DragDropUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const dropZoneRef = useRef<HTMLDivElement>(null)
 
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  // Handle file selection from the file input
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault()
-    setIsDragging(true)
-  }, [])
+    e.stopPropagation()
 
-  const handleDragLeave = useCallback(() => {
-    setIsDragging(false)
-  }, [])
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      setIsDragging(false)
-
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        const newFiles = Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith("image/"))
-        if (newFiles.length > 0) {
-          onFilesAdded(newFiles)
-        }
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files).filter((file) => file.type.startsWith("image/"))
+      if (newFiles.length > 0) {
+        onFilesAdded(newFiles)
       }
-    },
-    [onFilesAdded],
-  )
+    }
+  }
 
-  const handleFileInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault()
-
-      if (e.target.files && e.target.files.length > 0) {
-        const newFiles = Array.from(e.target.files).filter((file) => file.type.startsWith("image/"))
-        if (newFiles.length > 0) {
-          onFilesAdded(newFiles)
-        }
-      }
-    },
-    [onFilesAdded],
-  )
-
-  const openFileDialog = useCallback((e: React.MouseEvent) => {
+  // Handle file selection button click
+  const handleSelectFilesClick = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
     if (fileInputRef.current) {
       fileInputRef.current.click()
     }
-  }, [])
+  }
+
+  // Set up drag and drop event listeners
+  useEffect(() => {
+    const dropZone = dropZoneRef.current
+    if (!dropZone) return
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragging(true)
+    }
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragging(false)
+    }
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragging(false)
+
+      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        const newFiles = Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith("image/"))
+        if (newFiles.length > 0) {
+          onFilesAdded(newFiles)
+        }
+      }
+    }
+
+    // Add event listeners
+    dropZone.addEventListener("dragover", handleDragOver)
+    dropZone.addEventListener("dragleave", handleDragLeave)
+    dropZone.addEventListener("drop", handleDrop)
+
+    // Clean up event listeners
+    return () => {
+      dropZone.removeEventListener("dragover", handleDragOver)
+      dropZone.removeEventListener("dragleave", handleDragLeave)
+      dropZone.removeEventListener("drop", handleDrop)
+    }
+  }, [onFilesAdded])
 
   return (
     <div className="w-full">
       <div
+        ref={dropZoneRef}
         className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors duration-200 ${
           isDragging
             ? "border-[#3b82f6] bg-[#3b82f6]/5"
@@ -82,11 +102,22 @@ export default function DragDropUpload({
               ? "border-red-300 bg-red-50/50"
               : "border-[#3b82f6]/40 hover:border-[#3b82f6] bg-muted/30 hover:bg-[#3b82f6]/5"
         }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={openFileDialog}
       >
+        <div className="flex flex-col items-center justify-center gap-2">
+          <ImageIcon className="w-8 h-8 text-[#3b82f6]/70" />
+          <p className="font-medium text-sm text-[#3b82f6]">Drag & Drop Images Here or Click to Select</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {existingFiles.length} of {minFiles} required
+            {maxFiles && ` (max ${maxFiles})`}
+          </p>
+          <button
+            type="button"
+            onClick={handleSelectFilesClick}
+            className="mt-2 px-4 py-2 bg-white dark:bg-gray-800 border border-[#3b82f6]/40 text-[#3b82f6] rounded-md hover:bg-[#3b82f6]/5 transition-colors"
+          >
+            Select Files
+          </button>
+        </div>
         <input
           type="file"
           ref={fileInputRef}
@@ -96,14 +127,6 @@ export default function DragDropUpload({
           onChange={handleFileInputChange}
           onClick={(e) => e.stopPropagation()}
         />
-        <div className="flex flex-col items-center justify-center gap-2">
-          <ImageIcon className="w-8 h-8 text-[#3b82f6]/70" />
-          <p className="font-medium text-sm text-[#3b82f6]">Drag & Drop Images Here or Click to Select</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {existingFiles.length} of {minFiles} required
-            {maxFiles && ` (max ${maxFiles})`}
-          </p>
-        </div>
       </div>
 
       {error && (

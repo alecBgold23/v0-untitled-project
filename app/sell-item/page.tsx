@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast"
 import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
 import DragDropUpload from "@/components/drag-drop-upload"
+import AIDescriptionHelper from "@/components/ai-description-helper"
 
 export default function SellItemPage() {
   const { toast } = useToast()
@@ -166,7 +167,10 @@ export default function SellItemPage() {
     }
   }
 
-  const handleContinueStep1 = () => {
+  const handleContinueStep1 = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+
     if (validateStep1()) {
       setFormStep(2)
       setFormErrors({})
@@ -175,7 +179,10 @@ export default function SellItemPage() {
     }
   }
 
-  const handleContinueStep2 = () => {
+  const handleContinueStep2 = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+
     if (validateStep2()) {
       setFormStep(3)
       setFormErrors({})
@@ -637,6 +644,13 @@ export default function SellItemPage() {
                         {formErrors.itemDescription && <ErrorMessage message={formErrors.itemDescription} />}
                       </div>
 
+                      <div className="mt-4 bg-muted/20 rounded-lg p-4 border border-border">
+                        <AIDescriptionHelper
+                          initialDescription={itemDescription}
+                          onDescriptionChange={(text) => setItemDescription(text)}
+                        />
+                      </div>
+
                       <div className="transition-all duration-300">
                         <Label className="text-sm font-medium mb-2 block">
                           Item Photos <span className="text-red-500">*</span>{" "}
@@ -680,8 +694,6 @@ export default function SellItemPage() {
                           />
                         </div>
                       </div>
-
-                      {/* Remove the redundant file display section in step 1 (around line 580-604) */}
 
                       <div className="flex justify-end mt-8">
                         <button
@@ -826,14 +838,12 @@ export default function SellItemPage() {
                         {formErrors.itemIssues && <ErrorMessage message={formErrors.itemIssues} />}
                       </div>
 
-                      {/* Show uploaded photos in step 2 */}
-                      {/* Remove the redundant file display in step 2 (around line 700-720) */}
-
                       <div className="flex justify-between mt-8">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.preventDefault()
+                            e.stopPropagation()
                             scrollToTop()
                             // Change form step after scroll animation starts
                             setTimeout(() => {
@@ -847,10 +857,7 @@ export default function SellItemPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            handleContinueStep2()
-                          }}
+                          onClick={handleContinueStep2}
                           disabled={!step2Valid}
                           className="bg-gradient-to-r from-[#3b82f6] to-[#4f46e5] hover:from-[#2563eb] hover:to-[#4338ca] text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                         >
@@ -1063,6 +1070,7 @@ export default function SellItemPage() {
                           type="button"
                           onClick={(e) => {
                             e.preventDefault()
+                            e.stopPropagation()
                             scrollToTop()
                             // Change form step after scroll animation starts
                             setTimeout(() => {
@@ -1180,13 +1188,12 @@ export default function SellItemPage() {
                   </ol>
                 </div>
 
-                <div className="mt-8">
+                <div className="mt-12">
                   <Link
                     href="/"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-[#3b82f6] to-[#4f46e5] hover:from-[#2563eb] hover:to-[#4338ca] text-white px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+                    className="px-6 py-3 rounded-lg bg-gradient-to-r from-[#3b82f6] to-[#4f46e5] text-white shadow-md hover:shadow-lg transition-all duration-300"
                   >
-                    <span>Return to Home</span>
-                    <ChevronRight className="w-4 h-4" />
+                    Return to Home
                   </Link>
                 </div>
               </div>

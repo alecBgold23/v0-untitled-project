@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation"
 
-// Centralized navigation helper with zero delay
+// Centralized navigation helper with client-side routing
 export function useAppNavigation() {
   const router = useRouter()
 
   const navigateTo = (href: string, callback?: () => void) => {
-    // No delay - immediate navigation
+    // Use Next.js client-side navigation
     router.push(href)
 
     // Scroll to top after navigation

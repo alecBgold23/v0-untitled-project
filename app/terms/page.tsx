@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Separator } from "@/components/ui/separator"
 import AnimatedSection from "@/components/animated-section"
+import Link from "next/link"
 
 export const metadata: Metadata = {
   title: "Terms of Service | BluBerry",
@@ -212,6 +213,12 @@ export default function TermsPage() {
               Phone: 847-510-3229
             </p>
           </section>
+        </div>
+
+        <div className="mt-8 text-center">
+          <Link href="/" className="text-primary hover:underline">
+            Return to Home
+          </Link>
         </div>
       </AnimatedSection>
     </div>
