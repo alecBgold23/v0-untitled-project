@@ -3,9 +3,10 @@
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { Menu, X } from "lucide-react"
+import { Menu, X, SearchIcon } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { BluberryLogoSVG } from "@/components/blueberry-logo-svg"
+import SearchModal from "@/components/search"
 
 // Navigation items
 const mainNavItems = [
@@ -21,6 +22,7 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   // Handle scroll events
   useEffect(() => {
@@ -43,6 +45,10 @@ export default function Navbar() {
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
+  }
+
+  const toggleSearch = () => {
+    setIsSearchOpen(!isSearchOpen)
   }
 
   return (
@@ -84,6 +90,13 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center space-x-4">
+            <button
+              className="text-foreground/80 transition-all duration-200 hover:text-primary"
+              onClick={toggleSearch}
+              aria-label="Search"
+            >
+              <SearchIcon size={20} />
+            </button>
             <ThemeToggle />
 
             {/* Mobile menu button */}
@@ -123,6 +136,8 @@ export default function Navbar() {
           </div>
         )}
       </div>
+      {/* Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   )
 }

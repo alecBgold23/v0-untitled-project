@@ -1,3 +1,8 @@
+"use client"
+
+import { useRouter } from "next/navigation"
+import { useCallback } from "react"
+
 export const mainNavItems = [
   {
     title: "Home",
@@ -72,3 +77,17 @@ export const toolsNavItems = [
     description: "Create compelling descriptions with AI",
   },
 ]
+
+export function useAppNavigation() {
+  const router = useRouter()
+
+  const navigateTo = useCallback(
+    (path: string, onSuccess?: () => void) => {
+      router.push(path)
+      onSuccess?.()
+    },
+    [router],
+  )
+
+  return { navigateTo }
+}
