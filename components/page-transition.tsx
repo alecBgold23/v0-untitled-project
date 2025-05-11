@@ -22,8 +22,7 @@ export default function PageTransition({ children }: { children: React.ReactNode
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{
-        duration: 0.25,
-        ease: [0.33, 1, 0.68, 1], // Custom cubic-bezier for smoother transitions
+        duration: 0,
       }}
       className="w-full h-full bg-background will-change-opacity"
       style={{
