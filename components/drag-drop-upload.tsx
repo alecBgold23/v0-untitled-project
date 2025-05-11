@@ -111,9 +111,13 @@ export default function DragDropUpload({
           {existingFiles.map((file, index) => (
             <div key={file.id} className="relative group">
               <img
-                src={file.preview || "/placeholder.svg"}
+                src={typeof file.preview === "string" ? file.preview : "/placeholder.svg"}
                 alt={`Preview ${index + 1}`}
                 className="w-20 h-20 object-cover rounded-md border border-border shadow-sm"
+                onError={(e) => {
+                  // Fallback if the preview URL is invalid
+                  e.currentTarget.src = "/placeholder.svg"
+                }}
               />
               <button
                 type="button"

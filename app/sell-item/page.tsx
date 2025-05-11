@@ -186,12 +186,17 @@ export default function SellItemPage() {
 
   const handleFilesAdded = (files) => {
     // Create file objects with preview URLs
-    const newPhotos = files.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-      name: file.name,
-      id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    }))
+    const newPhotos = files.map((file) => {
+      // Create a proper object URL for the preview
+      const previewUrl = URL.createObjectURL(file)
+
+      return {
+        file,
+        preview: previewUrl,
+        name: file.name,
+        id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      }
+    })
 
     // Filter out duplicates based on file name
     const filteredPhotos = newPhotos.filter(
@@ -203,6 +208,9 @@ export default function SellItemPage() {
     // Add directly to itemPhotos with no animation
     if (filteredPhotos.length > 0) {
       setItemPhotos((prev) => [...prev, ...filteredPhotos])
+
+      // Log for debugging
+      console.log("Added photos:", filteredPhotos)
     }
   }
 
@@ -212,12 +220,17 @@ export default function SellItemPage() {
       // Reset the input value to prevent duplicate uploads
       e.target.value = null
 
-      const newPhotos = files.map((file) => ({
-        file,
-        preview: URL.createObjectURL(file),
-        name: `Camera_${new Date().toISOString()}.jpg`,
-        id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      }))
+      const newPhotos = files.map((file) => {
+        // Create a proper object URL for the preview
+        const previewUrl = URL.createObjectURL(file)
+
+        return {
+          file,
+          preview: previewUrl,
+          name: `Camera_${new Date().toISOString()}.jpg`,
+          id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        }
+      })
 
       // Filter out duplicates based on file name
       const filteredPhotos = newPhotos.filter(
@@ -229,6 +242,9 @@ export default function SellItemPage() {
       // Add directly to itemPhotos with no animation
       if (filteredPhotos.length > 0) {
         setItemPhotos((prev) => [...prev, ...filteredPhotos])
+
+        // Log for debugging
+        console.log("Added camera photos:", filteredPhotos)
       }
     }
   }
@@ -324,6 +340,18 @@ export default function SellItemPage() {
     if (formStep === step) return "current"
     return "incomplete"
   }
+
+  // Clean up object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      // Revoke all object URLs to prevent memory leaks
+      itemPhotos.forEach((photo) => {
+        if (photo.preview && typeof photo.preview === "string") {
+          URL.revokeObjectURL(photo.preview)
+        }
+      })
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95" ref={formContainerRef}>
