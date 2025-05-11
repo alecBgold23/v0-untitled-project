@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useRef, useCallback } from "react"
-import { ImageIcon, X, Check } from "lucide-react"
+import { ImageIcon, X } from "lucide-react"
 
 interface DragDropUploadProps {
   onFilesAdded: (files: File[]) => void
@@ -113,43 +113,52 @@ export default function DragDropUpload({
       )}
 
       {existingFiles.length > 0 && (
-        <div className="mt-6">
-          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-            <Check className="h-4 w-4 text-green-500" />
-            <span>Uploaded Files ({existingFiles.length})</span>
-          </h4>
-          <div className="bg-muted/20 border border-border rounded-lg p-4">
-            <div className="flex flex-wrap gap-3">
-              {existingFiles.map((file, index) => (
-                <div key={file.id} className="relative group">
-                  <div className="w-24 h-24 bg-white dark:bg-gray-800 rounded-md border border-border shadow-sm overflow-hidden">
-                    <img
-                      src={typeof file.preview === "string" ? file.preview : "/placeholder.svg"}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Fallback if the preview URL is invalid
-                        e.currentTarget.src = "/placeholder.svg"
-                      }}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onFileRemove(index)
+        <div className="mt-4">
+          <div className="flex flex-wrap gap-3">
+            {existingFiles.map((file, index) => (
+              <div
+                key={file.id}
+                className="relative group"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+              >
+                <div
+                  className="w-20 h-20 bg-white dark:bg-gray-800 rounded-md border border-border shadow-sm overflow-hidden"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
+                >
+                  <img
+                    src={typeof file.preview === "string" ? file.preview : "/placeholder.svg"}
+                    alt={`Preview ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback if the preview URL is invalid
+                      e.currentTarget.src = "/placeholder.svg"
                     }}
-                    className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md border border-gray-200"
-                    aria-label="Remove photo"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                  <div className="mt-1 text-xs text-center text-muted-foreground truncate max-w-[96px]">
-                    {file.name.length > 15 ? `${file.name.substring(0, 12)}...` : file.name}
-                  </div>
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                  />
                 </div>
-              ))}
-            </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onFileRemove(index)
+                  }}
+                  className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md border border-gray-200"
+                  aria-label="Remove photo"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}

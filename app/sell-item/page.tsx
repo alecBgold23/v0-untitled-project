@@ -22,8 +22,6 @@ import {
   Mail,
   User,
   Check,
-  ImageIcon,
-  X,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import { sendConfirmationEmail } from "../actions/send-confirmation-email"
@@ -683,43 +681,7 @@ export default function SellItemPage() {
                         </div>
                       </div>
 
-                      {/* Display uploaded files in a grid */}
-                      {itemPhotos.length > 0 && (
-                        <div className="transition-all duration-300 bg-muted/20 border border-border rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <ImageIcon className="w-5 h-5 text-[#3b82f6]" />
-                            <h4 className="text-sm font-medium">Uploaded Photos ({itemPhotos.length})</h4>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                            {itemPhotos.map((photo, index) => (
-                              <div key={photo.id} className="relative group">
-                                <img
-                                  src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
-                                  alt={`Preview ${index + 1}`}
-                                  className="w-full h-24 object-cover rounded-md border border-border shadow-sm"
-                                  onError={(e) => {
-                                    e.currentTarget.src = "/placeholder.svg"
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    removePhoto(index)
-                                  }}
-                                  className="absolute top-1 right-1 bg-white text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                  aria-label="Remove photo"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                                <div className="text-xs text-center mt-1 text-muted-foreground truncate max-w-full">
-                                  {photo.name.length > 15 ? photo.name.substring(0, 15) + "..." : photo.name}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      {/* Remove the redundant file display section in step 1 (around line 580-604) */}
 
                       <div className="flex justify-end mt-8">
                         <button
@@ -865,31 +827,7 @@ export default function SellItemPage() {
                       </div>
 
                       {/* Show uploaded photos in step 2 */}
-                      {itemPhotos.length > 0 && (
-                        <div className="transition-all duration-300 bg-muted/20 border border-border rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <ImageIcon className="w-5 h-5 text-[#3b82f6]" />
-                            <h4 className="text-sm font-medium">Uploaded Photos ({itemPhotos.length})</h4>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                            {itemPhotos.map((photo, index) => (
-                              <div key={photo.id} className="relative group">
-                                <img
-                                  src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
-                                  alt={`Preview ${index + 1}`}
-                                  className="w-full h-24 object-cover rounded-md border border-border shadow-sm"
-                                  onError={(e) => {
-                                    e.currentTarget.src = "/placeholder.svg"
-                                  }}
-                                />
-                                <div className="text-xs text-center mt-1 text-muted-foreground truncate max-w-full">
-                                  {photo.name.length > 15 ? photo.name.substring(0, 15) + "..." : photo.name}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      {/* Remove the redundant file display in step 2 (around line 700-720) */}
 
                       <div className="flex justify-between mt-8">
                         <button
@@ -1054,13 +992,24 @@ export default function SellItemPage() {
                                   <p className="text-sm font-medium text-foreground mb-2">Photos:</p>
                                   <div className="flex flex-wrap gap-2">
                                     {itemPhotos.slice(0, 4).map((photo, index) => (
-                                      <div key={photo.id} className="w-12 h-12 relative">
+                                      <div
+                                        key={photo.id}
+                                        className="w-12 h-12 relative"
+                                        onClick={(e) => {
+                                          e.preventDefault()
+                                          e.stopPropagation()
+                                        }}
+                                      >
                                         <img
                                           src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
                                           alt={`Preview ${index + 1}`}
                                           className="w-full h-full object-cover rounded-md border border-border shadow-sm"
                                           onError={(e) => {
                                             e.currentTarget.src = "/placeholder.svg"
+                                          }}
+                                          onClick={(e) => {
+                                            e.preventDefault()
+                                            e.stopPropagation()
                                           }}
                                         />
                                       </div>
@@ -1186,13 +1135,24 @@ export default function SellItemPage() {
                     <h3 className="text-lg font-medium mb-4 text-[#3b82f6]">Your Submitted Photos</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                       {itemPhotos.map((photo, index) => (
-                        <div key={photo.id} className="relative">
+                        <div
+                          key={photo.id}
+                          className="relative"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                          }}
+                        >
                           <img
                             src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
                             alt={`Preview ${index + 1}`}
                             className="w-full h-24 object-cover rounded-md border border-border shadow-sm"
                             onError={(e) => {
                               e.currentTarget.src = "/placeholder.svg"
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
                             }}
                           />
                         </div>
