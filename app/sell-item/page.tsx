@@ -10,7 +10,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import {
   CheckCircle2,
   AlertCircle,
-  Camera,
   Loader2,
   ChevronRight,
   ChevronLeft,
@@ -22,14 +21,14 @@ import {
   Mail,
   User,
   Check,
+  X,
+  ImageIcon,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import { sendConfirmationEmail } from "../actions/send-confirmation-email"
 import { useToast } from "@/hooks/use-toast"
 import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
-import DragDropUpload from "@/components/drag-drop-upload"
-import AIDescriptionHelper from "@/components/ai-description-helper"
 
 export default function SellItemPage() {
   const { toast } = useToast()
@@ -191,41 +190,35 @@ export default function SellItemPage() {
     }
   }
 
-  const handleFilesAdded = (files) => {
+  const handleFileUpload = (e) => {
     try {
-      // Create file objects with preview URLs
-      const newPhotos = files.map((file) => {
-        // Create a proper object URL for the preview
-        const previewUrl = URL.createObjectURL(file)
+      const files = Array.from(e.target.files || [])
+      if (files.length > 0) {
+        // Create file objects with preview URLs
+        const newPhotos = files.map((file) => {
+          // Create a proper object URL for the preview
+          const previewUrl = URL.createObjectURL(file)
 
-        return {
-          file,
-          preview: previewUrl,
-          name: file.name,
-          id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        }
-      })
+          return {
+            file,
+            preview: previewUrl,
+            name: file.name,
+            id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          }
+        })
 
-      // Filter out duplicates based on file name
-      const filteredPhotos = newPhotos.filter(
-        (newPhoto) =>
-          !itemPhotos.some((existingPhoto) => existingPhoto.name === newPhoto.name) &&
-          !animatingFiles.some((animatingFile) => animatingFile.name === newPhoto.name),
-      )
+        // Add to itemPhotos
+        setItemPhotos((prev) => [...prev, ...newPhotos])
 
-      // Add directly to itemPhotos with no animation
-      if (filteredPhotos.length > 0) {
-        setItemPhotos((prev) => [...prev, ...filteredPhotos])
+        // Reset the input value to prevent duplicate uploads
+        e.target.value = null
 
         // Show success toast
         toast({
           title: "Files Added",
-          description: `Successfully added ${filteredPhotos.length} file${filteredPhotos.length > 1 ? "s" : ""}`,
+          description: `Successfully added ${newPhotos.length} file${newPhotos.length > 1 ? "s" : ""}`,
           variant: "default",
         })
-
-        // Log for debugging
-        console.log("Added photos:", filteredPhotos)
       }
     } catch (error) {
       console.error("Error adding files:", error)
@@ -238,9 +231,6 @@ export default function SellItemPage() {
   }
 
   const handleCameraCapture = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-
     try {
       const files = Array.from(e.target.files || [])
       if (files.length > 0) {
@@ -259,27 +249,15 @@ export default function SellItemPage() {
           }
         })
 
-        // Filter out duplicates based on file name
-        const filteredPhotos = newPhotos.filter(
-          (newPhoto) =>
-            !itemPhotos.some((existingPhoto) => existingPhoto.name === newPhoto.name) &&
-            !animatingFiles.some((animatingFile) => animatingFile.name === newPhoto.name),
-        )
+        // Add to itemPhotos
+        setItemPhotos((prev) => [...prev, ...newPhotos])
 
-        // Add directly to itemPhotos with no animation
-        if (filteredPhotos.length > 0) {
-          setItemPhotos((prev) => [...prev, ...filteredPhotos])
-
-          // Show success toast
-          toast({
-            title: "Photo Captured",
-            description: "Your photo has been added successfully",
-            variant: "default",
-          })
-
-          // Log for debugging
-          console.log("Added camera photos:", filteredPhotos)
-        }
+        // Show success toast
+        toast({
+          title: "Photo Captured",
+          description: "Your photo has been added successfully",
+          variant: "default",
+        })
       }
     } catch (error) {
       console.error("Error capturing from camera:", error)
@@ -644,54 +622,75 @@ export default function SellItemPage() {
                         {formErrors.itemDescription && <ErrorMessage message={formErrors.itemDescription} />}
                       </div>
 
-                      <div className="mt-4 bg-muted/20 rounded-lg p-4 border border-border">
-                        <AIDescriptionHelper
-                          initialDescription={itemDescription}
-                          onDescriptionChange={(text) => setItemDescription(text)}
-                        />
-                      </div>
-
                       <div className="transition-all duration-300">
                         <Label className="text-sm font-medium mb-2 block">
                           Item Photos <span className="text-red-500">*</span>{" "}
                           <span className="text-sm font-normal text-muted-foreground">(at least 3)</span>
                         </Label>
 
-                        {/* New Drag & Drop Upload Component */}
-                        <DragDropUpload
-                          onFilesAdded={handleFilesAdded}
-                          existingFiles={itemPhotos}
-                          onFileRemove={removePhoto}
-                          minFiles={3}
-                          error={formErrors.itemPhotos}
-                        />
-
-                        {/* Camera capture option */}
-                        <div className="mt-4 flex justify-center">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              if (cameraInputRef.current) {
-                                cameraInputRef.current.click()
-                              }
-                            }}
-                            className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-input text-foreground px-3 py-1.5 text-sm rounded-md shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#3b82f6]/50"
-                          >
-                            <Camera className="w-4 h-4" />
-                            <span>Take Photo with Camera</span>
-                          </button>
-
+                        {/* Simple file upload component */}
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors duration-200 border-[#3b82f6]/40 hover:border-[#3b82f6] bg-muted/30 hover:bg-[#3b82f6]/5"
+                        >
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <ImageIcon className="w-8 h-8 text-[#3b82f6]/70" />
+                            <p className="font-medium text-sm text-[#3b82f6]">Click to Upload Images</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {itemPhotos.length} of 3 required (max 10)
+                            </p>
+                          </div>
                           <input
-                            ref={cameraInputRef}
                             type="file"
-                            accept="image/*"
-                            capture="environment"
-                            onChange={handleCameraCapture}
-                            onClick={(e) => e.stopPropagation()}
+                            ref={fileInputRef}
                             className="hidden"
+                            multiple
+                            accept="image/*"
+                            onChange={handleFileUpload}
                           />
+                        </div>
+
+                        {formErrors.itemPhotos && <ErrorMessage message={formErrors.itemPhotos} />}
+
+                        {/* Photo previews */}
+                        {itemPhotos.length > 0 && (
+                          <div className="mt-4">
+                            <div className="flex flex-wrap gap-3">
+                              {itemPhotos.map((file, index) => (
+                                <div key={file.id} className="relative group">
+                                  <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-md border border-border shadow-sm overflow-hidden">
+                                    <img
+                                      src={typeof file.preview === "string" ? file.preview : "/placeholder.svg"}
+                                      alt={`Preview ${index + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        // Fallback if the preview URL is invalid
+                                        e.currentTarget.src = "/placeholder.svg"
+                                      }}
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => removePhoto(index)}
+                                    className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md border border-gray-200"
+                                    aria-label="Remove photo"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Upload progress indicator */}
+                        <div className="flex items-center gap-1 mt-3 w-full">
+                          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${itemPhotos.length >= 3 ? "bg-green-500" : "bg-[#3b82f6]"}`}
+                              style={{ width: `${Math.min(100, (itemPhotos.length / 3) * 100)}%` }}
+                            ></div>
+                          </div>
                         </div>
                       </div>
 
@@ -999,24 +998,13 @@ export default function SellItemPage() {
                                   <p className="text-sm font-medium text-foreground mb-2">Photos:</p>
                                   <div className="flex flex-wrap gap-2">
                                     {itemPhotos.slice(0, 4).map((photo, index) => (
-                                      <div
-                                        key={photo.id}
-                                        className="w-12 h-12 relative"
-                                        onClick={(e) => {
-                                          e.preventDefault()
-                                          e.stopPropagation()
-                                        }}
-                                      >
+                                      <div key={photo.id} className="relative">
                                         <img
                                           src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
                                           alt={`Preview ${index + 1}`}
-                                          className="w-full h-full object-cover rounded-md border border-border shadow-sm"
+                                          className="w-full h-24 object-cover rounded-md border border-border shadow-sm"
                                           onError={(e) => {
                                             e.currentTarget.src = "/placeholder.svg"
-                                          }}
-                                          onClick={(e) => {
-                                            e.preventDefault()
-                                            e.stopPropagation()
                                           }}
                                         />
                                       </div>
@@ -1143,24 +1131,13 @@ export default function SellItemPage() {
                     <h3 className="text-lg font-medium mb-4 text-[#3b82f6]">Your Submitted Photos</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                       {itemPhotos.map((photo, index) => (
-                        <div
-                          key={photo.id}
-                          className="relative"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                          }}
-                        >
+                        <div key={photo.id} className="relative">
                           <img
                             src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
                             alt={`Preview ${index + 1}`}
                             className="w-full h-24 object-cover rounded-md border border-border shadow-sm"
                             onError={(e) => {
                               e.currentTarget.src = "/placeholder.svg"
-                            }}
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
                             }}
                           />
                         </div>
