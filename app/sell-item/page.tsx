@@ -11,9 +11,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Camera,
-  Upload,
-  X,
-  ImageIcon,
   Loader2,
   ChevronRight,
   ChevronLeft,
@@ -31,6 +28,7 @@ import { sendConfirmationEmail } from "../actions/send-confirmation-email"
 import { useToast } from "@/hooks/use-toast"
 import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
+import DragDropUpload from "@/components/drag-drop-upload"
 
 export default function SellItemPage() {
   const { toast } = useToast()
@@ -186,31 +184,25 @@ export default function SellItemPage() {
     }
   }
 
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files)
-    if (files.length > 0) {
-      // Reset the input value to prevent duplicate uploads
-      e.target.value = null
+  const handleFilesAdded = (files) => {
+    // Create file objects with preview URLs
+    const newPhotos = files.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      name: file.name,
+      id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    }))
 
-      // Create file objects with preview URLs
-      const newPhotos = files.map((file) => ({
-        file,
-        preview: URL.createObjectURL(file),
-        name: file.name,
-        id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      }))
+    // Filter out duplicates based on file name
+    const filteredPhotos = newPhotos.filter(
+      (newPhoto) =>
+        !itemPhotos.some((existingPhoto) => existingPhoto.name === newPhoto.name) &&
+        !animatingFiles.some((animatingFile) => animatingFile.name === newPhoto.name),
+    )
 
-      // Filter out duplicates based on file name
-      const filteredPhotos = newPhotos.filter(
-        (newPhoto) =>
-          !itemPhotos.some((existingPhoto) => existingPhoto.name === newPhoto.name) &&
-          !animatingFiles.some((animatingFile) => animatingFile.name === newPhoto.name),
-      )
-
-      // Add directly to itemPhotos with no animation
-      if (filteredPhotos.length > 0) {
-        setItemPhotos((prev) => [...prev, ...filteredPhotos])
-      }
+    // Add directly to itemPhotos with no animation
+    if (filteredPhotos.length > 0) {
+      setItemPhotos((prev) => [...prev, ...filteredPhotos])
     }
   }
 
@@ -575,110 +567,36 @@ export default function SellItemPage() {
                           Item Photos <span className="text-red-500">*</span>{" "}
                           <span className="text-sm font-normal text-muted-foreground">(at least 3)</span>
                         </Label>
-                        <div
-                          className={`p-3 border border-dashed rounded-lg ${
-                            formErrors.itemPhotos ? "border-red-300" : "border-input"
-                          } bg-muted/30 hover:bg-muted/50 transition-colors duration-200 relative cursor-pointer`}
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <div className="flex flex-wrap gap-2 w-full mb-2 min-h-[60px]" ref={photosContainerRef}>
-                              {itemPhotos.map((photo, index) => (
-                                <div
-                                  key={photo.id || index}
-                                  className="relative w-16 h-16 rounded-md overflow-hidden border border-border shadow-sm group"
-                                  onClick={(e) => e.stopPropagation()} // Prevent triggering the parent onClick
-                                >
-                                  <img
-                                    src={photo.preview || "/placeholder.svg"}
-                                    alt={`Item photo ${index + 1}`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200"></div>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation() // Prevent triggering the parent onClick
-                                      removePhoto(index)
-                                    }}
-                                    className="absolute top-0.5 right-0.5 bg-white text-red-500 rounded-full p-0.5 w-4 h-4 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                    aria-label="Remove photo"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              ))}
-                              {itemPhotos.length === 0 && (
-                                <div className="w-full text-center text-muted-foreground py-2">
-                                  <ImageIcon className="w-5 h-5 mx-auto mb-1 text-muted-foreground/70" />
-                                  <p className="text-xs">Click to upload photos</p>
-                                </div>
-                              )}
-                            </div>
 
-                            <div className="flex gap-2 justify-center w-full" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  fileInputRef.current?.click()
-                                }}
-                                className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-input text-foreground px-2 py-1 text-xs rounded-md shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#3b82f6]/50"
-                              >
-                                <Upload className="w-3 h-3" />
-                                <span>Upload</span>
-                              </button>
+                        {/* New Drag & Drop Upload Component */}
+                        <DragDropUpload
+                          onFilesAdded={handleFilesAdded}
+                          existingFiles={itemPhotos}
+                          onFileRemove={removePhoto}
+                          minFiles={3}
+                          error={formErrors.itemPhotos}
+                        />
 
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  cameraInputRef.current?.click()
-                                }}
-                                className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-input text-foreground px-2 py-1 text-xs rounded-md shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#3b82f6]/50"
-                              >
-                                <Camera className="w-3 h-3" />
-                                <span>Camera</span>
-                              </button>
+                        {/* Camera capture option */}
+                        <div className="mt-4 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => cameraInputRef.current?.click()}
+                            className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-input text-foreground px-3 py-1.5 text-sm rounded-md shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#3b82f6]/50"
+                          >
+                            <Camera className="w-4 h-4" />
+                            <span>Take Photo with Camera</span>
+                          </button>
 
-                              <input
-                                ref={fileInputRef}
-                                type="file"
-                                name="item_photo"
-                                accept="image/*"
-                                multiple
-                                onChange={handleFileChange}
-                                className="hidden"
-                                required={itemPhotos.length < 3}
-                              />
-
-                              <input
-                                ref={cameraInputRef}
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                onChange={handleCameraCapture}
-                                className="hidden"
-                              />
-                            </div>
-
-                            <div className="flex items-center gap-1 mt-1 w-full">
-                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full ${itemPhotos.length >= 3 ? "bg-green-500" : "bg-[#3b82f6]"}`}
-                                  style={{ width: `${Math.min(100, (itemPhotos.length / 3) * 100)}%` }}
-                                ></div>
-                              </div>
-                              <span
-                                className={`text-xs whitespace-nowrap ${itemPhotos.length >= 3 ? "text-green-600" : "text-muted-foreground"}`}
-                              >
-                                {itemPhotos.length}/3
-                                {itemPhotos.length >= 3 && <Check className="inline-block w-3 h-3 ml-0.5" />}
-                              </span>
-                            </div>
-                          </div>
+                          <input
+                            ref={cameraInputRef}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handleCameraCapture}
+                            className="hidden"
+                          />
                         </div>
-                        {formErrors.itemPhotos && <ErrorMessage message={formErrors.itemPhotos} />}
                       </div>
 
                       <div className="flex justify-end mt-8">

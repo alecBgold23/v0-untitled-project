@@ -34,19 +34,24 @@ export default function AddressAutocomplete({
     style.textContent = `
       /* Light mode styles */
       .pac-container {
-        border-radius: 0.5rem;
+        border-radius: 0.375rem;
         border: 1px solid hsl(var(--border));
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         font-family: var(--font-poppins), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        margin-top: 4px;
+        margin-top: 2px;
         z-index: 9999 !important;
+        max-width: calc(100% - 2px);
+        width: auto !important;
+        max-height: 200px;
+        overflow-y: auto;
       }
       
       .pac-item {
-        padding: 8px 12px;
+        padding: 4px 8px;
         cursor: pointer;
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         border-top: 1px solid hsl(var(--border));
+        line-height: 1.2;
       }
       
       .pac-item:first-child {
@@ -58,7 +63,28 @@ export default function AddressAutocomplete({
       }
       
       .pac-item-query {
-        font-size: 0.875rem;
+        font-size: 0.75rem;
+        padding-right: 3px;
+      }
+      
+      .pac-icon {
+        display: none;
+      }
+      
+      .pac-item-selected, .pac-item-selected:hover {
+        background-color: rgba(59, 130, 246, 0.1);
+      }
+      
+      .pac-matched {
+        font-weight: 600;
+      }
+      
+      .pac-logo:after {
+        margin-right: 5px;
+        margin-bottom: 3px;
+        height: 14px;
+        padding-right: 3px;
+        background-size: 50px 14px;
       }
       
       /* Dark mode styles */
