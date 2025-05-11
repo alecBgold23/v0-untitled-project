@@ -3,9 +3,7 @@
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { Menu, X, ChevronDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Menu, X } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { BluberryLogoSVG } from "@/components/blueberry-logo-svg"
 
@@ -17,19 +15,6 @@ const mainNavItems = [
   { href: "/how-it-works", label: "How It Works" },
   { href: "/reviews", label: "Reviews" },
   { href: "/contact", label: "Contact" },
-]
-
-const toolsNavItems = [
-  {
-    href: "/sell-item",
-    label: "Sell Your Item",
-    description: "List your item for sale with our easy form",
-  },
-  {
-    href: "/description-helper",
-    label: "Description Helper",
-    description: "Generate better descriptions with AI",
-  },
 ]
 
 export default function Navbar() {
@@ -88,29 +73,14 @@ export default function Navbar() {
             ))}
 
             {/* Tools Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="px-3 py-2 text-sm rounded-md transition-colors hover:text-primary flex items-center gap-1"
-                >
-                  Tools
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {toolsNavItems.map((item) => (
-                  <DropdownMenuItem key={item.href} asChild>
-                    <Link href={item.href} className="cursor-pointer">
-                      <div>
-                        <div className="font-medium">{item.label}</div>
-                        <p className="text-xs text-muted-foreground">{item.description}</p>
-                      </div>
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link
+              href="/sell-item"
+              className={`px-3 py-2 text-sm rounded-md transition-colors hover:text-primary ${
+                pathname === "/sell-item" ? "text-primary font-medium" : "text-foreground/80"
+              }`}
+            >
+              Sell Your Item
+            </Link>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -142,20 +112,14 @@ export default function Navbar() {
               </Link>
             ))}
 
-            <div className="px-3 py-2 font-medium">Tools</div>
-            <div className="pl-6 space-y-2 w-full">
-              {toolsNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-3 py-2 text-sm rounded-md transition-colors block hover:bg-muted ${
-                    pathname === item.href ? "text-primary font-medium" : "text-foreground/80"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
+            <Link
+              href="/sell-item"
+              className={`px-3 py-2 text-sm rounded-md transition-colors hover:bg-muted w-full ${
+                pathname === "/sell-item" ? "text-primary font-medium" : "text-foreground/80"
+              }`}
+            >
+              Sell Your Item
+            </Link>
           </div>
         )}
       </div>
