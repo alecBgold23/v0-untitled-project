@@ -21,7 +21,6 @@ import {
   Sparkles,
   Info,
   Calendar,
-  MapPin,
   Phone,
   Mail,
   User,
@@ -31,6 +30,7 @@ import ContentAnimation from "@/components/content-animation"
 import { sendConfirmationEmail } from "../actions/send-confirmation-email"
 import { useToast } from "@/hooks/use-toast"
 import ConfettiEffect from "@/components/confetti-effect"
+import AddressAutocomplete from "@/components/address-autocomplete"
 
 export default function SellItemPage() {
   const { toast } = useToast()
@@ -51,50 +51,12 @@ export default function SellItemPage() {
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [address, setAddress] = useState("")
-  const [addressSuggestions, setAddressSuggestions] = useState([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
   const [pickupDate, setPickupDate] = useState("")
   const [termsAccepted, setTermsAccepted] = useState(false)
 
   // Animation states
   const [animatingFiles, setAnimatingFiles] = useState([])
   const photosContainerRef = useRef(null)
-
-  // Mock address suggestions - in a real app, this would come from an API
-  const mockAddresses = [
-    "123 Main St, Chicago, IL 60601",
-    "456 Oak Ave, Chicago, IL 60602",
-    "789 Pine Blvd, Chicago, IL 60603",
-    "101 Lake Shore Dr, Chicago, IL 60604",
-    "202 Michigan Ave, Chicago, IL 60605",
-    "303 State St, Chicago, IL 60606",
-    "404 Madison St, Chicago, IL 60607",
-    "505 Washington Blvd, Chicago, IL 60608",
-    "606 Adams St, Chicago, IL 60609",
-    "707 Jefferson Ave, Chicago, IL 60610",
-  ]
-
-  // Filter addresses based on input
-  useEffect(() => {
-    if (address.trim() === "") {
-      setAddressSuggestions([])
-      return
-    }
-
-    const filteredAddresses = mockAddresses.filter((addr) => addr.toLowerCase().includes(address.toLowerCase()))
-    setAddressSuggestions(filteredAddresses)
-  }, [address])
-
-  // Handle address selection
-  const handleAddressSelect = (selectedAddress) => {
-    setAddress(selectedAddress)
-    setShowSuggestions(false)
-  }
-
-  // Validation states
-  const [step1Valid, setStep1Valid] = useState(false)
-  const [step2Valid, setStep2Valid] = useState(false)
-  const [step3Valid, setStep3Valid] = useState(false)
 
   // Refs
   const fileInputRef = useRef(null)
@@ -129,6 +91,11 @@ export default function SellItemPage() {
         termsAccepted,
     )
   }, [fullName, email, phone, address, pickupDate, termsAccepted])
+
+  // Validation states
+  const [step1Valid, setStep1Valid] = useState(false)
+  const [step2Valid, setStep2Valid] = useState(false)
+  const [step3Valid, setStep3Valid] = useState(false)
 
   const validateStep1 = () => {
     const errors = {}
@@ -979,45 +946,14 @@ export default function SellItemPage() {
 
                       {/* Address Autocomplete */}
                       <div className="transition-all duration-300">
-                        <Label htmlFor="pickup_address" className="text-sm font-medium mb-2 flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-muted-foreground" />
-                          <span>
-                            Pickup Address <span className="text-red-500">*</span>
-                          </span>
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id="pickup_address"
-                            name="pickup_address"
-                            value={address}
-                            onChange={(e) => {
-                              setAddress(e.target.value)
-                              setShowSuggestions(true)
-                            }}
-                            onFocus={() => setShowSuggestions(true)}
-                            placeholder="Start typing your address..."
-                            className={`w-full border ${
-                              formErrors.address ? "border-red-300" : "border-input"
-                            } rounded-lg focus-visible:ring-[#3b82f6] bg-background shadow-sm transition-all duration-200`}
-                            required
-                          />
-
-                          {/* Address suggestions dropdown */}
-                          {showSuggestions && addressSuggestions.length > 0 && (
-                            <div className="absolute z-10 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                              {addressSuggestions.map((suggestion, index) => (
-                                <div
-                                  key={index}
-                                  className="px-4 py-2 hover:bg-[#3b82f6]/5 cursor-pointer text-foreground text-sm border-b border-border/50 last:border-0"
-                                  onClick={() => handleAddressSelect(suggestion)}
-                                >
-                                  {suggestion}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        {formErrors.address && <ErrorMessage message={formErrors.address} />}
+                        <AddressAutocomplete
+                          value={address}
+                          onChange={setAddress}
+                          error={formErrors.address}
+                          required={true}
+                          label="Pickup Address"
+                          placeholder="Start typing your address..."
+                        />
                       </div>
 
                       <div className="mt-6 transition-all duration-300">
