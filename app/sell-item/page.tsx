@@ -29,6 +29,7 @@ import { sendConfirmationEmail } from "../actions/send-confirmation-email"
 import { useToast } from "@/hooks/use-toast"
 import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
+import { AIDescriptionButton } from "@/components/ai-description-button"
 
 export default function SellItemPage() {
   const { toast } = useToast()
@@ -369,6 +370,16 @@ export default function SellItemPage() {
     return "incomplete"
   }
 
+  // Handle AI-generated description
+  const handleAIDescription = (generatedDescription) => {
+    setItemDescription(generatedDescription)
+    toast({
+      title: "Description Enhanced",
+      description: "Your item description has been enhanced with AI.",
+      variant: "default",
+    })
+  }
+
   // Clean up object URLs when component unmounts
   useEffect(() => {
     return () => {
@@ -604,9 +615,12 @@ export default function SellItemPage() {
                       </div>
 
                       <div className="transition-all duration-300">
-                        <Label htmlFor="item-description" className="text-sm font-medium mb-2 block">
-                          Brief Description <span className="text-red-500">*</span>
-                        </Label>
+                        <div className="flex justify-between items-center mb-2">
+                          <Label htmlFor="item-description" className="text-sm font-medium">
+                            Brief Description <span className="text-red-500">*</span>
+                          </Label>
+                          <div className="text-xs text-muted-foreground">{itemDescription.length} characters</div>
+                        </div>
                         <Textarea
                           id="item-description"
                           name="description"
@@ -620,6 +634,21 @@ export default function SellItemPage() {
                           required
                         />
                         {formErrors.itemDescription && <ErrorMessage message={formErrors.itemDescription} />}
+
+                        <div className="mt-2 flex justify-end">
+                          <AIDescriptionButton
+                            inputText={itemDescription || `${itemName} ${itemCategory}`}
+                            onDescriptionGenerated={handleAIDescription}
+                            className="bg-gradient-to-r from-[#3b82f6]/10 to-[#4f46e5]/10 hover:from-[#3b82f6]/20 hover:to-[#4f46e5]/20 text-[#3b82f6] border-[#3b82f6]/30"
+                          />
+                        </div>
+
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          <p className="flex items-center gap-1">
+                            <Sparkles className="h-3 w-3" />
+                            <span>Click "Enhance with AI" to automatically improve your description with AI.</span>
+                          </p>
+                        </div>
                       </div>
 
                       <div className="transition-all duration-300">
@@ -819,9 +848,12 @@ export default function SellItemPage() {
                       </div>
 
                       <div className="transition-all duration-300">
-                        <Label htmlFor="item-issues" className="text-sm font-medium mb-2 block">
-                          Any issues or defects? <span className="text-red-500">*</span>
-                        </Label>
+                        <div className="flex justify-between items-center mb-2">
+                          <Label htmlFor="item-issues" className="text-sm font-medium">
+                            Any issues or defects? <span className="text-red-500">*</span>
+                          </Label>
+                          <div className="text-xs text-muted-foreground">{itemIssues.length} characters</div>
+                        </div>
                         <Textarea
                           id="item-issues"
                           name="issues"
@@ -835,6 +867,14 @@ export default function SellItemPage() {
                           required
                         />
                         {formErrors.itemIssues && <ErrorMessage message={formErrors.itemIssues} />}
+
+                        <div className="mt-2 flex justify-end">
+                          <AIDescriptionButton
+                            inputText={`${itemName} in ${itemCondition} condition with the following issues: ${itemIssues}`}
+                            onDescriptionGenerated={(description) => setItemIssues(description)}
+                            className="bg-gradient-to-r from-[#3b82f6]/10 to-[#4f46e5]/10 hover:from-[#3b82f6]/20 hover:to-[#4f46e5]/20 text-[#3b82f6] border-[#3b82f6]/30"
+                          />
+                        </div>
                       </div>
 
                       <div className="flex justify-between mt-8">

@@ -1,25 +1,74 @@
-"use client"
+export const mainNavItems = [
+  {
+    title: "Home",
+    href: "/",
+  },
+  {
+    title: "About",
+    href: "/about",
+  },
+  {
+    title: "Services",
+    href: "/services",
+  },
+  {
+    title: "How It Works",
+    href: "/how-it-works",
+  },
+  {
+    title: "FAQ",
+    href: "/faq",
+  },
+  {
+    title: "Contact",
+    href: "/contact",
+  },
+]
 
-import { useRouter } from "next/navigation"
+export const footerNavItems = [
+  {
+    title: "Home",
+    href: "/",
+  },
+  {
+    title: "About",
+    href: "/about",
+  },
+  {
+    title: "Services",
+    href: "/services",
+  },
+  {
+    title: "How It Works",
+    href: "/how-it-works",
+  },
+  {
+    title: "FAQ",
+    href: "/faq",
+  },
+  {
+    title: "Contact",
+    href: "/contact",
+  },
+  {
+    title: "Privacy Policy",
+    href: "/privacy-policy",
+  },
+  {
+    title: "Terms of Service",
+    href: "/terms",
+  },
+]
 
-// Centralized navigation helper with client-side routing
-export function useAppNavigation() {
-  const router = useRouter()
-
-  const navigateTo = (href: string, callback?: () => void) => {
-    // Use Next.js client-side navigation
-    router.push(href)
-
-    // Scroll to top after navigation
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    })
-
-    if (callback) {
-      callback()
-    }
-  }
-
-  return { navigateTo }
-}
+export const toolsNavItems = [
+  {
+    title: "Sell Item",
+    href: "/sell-item",
+    description: "List your item for sale with our easy form",
+  },
+  {
+    title: "Description Generator",
+    href: "/tools/description-generator",
+    description: "Create compelling descriptions with AI",
+  },
+]
