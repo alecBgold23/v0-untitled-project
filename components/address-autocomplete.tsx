@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MapPin } from "lucide-react"
 import Script from "next/script"
+import { useTheme } from "next-themes"
 
 interface AddressAutocompleteProps {
   value: string
@@ -24,6 +25,98 @@ export default function AddressAutocomplete({
   placeholder = "Start typing your address...",
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const { theme } = useTheme()
+
+  // Apply custom styles to Google Places Autocomplete dropdown
+  useEffect(() => {
+    // Add custom styles for the Google Places Autocomplete dropdown
+    const style = document.createElement("style")
+    style.textContent = `
+      /* Light mode styles */
+      .pac-container {
+        border-radius: 0.5rem;
+        border: 1px solid hsl(var(--border));
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        font-family: var(--font-poppins), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        margin-top: 4px;
+        z-index: 9999 !important;
+      }
+      
+      .pac-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        border-top: 1px solid hsl(var(--border));
+      }
+      
+      .pac-item:first-child {
+        border-top: none;
+      }
+      
+      .pac-item:hover {
+        background-color: rgba(59, 130, 246, 0.05);
+      }
+      
+      .pac-item-query {
+        font-size: 0.875rem;
+      }
+      
+      /* Dark mode styles */
+      .dark .pac-container {
+        background-color: hsl(var(--background));
+        border-color: hsl(var(--border));
+      }
+      
+      .dark .pac-item {
+        border-color: hsl(var(--border));
+        color: hsl(var(--foreground));
+      }
+      
+      .dark .pac-item:hover {
+        background-color: hsl(var(--accent));
+      }
+      
+      .dark .pac-item-query {
+        color: hsl(var(--foreground));
+      }
+      
+      .dark .pac-matched {
+        color: hsl(var(--primary));
+      }
+    `
+    document.head.appendChild(style)
+
+    return () => {
+      document.head.removeChild(style)
+    }
+  }, [])
+
+  // Update styles when theme changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === "childList") {
+          const pacContainers = document.querySelectorAll(".pac-container")
+          pacContainers.forEach((container) => {
+            if (theme === "dark") {
+              container.classList.add("dark")
+            } else {
+              container.classList.remove("dark")
+            }
+          })
+        }
+      })
+    })
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    })
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [theme])
 
   // Function to initialize Google Places Autocomplete
   function initAutocomplete() {
