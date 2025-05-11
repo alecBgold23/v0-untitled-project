@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useRef, useCallback } from "react"
-import { ImageIcon, X } from "lucide-react"
+import { ImageIcon, X, Check } from "lucide-react"
 
 interface DragDropUploadProps {
   onFilesAdded: (files: File[]) => void
@@ -51,6 +51,8 @@ export default function DragDropUpload({
 
   const handleFileInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      e.preventDefault()
+
       if (e.target.files && e.target.files.length > 0) {
         const newFiles = Array.from(e.target.files).filter((file) => file.type.startsWith("image/"))
         if (newFiles.length > 0) {
@@ -61,7 +63,10 @@ export default function DragDropUpload({
     [onFilesAdded],
   )
 
-  const openFileDialog = useCallback(() => {
+  const openFileDialog = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
     if (fileInputRef.current) {
       fileInputRef.current.click()
     }
@@ -89,6 +94,7 @@ export default function DragDropUpload({
           multiple
           accept="image/*"
           onChange={handleFileInputChange}
+          onClick={(e) => e.stopPropagation()}
         />
         <div className="flex flex-col items-center justify-center gap-2">
           <ImageIcon className="w-8 h-8 text-[#3b82f6]/70" />
@@ -107,31 +113,44 @@ export default function DragDropUpload({
       )}
 
       {existingFiles.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-3">
-          {existingFiles.map((file, index) => (
-            <div key={file.id} className="relative group">
-              <img
-                src={typeof file.preview === "string" ? file.preview : "/placeholder.svg"}
-                alt={`Preview ${index + 1}`}
-                className="w-20 h-20 object-cover rounded-md border border-border shadow-sm"
-                onError={(e) => {
-                  // Fallback if the preview URL is invalid
-                  e.currentTarget.src = "/placeholder.svg"
-                }}
-              />
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onFileRemove(index)
-                }}
-                className="absolute top-1 right-1 bg-white text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                aria-label="Remove photo"
-              >
-                <X className="w-3 h-3" />
-              </button>
+        <div className="mt-6">
+          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+            <Check className="h-4 w-4 text-green-500" />
+            <span>Uploaded Files ({existingFiles.length})</span>
+          </h4>
+          <div className="bg-muted/20 border border-border rounded-lg p-4">
+            <div className="flex flex-wrap gap-3">
+              {existingFiles.map((file, index) => (
+                <div key={file.id} className="relative group">
+                  <div className="w-24 h-24 bg-white dark:bg-gray-800 rounded-md border border-border shadow-sm overflow-hidden">
+                    <img
+                      src={typeof file.preview === "string" ? file.preview : "/placeholder.svg"}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback if the preview URL is invalid
+                        e.currentTarget.src = "/placeholder.svg"
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onFileRemove(index)
+                    }}
+                    className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md border border-gray-200"
+                    aria-label="Remove photo"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  <div className="mt-1 text-xs text-center text-muted-foreground truncate max-w-[96px]">
+                    {file.name.length > 15 ? `${file.name.substring(0, 12)}...` : file.name}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       )}
 

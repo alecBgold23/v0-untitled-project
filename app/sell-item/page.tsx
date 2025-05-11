@@ -22,6 +22,8 @@ import {
   Mail,
   User,
   Check,
+  ImageIcon,
+  X,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import { sendConfirmationEmail } from "../actions/send-confirmation-email"
@@ -185,41 +187,8 @@ export default function SellItemPage() {
   }
 
   const handleFilesAdded = (files) => {
-    // Create file objects with preview URLs
-    const newPhotos = files.map((file) => {
-      // Create a proper object URL for the preview
-      const previewUrl = URL.createObjectURL(file)
-
-      return {
-        file,
-        preview: previewUrl,
-        name: file.name,
-        id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      }
-    })
-
-    // Filter out duplicates based on file name
-    const filteredPhotos = newPhotos.filter(
-      (newPhoto) =>
-        !itemPhotos.some((existingPhoto) => existingPhoto.name === newPhoto.name) &&
-        !animatingFiles.some((animatingFile) => animatingFile.name === newPhoto.name),
-    )
-
-    // Add directly to itemPhotos with no animation
-    if (filteredPhotos.length > 0) {
-      setItemPhotos((prev) => [...prev, ...filteredPhotos])
-
-      // Log for debugging
-      console.log("Added photos:", filteredPhotos)
-    }
-  }
-
-  const handleCameraCapture = (e) => {
-    const files = Array.from(e.target.files)
-    if (files.length > 0) {
-      // Reset the input value to prevent duplicate uploads
-      e.target.value = null
-
+    try {
+      // Create file objects with preview URLs
       const newPhotos = files.map((file) => {
         // Create a proper object URL for the preview
         const previewUrl = URL.createObjectURL(file)
@@ -227,7 +196,7 @@ export default function SellItemPage() {
         return {
           file,
           preview: previewUrl,
-          name: `Camera_${new Date().toISOString()}.jpg`,
+          name: file.name,
           id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         }
       })
@@ -243,22 +212,98 @@ export default function SellItemPage() {
       if (filteredPhotos.length > 0) {
         setItemPhotos((prev) => [...prev, ...filteredPhotos])
 
+        // Show success toast
+        toast({
+          title: "Files Added",
+          description: `Successfully added ${filteredPhotos.length} file${filteredPhotos.length > 1 ? "s" : ""}`,
+          variant: "default",
+        })
+
         // Log for debugging
-        console.log("Added camera photos:", filteredPhotos)
+        console.log("Added photos:", filteredPhotos)
       }
+    } catch (error) {
+      console.error("Error adding files:", error)
+      toast({
+        title: "Error",
+        description: "There was a problem adding your files. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleCameraCapture = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    try {
+      const files = Array.from(e.target.files || [])
+      if (files.length > 0) {
+        // Reset the input value to prevent duplicate uploads
+        e.target.value = null
+
+        const newPhotos = files.map((file) => {
+          // Create a proper object URL for the preview
+          const previewUrl = URL.createObjectURL(file)
+
+          return {
+            file,
+            preview: previewUrl,
+            name: `Camera_${new Date().toISOString()}.jpg`,
+            id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          }
+        })
+
+        // Filter out duplicates based on file name
+        const filteredPhotos = newPhotos.filter(
+          (newPhoto) =>
+            !itemPhotos.some((existingPhoto) => existingPhoto.name === newPhoto.name) &&
+            !animatingFiles.some((animatingFile) => animatingFile.name === newPhoto.name),
+        )
+
+        // Add directly to itemPhotos with no animation
+        if (filteredPhotos.length > 0) {
+          setItemPhotos((prev) => [...prev, ...filteredPhotos])
+
+          // Show success toast
+          toast({
+            title: "Photo Captured",
+            description: "Your photo has been added successfully",
+            variant: "default",
+          })
+
+          // Log for debugging
+          console.log("Added camera photos:", filteredPhotos)
+        }
+      }
+    } catch (error) {
+      console.error("Error capturing from camera:", error)
+      toast({
+        title: "Error",
+        description: "There was a problem capturing your photo. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
   const removePhoto = (index) => {
-    const newPhotos = [...itemPhotos]
-    // Revoke the object URL to avoid memory leaks
-    URL.revokeObjectURL(newPhotos[index].preview)
-    newPhotos.splice(index, 1)
-    setItemPhotos(newPhotos)
+    try {
+      const newPhotos = [...itemPhotos]
+      // Revoke the object URL to avoid memory leaks
+      if (newPhotos[index] && newPhotos[index].preview) {
+        URL.revokeObjectURL(newPhotos[index].preview)
+      }
+      newPhotos.splice(index, 1)
+      setItemPhotos(newPhotos)
+    } catch (error) {
+      console.error("Error removing photo:", error)
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    e.stopPropagation()
+
     if (validateStep3()) {
       setIsSubmitting(true)
 
@@ -347,7 +392,11 @@ export default function SellItemPage() {
       // Revoke all object URLs to prevent memory leaks
       itemPhotos.forEach((photo) => {
         if (photo.preview && typeof photo.preview === "string") {
-          URL.revokeObjectURL(photo.preview)
+          try {
+            URL.revokeObjectURL(photo.preview)
+          } catch (error) {
+            console.error("Error revoking URL:", error)
+          }
         }
       })
     }
@@ -609,7 +658,13 @@ export default function SellItemPage() {
                         <div className="mt-4 flex justify-center">
                           <button
                             type="button"
-                            onClick={() => cameraInputRef.current?.click()}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              if (cameraInputRef.current) {
+                                cameraInputRef.current.click()
+                              }
+                            }}
                             className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-input text-foreground px-3 py-1.5 text-sm rounded-md shadow-sm transition-all duration-300 hover:shadow-md hover:border-[#3b82f6]/50"
                           >
                             <Camera className="w-4 h-4" />
@@ -622,10 +677,49 @@ export default function SellItemPage() {
                             accept="image/*"
                             capture="environment"
                             onChange={handleCameraCapture}
+                            onClick={(e) => e.stopPropagation()}
                             className="hidden"
                           />
                         </div>
                       </div>
+
+                      {/* Display uploaded files in a grid */}
+                      {itemPhotos.length > 0 && (
+                        <div className="transition-all duration-300 bg-muted/20 border border-border rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <ImageIcon className="w-5 h-5 text-[#3b82f6]" />
+                            <h4 className="text-sm font-medium">Uploaded Photos ({itemPhotos.length})</h4>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                            {itemPhotos.map((photo, index) => (
+                              <div key={photo.id} className="relative group">
+                                <img
+                                  src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
+                                  alt={`Preview ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded-md border border-border shadow-sm"
+                                  onError={(e) => {
+                                    e.currentTarget.src = "/placeholder.svg"
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    removePhoto(index)
+                                  }}
+                                  className="absolute top-1 right-1 bg-white text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                  aria-label="Remove photo"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                                <div className="text-xs text-center mt-1 text-muted-foreground truncate max-w-full">
+                                  {photo.name.length > 15 ? photo.name.substring(0, 15) + "..." : photo.name}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="flex justify-end mt-8">
                         <button
@@ -770,10 +864,38 @@ export default function SellItemPage() {
                         {formErrors.itemIssues && <ErrorMessage message={formErrors.itemIssues} />}
                       </div>
 
+                      {/* Show uploaded photos in step 2 */}
+                      {itemPhotos.length > 0 && (
+                        <div className="transition-all duration-300 bg-muted/20 border border-border rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <ImageIcon className="w-5 h-5 text-[#3b82f6]" />
+                            <h4 className="text-sm font-medium">Uploaded Photos ({itemPhotos.length})</h4>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                            {itemPhotos.map((photo, index) => (
+                              <div key={photo.id} className="relative group">
+                                <img
+                                  src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
+                                  alt={`Preview ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded-md border border-border shadow-sm"
+                                  onError={(e) => {
+                                    e.currentTarget.src = "/placeholder.svg"
+                                  }}
+                                />
+                                <div className="text-xs text-center mt-1 text-muted-foreground truncate max-w-full">
+                                  {photo.name.length > 15 ? photo.name.substring(0, 15) + "..." : photo.name}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex justify-between mt-8">
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault()
                             scrollToTop()
                             // Change form step after scroll animation starts
                             setTimeout(() => {
@@ -787,7 +909,10 @@ export default function SellItemPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={handleContinueStep2}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            handleContinueStep2()
+                          }}
                           disabled={!step2Valid}
                           className="bg-gradient-to-r from-[#3b82f6] to-[#4f46e5] hover:from-[#2563eb] hover:to-[#4338ca] text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                         >
@@ -902,6 +1027,57 @@ export default function SellItemPage() {
                         />
                       </div>
 
+                      {/* Show item summary in step 3 */}
+                      <div className="transition-all duration-300">
+                        <div className="bg-muted/20 border border-border rounded-lg p-4">
+                          <h4 className="text-sm font-medium mb-3">Item Summary</h4>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                <span className="font-medium text-foreground">Name:</span> {itemName}
+                              </p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                <span className="font-medium text-foreground">Category:</span>{" "}
+                                {itemCategory.charAt(0).toUpperCase() + itemCategory.slice(1)}
+                              </p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                <span className="font-medium text-foreground">Condition:</span>{" "}
+                                {itemCondition
+                                  .split("-")
+                                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                  .join(" ")}
+                              </p>
+                            </div>
+                            <div>
+                              {itemPhotos.length > 0 && (
+                                <div>
+                                  <p className="text-sm font-medium text-foreground mb-2">Photos:</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {itemPhotos.slice(0, 4).map((photo, index) => (
+                                      <div key={photo.id} className="w-12 h-12 relative">
+                                        <img
+                                          src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
+                                          alt={`Preview ${index + 1}`}
+                                          className="w-full h-full object-cover rounded-md border border-border shadow-sm"
+                                          onError={(e) => {
+                                            e.currentTarget.src = "/placeholder.svg"
+                                          }}
+                                        />
+                                      </div>
+                                    ))}
+                                    {itemPhotos.length > 4 && (
+                                      <div className="w-12 h-12 bg-muted flex items-center justify-center rounded-md border border-border">
+                                        <span className="text-xs font-medium">+{itemPhotos.length - 4}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="mt-6 transition-all duration-300">
                         <div className="p-6 rounded-lg bg-muted/30 border border-border">
                           <div className="flex items-start space-x-3">
@@ -936,7 +1112,8 @@ export default function SellItemPage() {
                       <div className="flex justify-between mt-8">
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault()
                             scrollToTop()
                             // Change form step after scroll animation starts
                             setTimeout(() => {
@@ -1002,6 +1179,27 @@ export default function SellItemPage() {
                   We've received your submission and will review your item details. You can expect to hear from us
                   within 24 hours with a price offer.
                 </p>
+
+                {/* Show submitted photos in confirmation */}
+                {itemPhotos.length > 0 && (
+                  <div className="bg-muted/20 border border-border rounded-lg p-6 max-w-3xl mx-auto mb-8">
+                    <h3 className="text-lg font-medium mb-4 text-[#3b82f6]">Your Submitted Photos</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {itemPhotos.map((photo, index) => (
+                        <div key={photo.id} className="relative">
+                          <img
+                            src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-md border border-border shadow-sm"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder.svg"
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-muted/30 p-6 rounded-lg max-w-md mx-auto text-left border border-border">
                   <h3 className="font-medium text-lg mb-3 text-[#3b82f6]">Next Steps</h3>
