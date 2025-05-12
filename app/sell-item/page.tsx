@@ -592,10 +592,10 @@ export default function SellItemPage() {
             <ContentAnimation delay={0.3}>
               <form
                 onSubmit={handleSubmit}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-border/40 overflow-hidden transition-all duration-300"
+                className="bg-gradient-to-r from-[#3b82f6]/50 via-[#6366f1]/50 to-[#4f46e5]/50 rounded-2xl shadow-xl border border-border/40 overflow-hidden transition-all duration-300"
               >
                 {/* Form header */}
-                <div className="bg-gradient-to-r from-[#3b82f6]/20 via-[#6366f1]/20 to-[#4f46e5]/20 p-6 border-b border-border/40">
+                <div className="bg-gradient-to-r from-[#3b82f6]/50 via-[#6366f1]/50 to-[#4f46e5]/50 p-6 border-b border-border/40">
                   <h2 className="text-xl font-medium">
                     {formStep === 1
                       ? "Tell us about your item"
@@ -612,7 +612,7 @@ export default function SellItemPage() {
                   </p>
                 </div>
 
-                <div className="p-8">
+                <div className="p-8 bg-white/50 dark:bg-gray-800/50">
                   {formStep === 1 && (
                     <div className="space-y-8" id="section1" ref={section1Ref}>
                       <div className="transition-all duration-300">
@@ -1183,15 +1183,15 @@ export default function SellItemPage() {
         ) : (
           <ContentAnimation>
             <ConfettiEffect trigger={formSubmitted} />
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-border/40 overflow-hidden transition-all duration-500">
-              <div className="bg-gradient-to-r from-[#3b82f6]/20 via-[#6366f1]/20 to-[#4f46e5]/20 p-6 border-b border-border/40">
+            <div className="bg-gradient-to-r from-[#3b82f6]/50 via-[#6366f1]/50 to-[#4f46e5]/50 rounded-2xl shadow-xl border border-border/40 overflow-hidden transition-all duration-500">
+              <div className="bg-gradient-to-r from-[#3b82f6]/50 via-[#6366f1]/50 to-[#4f46e5]/50 p-6 border-b border-border/40">
                 <h2 className="text-xl font-medium">Submission Received</h2>
                 <p className="text-muted-foreground text-sm mt-1">
                   Thank you for your submission. We'll be in touch soon.
                 </p>
               </div>
 
-              <div className="p-8 text-center">
+              <div className="p-8 text-center bg-white/50 dark:bg-gray-800/50">
                 <div className="w-20 h-20 bg-gradient-to-r from-[#3b82f6]/10 to-[#4f46e5]/10 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle2 className="w-10 h-10 text-[#3b82f6]" />
                 </div>
