@@ -19,11 +19,17 @@ export async function POST(req: NextRequest) {
       model: "gpt-3.5-turbo",
       messages: [
         {
+          role: "system",
+          content:
+            "You are an eBay listing assistant. Provide clear, concise product descriptions with just enough detail for a good eBay listing.",
+        },
+        {
           role: "user",
-          content: `Complete this product name and include relevant info in 1 sentence: ${prompt}`,
+          content: `Based on this product name: "${prompt}", provide a good eBay-style product title with the right amount of detail (brand, model, size, color, etc). For example, if someone types "oculus", respond with "Oculus Meta Quest 2 64GB VR Headset - White".`,
         },
       ],
-      max_tokens: 50,
+      max_tokens: 80,
+      temperature: 0.4,
     }),
   })
 
