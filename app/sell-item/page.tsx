@@ -4,7 +4,6 @@ import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -41,8 +40,6 @@ export default function SellItemPage() {
   const [submitResult, setSubmitResult] = useState(null)
 
   // Form field states
-  const [itemCategory, setItemCategory] = useState("")
-  const [customCategory, setCustomCategory] = useState("")
   const [itemName, setItemName] = useState("")
   const [itemDescription, setItemDescription] = useState("")
   const [itemPhotos, setItemPhotos] = useState([])
@@ -73,21 +70,10 @@ export default function SellItemPage() {
   const section2Ref = useRef(null)
   const section3Ref = useRef(null)
 
-  // Get effective category (either selected or custom)
-  const getEffectiveCategory = () => {
-    if (itemCategory === "other" && customCategory.trim()) {
-      return customCategory.trim()
-    }
-    return itemCategory
-  }
-
   // Validate step 1
   useEffect(() => {
-    const effectiveCategory = getEffectiveCategory()
-    setStep1Valid(
-      itemName.trim() !== "" && effectiveCategory !== "" && itemDescription.trim() !== "" && itemPhotos.length >= 3,
-    )
-  }, [itemCategory, customCategory, itemName, itemDescription, itemPhotos])
+    setStep1Valid(itemName.trim() !== "" && itemDescription.trim() !== "" && itemPhotos.length >= 3)
+  }, [itemName, itemDescription, itemPhotos])
 
   // Validate step 2
   useEffect(() => {
@@ -164,16 +150,6 @@ export default function SellItemPage() {
     if (!itemName.trim()) {
       errors.itemName = "Item name is required"
     }
-
-    const effectiveCategory = getEffectiveCategory()
-    if (!effectiveCategory) {
-      if (itemCategory === "other" && !customCategory.trim()) {
-        errors.customCategory = "Please specify a category"
-      } else {
-        errors.itemCategory = "Please select a category"
-      }
-    }
-
     if (!itemDescription.trim()) {
       errors.itemDescription = "Item description is required"
     }
@@ -362,12 +338,8 @@ export default function SellItemPage() {
       setIsSubmitting(true)
 
       try {
-        // Get effective category for submission
-        const effectiveCategory = getEffectiveCategory()
-
         // Log form data for debugging
         console.log("Form submission data:", {
-          itemCategory: effectiveCategory,
           itemName,
           itemDescription,
           itemCondition,
@@ -384,7 +356,6 @@ export default function SellItemPage() {
           fullName,
           email,
           itemName,
-          itemCategory: effectiveCategory,
           itemCondition,
           itemDescription,
           itemIssues,
@@ -644,115 +615,46 @@ export default function SellItemPage() {
                 <div className="p-8">
                   {formStep === 1 && (
                     <div className="space-y-8" id="section1" ref={section1Ref}>
-                      <div className="grid md:grid-cols-2 gap-8">
-                        <div className="transition-all duration-300">
-                          <Label htmlFor="item-name" className="text-sm font-medium mb-2 block">
-                            Item Name <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            id="item-name"
-                            name="name"
-                            value={itemName}
-                            onChange={(e) => setItemName(e.target.value)}
-                            placeholder="e.g., Leather Sofa, Samsung TV"
-                            className={`w-full border ${
-                              formErrors.itemName ? "border-red-300" : "border-input"
-                            } rounded-lg focus-visible:ring-[#3b82f6] bg-background shadow-sm transition-all duration-200`}
-                            required
-                          />
-                          {formErrors.itemName && <ErrorMessage message={formErrors.itemName} />}
+                      <div className="transition-all duration-300">
+                        <Label htmlFor="item-name" className="text-sm font-medium mb-2 block">
+                          Item Name <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="item-name"
+                          name="name"
+                          value={itemName}
+                          onChange={(e) => setItemName(e.target.value)}
+                          placeholder="e.g., Leather Sofa, Samsung TV"
+                          className={`w-full border ${
+                            formErrors.itemName ? "border-red-300" : "border-input"
+                          } rounded-lg focus-visible:ring-[#3b82f6] bg-background shadow-sm transition-all duration-200`}
+                          required
+                        />
+                        {formErrors.itemName && <ErrorMessage message={formErrors.itemName} />}
 
-                          {/* Smart name suggestion */}
-                          {isLoadingSuggestion && (
-                            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              <span>Generating suggestion...</span>
-                            </div>
-                          )}
+                        {/* Smart name suggestion */}
+                        {isLoadingSuggestion && (
+                          <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <span>Generating suggestion...</span>
+                          </div>
+                        )}
 
-                          {nameSuggestion && (
-                            <div
-                              onClick={applySuggestion}
-                              className="mt-3 p-3 bg-[#3b82f6]/5 border border-[#3b82f6]/20 rounded-lg cursor-pointer hover:bg-[#3b82f6]/10 transition-colors duration-200"
-                            >
-                              <div className="flex items-center gap-2 mb-1">
-                                <Wand2 className="h-4 w-4 text-[#3b82f6]" />
-                                <span className="text-sm font-medium text-[#3b82f6]">Suggested Description</span>
-                                <span className="text-xs bg-[#3b82f6]/10 text-[#3b82f6] px-2 py-0.5 rounded-full">
-                                  Click to Apply
-                                </span>
-                              </div>
-                              <p className="text-sm text-muted-foreground">{nameSuggestion}</p>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="transition-all duration-300">
-                          <Label htmlFor="item-category" className="text-sm font-medium mb-2 block">
-                            Item Category <span className="text-red-500">*</span>
-                          </Label>
-                          <Select
-                            value={itemCategory}
-                            onValueChange={(value) => {
-                              setItemCategory(value)
-                              if (value !== "other") {
-                                setCustomCategory("")
-                              }
-                            }}
-                            name="category"
-                            required
+                        {nameSuggestion && (
+                          <div
+                            onClick={applySuggestion}
+                            className="mt-3 p-3 bg-[#3b82f6]/5 border border-[#3b82f6]/20 rounded-lg cursor-pointer hover:bg-[#3b82f6]/10 transition-colors duration-200"
                           >
-                            <SelectTrigger
-                              id="item-category"
-                              className={`w-full border ${
-                                formErrors.itemCategory ? "border-red-300" : "border-input"
-                              } rounded-lg focus-visible:ring-[#3b82f6] bg-background shadow-sm transition-all duration-200`}
-                            >
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover border border-border rounded-lg shadow-md max-h-[300px]">
-                              <SelectItem value="electronics">Electronics</SelectItem>
-                              <SelectItem value="computers">Computers & Accessories</SelectItem>
-                              <SelectItem value="phones">Phones & Tablets</SelectItem>
-                              <SelectItem value="furniture">Furniture</SelectItem>
-                              <SelectItem value="home-appliances">Home Appliances</SelectItem>
-                              <SelectItem value="kitchen">Kitchen & Dining</SelectItem>
-                              <SelectItem value="clothing">Clothing</SelectItem>
-                              <SelectItem value="shoes">Shoes & Accessories</SelectItem>
-                              <SelectItem value="jewelry">Jewelry & Watches</SelectItem>
-                              <SelectItem value="toys">Toys & Games</SelectItem>
-                              <SelectItem value="books">Books & Media</SelectItem>
-                              <SelectItem value="sports">Sports & Outdoors</SelectItem>
-                              <SelectItem value="tools">Tools & Home Improvement</SelectItem>
-                              <SelectItem value="automotive">Automotive</SelectItem>
-                              <SelectItem value="musical">Musical Instruments</SelectItem>
-                              <SelectItem value="collectibles">Collectibles & Art</SelectItem>
-                              <SelectItem value="health">Health & Beauty</SelectItem>
-                              <SelectItem value="baby">Baby & Kids</SelectItem>
-                              <SelectItem value="pet">Pet Supplies</SelectItem>
-                              <SelectItem value="garden">Garden & Outdoor</SelectItem>
-                              <SelectItem value="other">Other (specify)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {formErrors.itemCategory && <ErrorMessage message={formErrors.itemCategory} />}
-
-                          {/* Custom category input field */}
-                          {itemCategory === "other" && (
-                            <div className="mt-2">
-                              <Input
-                                id="custom-category"
-                                name="custom-category"
-                                value={customCategory}
-                                onChange={(e) => setCustomCategory(e.target.value)}
-                                placeholder="Please specify category"
-                                className={`w-full border ${
-                                  formErrors.customCategory ? "border-red-300" : "border-input"
-                                } rounded-lg focus-visible:ring-[#3b82f6] bg-background shadow-sm transition-all duration-200`}
-                              />
-                              {formErrors.customCategory && <ErrorMessage message={formErrors.customCategory} />}
+                            <div className="flex items-center gap-2 mb-1">
+                              <Wand2 className="h-4 w-4 text-[#3b82f6]" />
+                              <span className="text-sm font-medium text-[#3b82f6]">Suggested Description</span>
+                              <span className="text-xs bg-[#3b82f6]/10 text-[#3b82f6] px-2 py-0.5 rounded-full">
+                                Click to Apply
+                              </span>
                             </div>
-                          )}
-                        </div>
+                            <p className="text-sm text-muted-foreground">{nameSuggestion}</p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="transition-all duration-300">
@@ -778,7 +680,7 @@ export default function SellItemPage() {
 
                         <div className="mt-2 flex justify-end">
                           <AIDescriptionButton
-                            inputText={itemDescription || `${itemName} ${getEffectiveCategory()}`}
+                            inputText={itemDescription || itemName}
                             onDescriptionGenerated={handleAIDescription}
                             className="bg-gradient-to-r from-[#3b82f6]/10 to-[#4f46e5]/10 hover:from-[#3b82f6]/20 hover:to-[#4f46e5]/20 text-[#3b82f6] border-[#3b82f6]/30"
                           />
@@ -1163,10 +1065,6 @@ export default function SellItemPage() {
                             <div>
                               <p className="text-sm text-muted-foreground">
                                 <span className="font-medium text-foreground">Name:</span> {itemName}
-                              </p>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                <span className="font-medium text-foreground">Category:</span>{" "}
-                                {getEffectiveCategory().charAt(0).toUpperCase() + getEffectiveCategory().slice(1)}
                               </p>
                               <p className="text-sm text-muted-foreground mt-1">
                                 <span className="font-medium text-foreground">Condition:</span>{" "}
