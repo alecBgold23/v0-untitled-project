@@ -592,10 +592,10 @@ export default function SellItemPage() {
             <ContentAnimation delay={0.3}>
               <form
                 onSubmit={handleSubmit}
-                className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-border/40 overflow-hidden transition-all duration-300"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-border/40 overflow-hidden transition-all duration-300"
               >
                 {/* Form header */}
-                <div className="bg-gradient-to-r from-[#3b82f6]/10 via-[#6366f1]/10 to-[#4f46e5]/10 p-6 border-b border-border/40">
+                <div className="bg-gradient-to-r from-[#3b82f6]/20 via-[#6366f1]/20 to-[#4f46e5]/20 p-6 border-b border-border/40">
                   <h2 className="text-xl font-medium">
                     {formStep === 1
                       ? "Tell us about your item"
@@ -669,7 +669,7 @@ export default function SellItemPage() {
                           name="description"
                           value={itemDescription}
                           onChange={(e) => setItemDescription(e.target.value)}
-                          placeholder="Describe your item with specific details similar to the suggested description (brand, model, size, color, features, etc.)"
+                          placeholder="Describe to the level of the suggested description."
                           rows={4}
                           className={`w-full border ${
                             formErrors.itemDescription ? "border-red-300" : "border-input"
@@ -1183,8 +1183,8 @@ export default function SellItemPage() {
         ) : (
           <ContentAnimation>
             <ConfettiEffect trigger={formSubmitted} />
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-border/40 overflow-hidden transition-all duration-500">
-              <div className="bg-gradient-to-r from-[#3b82f6]/10 via-[#6366f1]/10 to-[#4f46e5]/10 p-6 border-b border-border/40">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-border/40 overflow-hidden transition-all duration-500">
+              <div className="bg-gradient-to-r from-[#3b82f6]/20 via-[#6366f1]/20 to-[#4f46e5]/20 p-6 border-b border-border/40">
                 <h2 className="text-xl font-medium">Submission Received</h2>
                 <p className="text-muted-foreground text-sm mt-1">
                   Thank you for your submission. We'll be in touch soon.

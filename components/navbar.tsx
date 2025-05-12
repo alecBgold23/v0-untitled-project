@@ -7,6 +7,17 @@ import { Menu, X, SearchIcon } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { BluberryLogoSVG } from "@/components/blueberry-logo-svg"
 import SearchModal from "@/components/search"
+import { useAuth } from "@/contexts/auth-context"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 
 // Navigation items
 const mainNavItems = [
@@ -24,6 +35,8 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  const { user, logout } = useAuth()
 
   // Handle scroll events
   useEffect(() => {
@@ -60,11 +73,19 @@ export default function Navbar() {
     >
       <div className="container mx-auto px-4">
         <nav className="flex items-center justify-between h-16 relative">
-          {/* Logo */}
-          <div className="flex-shrink-0">
+          {/* Logo and left controls */}
+          <div className="flex items-center space-x-4">
             <Link href="/" className="flex items-center">
               <BluberryLogoSVG />
             </Link>
+            <button
+              className="text-foreground/80 transition-all duration-200 hover:text-primary"
+              onClick={toggleSearch}
+              aria-label="Search"
+            >
+              <SearchIcon size={20} />
+            </button>
+            <ThemeToggle />
           </div>
 
           {/* Desktop navigation - centered in the middle */}
@@ -77,22 +98,13 @@ export default function Navbar() {
                   pathname === item.href ? "text-primary font-medium" : "text-foreground/80"
                 }`}
               >
-                {item.label}
+                {item.label || item.name}
               </Link>
             ))}
           </div>
 
           {/* Right side controls */}
           <div className="flex items-center space-x-4">
-            <button
-              className="text-foreground/80 transition-all duration-200 hover:text-primary"
-              onClick={toggleSearch}
-              aria-label="Search"
-            >
-              <SearchIcon size={20} />
-            </button>
-            <ThemeToggle />
-
             {/* Mobile menu button */}
             <button
               className="md:hidden text-foreground/80 transition-all duration-200 hover:text-primary"
@@ -101,6 +113,31 @@ export default function Navbar() {
             >
               {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
+          </div>
+          <div className="flex items-center gap-2">
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        {user.displayName
+                          ? user.displayName.charAt(0).toUpperCase()
+                          : user.email?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => logout()}>Sign out</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </nav>
 
@@ -115,7 +152,7 @@ export default function Navbar() {
                   pathname === item.href ? "text-primary font-medium" : "text-foreground/80"
                 }`}
               >
-                {item.label}
+                {item.label || item.name}
               </Link>
             ))}
           </div>
