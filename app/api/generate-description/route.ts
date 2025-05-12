@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server"
-import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
 
 export async function POST(request: Request) {
   try {
@@ -10,28 +8,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid prompt. Please provide a text prompt." }, { status: 400 })
     }
 
-    // Generate an enhanced description using OpenAI
-    const { text: description } = await generateText({
-      model: openai("gpt-4o"),
-      prompt: `
-        You are a professional copywriter specializing in creating compelling product descriptions.
-        
-        Your task is to enhance the following item description to make it more appealing, professional, and detailed.
-        Focus on highlighting the item's best features and qualities.
-        
-        Keep the tone professional but engaging. Do not exaggerate or make claims not supported by the original description.
-        Do not add specific pricing information unless it was in the original text.
-        
-        Original description:
-        ${prompt}
-        
-        Enhanced description:
-      `,
-      temperature: 0.7,
-      maxTokens: 500,
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ error: "Missing API key" }, { status: 500 })
+    }
+
+    const res = await fetch("https://api.openai.com/v1/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "text-davinci-003",
+        prompt: `Write a compelling product description for: ${prompt}`,
+        max_tokens: 100,
+        temperature: 0.7,
+      }),
     })
 
-    return NextResponse.json({ description })
+    const data = await res.json()
+
+    if (data.choices && data.choices.length > 0) {
+      return NextResponse.json({ description: data.choices[0].text.trim() })
+    } else {
+      return NextResponse.json({ error: "No description generated" }, { status: 500 })
+    }
   } catch (error) {
     console.error("Error generating description:", error)
     return NextResponse.json({ error: "Failed to generate description. Please try again." }, { status: 500 })

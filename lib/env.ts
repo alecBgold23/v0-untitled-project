@@ -33,3 +33,8 @@ export function getClientEnv(key: string, defaultValue = ""): string {
     ? (window as any).__ENV?.[key] || process.env[key] || defaultValue
     : process.env[key] || defaultValue
 }
+
+export const ENV = {
+  // SMS verification settings
+  NEXT_PUBLIC_SKIP_SMS_VERIFICATION: process.env.NEXT_PUBLIC_SKIP_SMS_VERIFICATION === "true",
+}

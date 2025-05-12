@@ -25,6 +25,7 @@ export default function AddressAutocomplete({
   placeholder = "Start typing your address...",
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const { theme } = useTheme()
 
   // Apply custom styles to Google Places Autocomplete dropdown
@@ -32,18 +33,19 @@ export default function AddressAutocomplete({
     // Add custom styles for the Google Places Autocomplete dropdown
     const style = document.createElement("style")
     style.textContent = `
-      /* Light mode styles */
+      /* Base styles for the dropdown */
       .pac-container {
         border-radius: 0.375rem;
         border: 1px solid hsl(var(--border));
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         font-family: var(--font-poppins), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        margin-top: 2px;
         z-index: 9999 !important;
-        max-width: calc(100% - 2px);
-        width: auto !important;
-        max-height: 200px;
+        width: 240px !important;
+        max-height: 300px;
         overflow-y: auto;
+        /* Remove default positioning - will be set by JavaScript */
+        position: absolute !important;
+        margin-top: 2px !important;
       }
       
       .pac-item {
@@ -117,30 +119,69 @@ export default function AddressAutocomplete({
     }
   }, [])
 
-  // Update styles when theme changes
+  // Function to position the dropdown
+  const positionDropdown = () => {
+    const pacContainers = document.querySelectorAll(".pac-container")
+    if (!inputRef.current || pacContainers.length === 0) return
+
+    const inputRect = inputRef.current.getBoundingClientRect()
+
+    pacContainers.forEach((container) => {
+      // Apply theme
+      if (theme === "dark") {
+        container.classList.add("dark")
+      } else {
+        container.classList.remove("dark")
+      }
+
+      // Position the dropdown
+      const containerEl = container as HTMLElement
+
+      // Calculate the right-aligned position
+      // This positions the dropdown so its right edge aligns with the input's right edge
+      const rightAlignedLeft = inputRect.right - 240 // 240px is the dropdown width
+
+      // Make sure it doesn't go off-screen to the left
+      const safeLeft = Math.max(10, rightAlignedLeft)
+
+      // Position below the input but aligned to the right
+      containerEl.style.left = `${safeLeft}px`
+      containerEl.style.top = `${inputRect.bottom + window.scrollY}px`
+    })
+  }
+
+  // Reposition dropdown when it appears
   useEffect(() => {
+    // Create a mutation observer to watch for the dropdown being added to the DOM
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        if (mutation.type === "childList") {
-          const pacContainers = document.querySelectorAll(".pac-container")
-          pacContainers.forEach((container) => {
-            if (theme === "dark") {
-              container.classList.add("dark")
-            } else {
-              container.classList.remove("dark")
+        if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+          // Check if any of the added nodes is a .pac-container
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeName === "DIV" && (node as HTMLElement).classList.contains("pac-container")) {
+              positionDropdown()
             }
           })
         }
       })
     })
 
+    // Start observing the document body for added nodes
     observer.observe(document.body, {
       childList: true,
-      subtree: true,
+      subtree: false,
     })
+
+    // Also reposition on window resize
+    window.addEventListener("resize", positionDropdown)
+
+    // And on scroll
+    window.addEventListener("scroll", positionDropdown)
 
     return () => {
       observer.disconnect()
+      window.removeEventListener("resize", positionDropdown)
+      window.removeEventListener("scroll", positionDropdown)
     }
   }, [theme])
 
@@ -159,6 +200,17 @@ export default function AddressAutocomplete({
         if (place.formatted_address) {
           onChange(place.formatted_address)
         }
+      })
+
+      // When the dropdown opens, position it correctly
+      inputRef.current.addEventListener("focus", () => {
+        // Small delay to ensure the dropdown has been created
+        setTimeout(positionDropdown, 300)
+      })
+
+      // Also position on input
+      inputRef.current.addEventListener("input", () => {
+        setTimeout(positionDropdown, 300)
       })
     } catch (error) {
       console.error("Error initializing Google Maps Places Autocomplete:", error)
@@ -187,7 +239,7 @@ export default function AddressAutocomplete({
   }, [])
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <Script
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCxwq9A8sJNJDat1Jflacrr5gWmJmts03M&libraries=places&callback=initGoogleMapsCallback"
         strategy="afterInteractive"

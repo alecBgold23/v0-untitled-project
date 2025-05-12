@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app"
-import { getAuth, type Auth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
+import { getAuth, type Auth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth"
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -35,5 +35,5 @@ function initializeFirebase() {
 // Initialize Firebase lazily
 const { auth: lazyAuth } = initializeFirebase()
 
-// Export the initialized auth instance and other Firebase functions
-export { lazyAuth as auth, RecaptchaVerifier, signInWithPhoneNumber }
+// Export the initialized auth instance
+export { lazyAuth as auth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult }

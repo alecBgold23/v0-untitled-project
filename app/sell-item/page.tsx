@@ -24,13 +24,15 @@ import {
   ImageIcon,
   Wand2,
   DollarSign,
+  ShieldCheck,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import { sendConfirmationEmail } from "../actions/send-confirmation-email"
 import { useToast } from "@/hooks/use-toast"
 import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
-import { AIDescriptionButton } from "@/components/ai-description-button"
+import { auth, RecaptchaVerifier, signInWithPhoneNumber } from "@/lib/firebase"
+import { Button } from "@/components/ui/button"
 
 export default function SellItemPage() {
   const { toast } = useToast()
@@ -39,6 +41,13 @@ export default function SellItemPage() {
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState(null)
+
+  // Phone verification states
+  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false)
+  const [verificationError, setVerificationError] = useState("")
+  const [confirmationResult, setConfirmationResult] = useState<any>(null)
+  const [isVerified, setIsVerified] = useState(false)
+  const [verificationCode, setVerificationCode] = useState("")
 
   // Form field states
   const [itemName, setItemName] = useState("")
@@ -331,6 +340,98 @@ export default function SellItemPage() {
     }
   }
 
+  // Send verification code
+  const sendVerificationCode = async () => {
+    setVerificationError("")
+    setIsVerifyingPhone(true)
+
+    try {
+      // Skip phone verification in development/testing
+      if (process.env.NODE_ENV === "development") {
+        console.log("Skipping phone verification in development mode")
+        setIsVerified(true)
+        setIsVerifyingPhone(false)
+        completeFormSubmission()
+        return
+      }
+
+      const formattedPhoneNumber = phone.startsWith("+") ? phone : `+1${phone}` // Default to US format if no country code
+
+      // Check if auth is available
+      if (!auth) {
+        throw new Error("Firebase auth is not initialized")
+      }
+
+      // Create a new RecaptchaVerifier instance directly
+      const recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "invisible",
+        callback: () => {
+          console.log("reCAPTCHA solved!")
+        },
+        "expired-callback": () => {
+          console.log("reCAPTCHA expired")
+          setVerificationError("reCAPTCHA verification expired. Please try again.")
+          setIsVerifyingPhone(false)
+        },
+      })
+
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhoneNumber, recaptchaVerifier)
+      setConfirmationResult(confirmation)
+
+      toast({
+        title: "Verification code sent",
+        description: `We've sent a code to ${formattedPhoneNumber}`,
+      })
+    } catch (error: any) {
+      console.error("Error during phone authentication:", error)
+      setVerificationError(error.message || "Error sending verification code")
+      setIsVerifyingPhone(false)
+
+      // Show a more user-friendly error message
+      toast({
+        title: "Verification Error",
+        description: "We couldn't send a verification code. Please check your phone number and try again.",
+        variant: "destructive",
+      })
+
+      // For now, in case of error, let's proceed with form submission
+      // This is a fallback for development/testing
+      if (process.env.NODE_ENV !== "production") {
+        setIsVerified(true)
+        completeFormSubmission()
+      }
+    }
+  }
+
+  // Verify the code entered by the user
+  const verifyCode = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      setVerificationError("Please enter a valid 6-digit code")
+      return
+    }
+
+    setVerificationError("")
+    setIsVerifyingPhone(true)
+
+    try {
+      await confirmationResult.confirm(verificationCode)
+      setIsVerified(true)
+      setIsVerifyingPhone(false)
+
+      toast({
+        title: "Phone verified",
+        description: "Your phone number has been successfully verified",
+      })
+
+      // Proceed with form submission after verification
+      completeFormSubmission()
+    } catch (error: any) {
+      console.error("Error verifying code:", error)
+      setVerificationError(error.message || "Invalid verification code")
+      setIsVerifyingPhone(false)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -339,65 +440,97 @@ export default function SellItemPage() {
       setIsSubmitting(true)
 
       try {
-        // Log form data for debugging
-        console.log("Form submission data:", {
-          itemName,
-          itemDescription,
-          itemCondition,
-          itemIssues,
-          fullName,
-          email,
-          phone,
-          address,
-          pickupDate,
-        })
-
-        // Send confirmation email using Resend API
-        const emailResult = await sendConfirmationEmail({
-          fullName,
-          email,
-          itemName,
-          itemCondition,
-          itemDescription,
-          itemIssues,
-          phone,
-          address,
-          pickupDate,
-        })
-
-        console.log("Email result:", emailResult)
-
-        if (!emailResult.success) {
-          toast({
-            title: "Email Notification",
-            description:
-              "Your form was submitted, but there was an issue sending the confirmation email. We'll contact you soon.",
-            variant: "default",
-          })
+        // For development/testing, skip verification
+        if (process.env.NODE_ENV !== "production") {
+          // Simulate verification
+          setIsVerified(true)
+          completeFormSubmission()
+          return
         }
 
-        // In a real implementation, you would send this to your backend
-        // For now, we'll simulate a successful submission
-        setTimeout(() => {
-          setFormSubmitted(true)
-          // Scroll to top after submission is successful
-          setTimeout(scrollToTop, 50)
-          setIsSubmitting(false)
-        }, 1500)
+        // Start phone verification process
+        await sendVerificationCode()
       } catch (error) {
-        console.error("Error submitting form:", error)
-        setSubmitResult({
-          success: false,
-          message: "An unexpected error occurred. Please try again later.",
-        })
+        console.error("Error starting verification:", error)
         setIsSubmitting(false)
 
         toast({
           title: "Error",
-          description: "There was a problem submitting your form. Please try again.",
+          description: "There was a problem starting phone verification. Please try again.",
           variant: "destructive",
         })
+
+        // For development/testing, proceed anyway
+        if (process.env.NODE_ENV !== "production") {
+          setIsVerified(true)
+          completeFormSubmission()
+        }
       }
+    }
+  }
+
+  const completeFormSubmission = async () => {
+    setIsSubmitting(true)
+
+    try {
+      // Log form data for debugging
+      console.log("Form submission data:", {
+        itemName,
+        itemDescription,
+        itemCondition,
+        itemIssues,
+        fullName,
+        email,
+        phone,
+        address,
+        pickupDate,
+      })
+
+      // Send confirmation email using Resend API
+      const emailResult = await sendConfirmationEmail({
+        fullName,
+        email,
+        itemName,
+        itemCondition,
+        itemDescription,
+        itemIssues,
+        phone,
+        address,
+        pickupDate,
+      })
+
+      console.log("Email result:", emailResult)
+
+      if (!emailResult.success) {
+        toast({
+          title: "Email Notification",
+          description:
+            "Your form was submitted, but there was an issue sending the confirmation email. We'll contact you soon.",
+          variant: "default",
+        })
+      }
+
+      // In a real implementation, you would send this to your backend
+      // For now, we'll simulate a successful submission
+      setTimeout(() => {
+        setFormSubmitted(true)
+        // Scroll to top after submission is successful
+        setTimeout(scrollToTop, 50)
+        setIsSubmitting(false)
+      }, 1500)
+    } catch (error) {
+      console.error("Error submitting form:", error)
+      setSubmitResult({
+        success: false,
+        message: "An unexpected error occurred. Please try again later.",
+      })
+      setIsSubmitting(false)
+
+      toast({
+        title: "Error",
+        description: "There was a problem submitting your form. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -480,6 +613,89 @@ export default function SellItemPage() {
             {submitResult && !submitResult.success && (
               <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg shadow-sm">
                 {submitResult.message}
+              </div>
+            )}
+
+            {/* Phone Verification Modal */}
+            {confirmationResult && !isVerified && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 border border-[#e2e8f0] dark:border-gray-700">
+                  <div className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 -m-6 mb-6 p-6 rounded-t-xl">
+                    <div className="flex items-center justify-center mb-2">
+                      <ShieldCheck className="w-8 h-8 text-[#6366f1]" />
+                    </div>
+                    <h3 className="text-xl font-medium text-center">Phone Verification</h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="text-center mb-4">
+                      <p className="text-sm text-muted-foreground">
+                        We've sent a 6-digit code to {phone.startsWith("+") ? phone : `+1${phone}`}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-4">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="Enter 6-digit code"
+                        className="w-full max-w-xs text-center text-lg font-medium"
+                        disabled={isVerifyingPhone}
+                        value={verificationCode}
+                        onChange={(e) => {
+                          // Only allow numbers
+                          if (!/^\d*$/.test(e.target.value)) return
+                          setVerificationCode(e.target.value)
+                        }}
+                      />
+                    </div>
+
+                    {verificationError && (
+                      <div className="flex items-center gap-2 text-red-500 text-sm justify-center mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>{verificationError}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between mt-6">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setConfirmationResult(null)
+                          setIsVerifyingPhone(false)
+                          setVerificationCode("")
+
+                          // For development/testing, proceed anyway
+                          if (process.env.NODE_ENV !== "production") {
+                            setIsVerified(true)
+                            completeFormSubmission()
+                          } else {
+                            setIsSubmitting(false)
+                          }
+                        }}
+                        disabled={isVerifyingPhone}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={verifyCode}
+                        disabled={isVerifyingPhone || verificationCode.length !== 6}
+                      >
+                        {isVerifyingPhone ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Verifying...
+                          </>
+                        ) : (
+                          "Verify Code"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -687,13 +903,7 @@ export default function SellItemPage() {
                         />
                         {formErrors.itemDescription && <ErrorMessage message={formErrors.itemDescription} />}
 
-                        <div className="mt-2 flex justify-end">
-                          <AIDescriptionButton
-                            inputText={itemDescription || itemName}
-                            onDescriptionGenerated={handleAIDescription}
-                            className="bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10 hover:from-[#0ea5e9]/20 hover:via-[#6366f1]/20 hover:to-[#8b5cf6]/20 text-[#6366f1] border-[#6366f1]/30"
-                          />
-                        </div>
+                        <div className="mt-2"></div>
 
                         <div className="mt-2 text-xs text-muted-foreground">
                           <p className="flex items-center gap-1">
@@ -943,13 +1153,7 @@ export default function SellItemPage() {
                         />
                         {formErrors.itemIssues && <ErrorMessage message={formErrors.itemIssues} />}
 
-                        <div className="mt-2 flex justify-end">
-                          <AIDescriptionButton
-                            inputText={`${itemName} in ${itemCondition} condition with the following issues: ${itemIssues}`}
-                            onDescriptionGenerated={(description) => setItemIssues(description)}
-                            className="bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10 hover:from-[#0ea5e9]/20 hover:via-[#6366f1]/20 hover:to-[#8b5cf6]/20 text-[#6366f1] border-[#6366f1]/30"
-                          />
-                        </div>
+                        <div className="mt-2"></div>
                       </div>
 
                       <div className="flex justify-between mt-8">
@@ -1037,18 +1241,27 @@ export default function SellItemPage() {
                               Phone Number <span className="text-red-500">*</span>
                             </span>
                           </Label>
-                          <Input
-                            id="phone"
-                            name="phone"
-                            type="tel"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder="(123) 456-7890"
-                            className={`w-full border ${
-                              formErrors.phone ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
-                            required
-                          />
+                          <div className="relative">
+                            <Input
+                              id="phone"
+                              name="phone"
+                              type="tel"
+                              value={phone}
+                              onChange={(e) => setPhone(e.target.value)}
+                              placeholder="(123) 456-7890"
+                              className={`w-full border ${
+                                formErrors.phone ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
+                              } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 pl-10`}
+                              required
+                            />
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                              <Phone className="w-4 h-4" />
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" />
+                            <span>Your phone will be verified with a code before submission</span>
+                          </p>
                           {formErrors.phone && <ErrorMessage message={formErrors.phone} />}
                         </div>
 
@@ -1199,8 +1412,8 @@ export default function SellItemPage() {
                               </>
                             ) : (
                               <>
-                                <span>Submit</span>
-                                <Check className="w-4 h-4" />
+                                <span>Submit & Verify</span>
+                                <ShieldCheck className="w-4 h-4" />
                               </>
                             )}
                           </span>
@@ -1271,6 +1484,16 @@ export default function SellItemPage() {
           </ContentAnimation>
         )}
       </div>
+
+      {/* Invisible reCAPTCHA container */}
+      <div id="recaptcha-container"></div>
     </div>
   )
+}
+
+// Add this to make TypeScript happy with the global recaptchaVerifier
+declare global {
+  interface Window {
+    recaptchaVerifier: any
+  }
 }

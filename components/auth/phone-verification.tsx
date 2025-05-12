@@ -1,101 +1,80 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { auth, RecaptchaVerifier, signInWithPhoneNumber } from "@/lib/firebase"
+import { useState, useEffect } from "react"
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import "@/lib/firebase" // Make sure firebase is initialized
 
 export function PhoneVerification() {
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [verificationCode, setVerificationCode] = useState("")
+  const [phone, setPhone] = useState("")
+  const [code, setCode] = useState("")
   const [confirmationResult, setConfirmationResult] = useState<any>(null)
-  const [isCodeSent, setIsCodeSent] = useState(false)
+  const [status, setStatus] = useState("")
   const [isVerified, setIsVerified] = useState(false)
-  const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null)
-  const { toast } = useToast()
 
-  // Set up reCAPTCHA for Firebase phone verification
-  const setUpRecaptcha = () => {
-    if (!recaptchaContainerRef.current) return null
-
-    window.recaptchaVerifier = new RecaptchaVerifier(
-      recaptchaContainerRef.current,
-      {
-        size: "invisible",
-        callback: () => {
-          console.log("reCAPTCHA solved!")
+  useEffect(() => {
+    const auth = getAuth()
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(
+        "recaptcha-container",
+        {
+          size: "invisible",
+          callback: (response: any) => {
+            console.log("reCAPTCHA solved!")
+          },
         },
-      },
-      auth,
-    )
+        auth,
+      )
+    }
+  }, [])
 
-    return window.recaptchaVerifier
-  }
-
-  // Send verification code
-  const sendVerificationCode = async () => {
-    setError("")
+  const handleSendCode = async () => {
+    setStatus("")
     setIsLoading(true)
 
-    if (!phoneNumber || phoneNumber.length < 10) {
-      setError("Please enter a valid phone number")
+    if (!phone || phone.length < 10) {
+      setStatus("Please enter a valid phone number")
       setIsLoading(false)
       return
     }
 
     try {
-      const formattedPhoneNumber = phoneNumber.startsWith("+") ? phoneNumber : `+1${phoneNumber}` // Default to US format if no country code
+      const auth = getAuth()
+      const formattedPhoneNumber = phone.startsWith("+") ? phone : `+1${phone}` // Default to US format if no country code
 
-      const recaptchaVerifier = setUpRecaptcha()
-      if (!recaptchaVerifier) {
-        throw new Error("reCAPTCHA initialization failed")
-      }
-
-      const confirmation = await signInWithPhoneNumber(auth, formattedPhoneNumber, recaptchaVerifier)
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhoneNumber, window.recaptchaVerifier)
       setConfirmationResult(confirmation)
-      setIsCodeSent(true)
-
-      toast({
-        title: "Verification code sent",
-        description: `We've sent a code to ${formattedPhoneNumber}`,
-      })
+      setStatus("Code sent. Please enter it below.")
     } catch (error: any) {
       console.error("Error during phone authentication:", error)
-      setError(error.message || "Error sending verification code")
+      setStatus("Failed to send code: " + error.message)
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Verify the code entered by the user
-  const verifyCode = async () => {
-    setError("")
+  const handleVerifyCode = async () => {
+    setStatus("")
     setIsLoading(true)
 
-    if (!verificationCode || verificationCode.length < 6) {
-      setError("Please enter a valid verification code")
+    if (!code || code.length < 6) {
+      setStatus("Please enter a valid verification code")
       setIsLoading(false)
       return
     }
 
     try {
-      await confirmationResult.confirm(verificationCode)
+      await confirmationResult.confirm(code)
       setIsVerified(true)
-
-      toast({
-        title: "Phone verified",
-        description: "Your phone number has been successfully verified",
-      })
+      setStatus("Phone number verified!")
     } catch (error: any) {
       console.error("Error verifying code:", error)
-      setError(error.message || "Invalid verification code")
+      setStatus("Invalid verification code.")
     } finally {
       setIsLoading(false)
     }
@@ -108,10 +87,14 @@ export function PhoneVerification() {
         <CardDescription>Verify your phone number to enhance account security</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+        {status && (
+          <Alert variant={status.includes("Failed") || status.includes("Invalid") ? "destructive" : "default"}>
+            {status.includes("Failed") || status.includes("Invalid") ? (
+              <AlertCircle className="h-4 w-4" />
+            ) : (
+              <CheckCircle className="h-4 w-4" />
+            )}
+            <AlertDescription>{status}</AlertDescription>
           </Alert>
         )}
 
@@ -124,46 +107,46 @@ export function PhoneVerification() {
           </Alert>
         ) : (
           <>
-            {!isCodeSent ? (
-              <div className="space-y-2">
-                <Label htmlFor="phoneNumber">Phone Number</Label>
-                <Input
-                  id="phoneNumber"
-                  type="tel"
-                  placeholder="+1 (555) 123-4567"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  disabled={isLoading}
-                />
-                <p className="text-xs text-muted-foreground">Include country code (e.g., +1 for US)</p>
-              </div>
+            <div className="space-y-2">
+              <Input
+                type="tel"
+                placeholder="+1 (555) 123-4567"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={isLoading || !!confirmationResult}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">Include country code (e.g., +1 for US)</p>
+            </div>
+
+            {!confirmationResult ? (
+              <Button className="w-full" onClick={handleSendCode} disabled={isLoading}>
+                {isLoading ? "Sending..." : "Send Verification Code"}
+              </Button>
             ) : (
-              <div className="space-y-2">
-                <Label htmlFor="verificationCode">Verification Code</Label>
-                <Input
-                  id="verificationCode"
-                  type="text"
-                  placeholder="Enter 6-digit code"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  maxLength={6}
-                  disabled={isLoading}
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Input
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    maxLength={6}
+                    disabled={isLoading}
+                    className="w-full"
+                  />
+                </div>
+                <Button className="w-full" onClick={handleVerifyCode} disabled={isLoading}>
+                  {isLoading ? "Verifying..." : "Verify Code"}
+                </Button>
+              </>
             )}
           </>
         )}
 
         {/* Invisible reCAPTCHA container */}
-        <div ref={recaptchaContainerRef} id="recaptcha-container"></div>
+        <div id="recaptcha-container"></div>
       </CardContent>
-      <CardFooter>
-        {!isVerified && (
-          <Button className="w-full" onClick={isCodeSent ? verifyCode : sendVerificationCode} disabled={isLoading}>
-            {isLoading ? "Processing..." : isCodeSent ? "Verify Code" : "Send Verification Code"}
-          </Button>
-        )}
-      </CardFooter>
     </Card>
   )
 }
