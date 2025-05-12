@@ -23,6 +23,7 @@ import {
   Check,
   X,
   ImageIcon,
+  Wand2,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import { sendConfirmationEmail } from "../actions/send-confirmation-email"
@@ -52,6 +53,11 @@ export default function SellItemPage() {
   const [address, setAddress] = useState("")
   const [pickupDate, setPickupDate] = useState("")
   const [termsAccepted, setTermsAccepted] = useState(false)
+
+  // Smart description states
+  const [nameSuggestion, setNameSuggestion] = useState("")
+  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false)
+  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null)
 
   // Animation states
   const [animatingFiles, setAnimatingFiles] = useState([])
@@ -95,6 +101,53 @@ export default function SellItemPage() {
   const [step1Valid, setStep1Valid] = useState(false)
   const [step2Valid, setStep2Valid] = useState(false)
   const [step3Valid, setStep3Valid] = useState(false)
+
+  // Fetch name suggestion when user types
+  useEffect(() => {
+    if (itemName.trim().length < 3) {
+      setNameSuggestion("")
+      return
+    }
+
+    const timeout = setTimeout(() => {
+      fetchNameSuggestion(itemName)
+    }, 800) // wait for user to stop typing
+
+    return () => clearTimeout(timeout)
+  }, [itemName])
+
+  const fetchNameSuggestion = async (text: string) => {
+    setIsLoadingSuggestion(true)
+    try {
+      const res = await fetch("/api/description-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: text }),
+      })
+      const data = await res.json()
+      if (res.ok && data.suggestion) {
+        setNameSuggestion(data.suggestion)
+      } else {
+        setNameSuggestion("")
+      }
+    } catch (err) {
+      console.error(err)
+      setNameSuggestion("")
+    }
+    setIsLoadingSuggestion(false)
+  }
+
+  const applySuggestion = () => {
+    if (nameSuggestion) {
+      setItemDescription(nameSuggestion)
+      setNameSuggestion("")
+      toast({
+        title: "Suggestion Applied",
+        description: "The enhanced description has been applied.",
+        variant: "default",
+      })
+    }
+  }
 
   const validateStep1 = () => {
     const errors = {}
@@ -588,6 +641,30 @@ export default function SellItemPage() {
                             required
                           />
                           {formErrors.itemName && <ErrorMessage message={formErrors.itemName} />}
+
+                          {/* Smart name suggestion */}
+                          {isLoadingSuggestion && (
+                            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <span>Generating suggestion...</span>
+                            </div>
+                          )}
+
+                          {nameSuggestion && (
+                            <div
+                              onClick={applySuggestion}
+                              className="mt-3 p-3 bg-[#3b82f6]/5 border border-[#3b82f6]/20 rounded-lg cursor-pointer hover:bg-[#3b82f6]/10 transition-colors duration-200"
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <Wand2 className="h-4 w-4 text-[#3b82f6]" />
+                                <span className="text-sm font-medium text-[#3b82f6]">Suggested Description</span>
+                                <span className="text-xs bg-[#3b82f6]/10 text-[#3b82f6] px-2 py-0.5 rounded-full">
+                                  Click to Apply
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{nameSuggestion}</p>
+                            </div>
+                          )}
                         </div>
 
                         <div className="transition-all duration-300">
@@ -646,7 +723,10 @@ export default function SellItemPage() {
                         <div className="mt-2 text-xs text-muted-foreground">
                           <p className="flex items-center gap-1">
                             <Sparkles className="h-3 w-3" />
-                            <span>Click "Enhance with AI" to automatically improve your description with AI.</span>
+                            <span>
+                              Start typing your item name for suggestions or click "Enhance with AI" for a complete
+                              description.
+                            </span>
                           </p>
                         </div>
                       </div>
