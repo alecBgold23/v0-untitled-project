@@ -447,22 +447,27 @@ export default function SellItemPage() {
 
       <div className="container mx-auto py-16 px-4 max-w-5xl">
         <ContentAnimation>
-          {/* Update Header Styling to be skinnier and more professional */}
-          <div className="text-center mb-12 relative">
-            <h1
-              className="font-normal text-4xl md:text-5xl tracking-wider mb-8"
-              style={{
-                fontFamily:
-                  '-apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue", Helvetica, Arial, sans-serif',
-                letterSpacing: "0.02em",
-                textShadow: "0 0 15px rgba(99, 102, 241, 0.2)",
-              }}
-            >
+          {/* Professional Header */}
+          <div className="text-center mb-16 relative">
+            <div className="inline-flex items-center justify-center mb-4">
+              <div className="h-px w-12 bg-gradient-to-r from-[#3b82f6] to-transparent"></div>
+              <span className="mx-4 text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                Sell with confidence
+              </span>
+              <div className="h-px w-12 bg-gradient-to-l from-[#3b82f6] to-transparent"></div>
+            </div>
+
+            <h1 className="font-semibold text-3xl md:text-4xl tracking-tight mb-4">
               <span className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] bg-clip-text text-transparent">
                 Sell Your Item
               </span>
             </h1>
-            <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#0ea5e9]/15 via-[#6366f1]/15 to-[#8b5cf6]/15 blur-3xl rounded-full"></div>
+
+            <p className="text-muted-foreground max-w-md mx-auto text-sm md:text-base">
+              Complete the form below to get an offer for your item within 24 hours.
+            </p>
+
+            <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10 blur-3xl rounded-full opacity-70"></div>
           </div>
         </ContentAnimation>
 
