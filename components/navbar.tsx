@@ -58,38 +58,42 @@ export default function Navbar() {
       }`}
     >
       <div className="container mx-auto px-4">
-        <nav className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <BluberryLogoSVG />
-          </Link>
-
-          {/* Desktop navigation */}
-          <div className="hidden md:flex space-x-1">
-            {mainNavItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`px-3 py-2 text-sm rounded-md transition-colors hover:text-primary ${
-                  pathname === item.href ? "text-primary font-medium" : "text-foreground/80"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-
-            {/* Tools Dropdown */}
-            <Link
-              href="/sell-item"
-              className={`px-3 py-2 text-sm rounded-md transition-colors hover:text-primary ${
-                pathname === "/sell-item" ? "text-primary font-medium" : "text-foreground/80"
-              }`}
-            >
-              Sell Your Item
+        <nav className="flex items-center h-16">
+          {/* Logo - takes up 1/3 of the space */}
+          <div className="flex-1">
+            <Link href="/" className="flex items-center">
+              <BluberryLogoSVG />
             </Link>
           </div>
 
-          <div className="flex items-center space-x-4">
+          {/* Desktop navigation - centered in the middle 1/3 */}
+          <div className="hidden md:flex justify-center flex-1">
+            <div className="flex space-x-1">
+              {mainNavItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-3 py-2 text-sm rounded-md transition-colors hover:text-primary ${
+                    pathname === item.href ? "text-primary font-medium" : "text-foreground/80"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+
+              <Link
+                href="/sell-item"
+                className={`px-3 py-2 text-sm rounded-md transition-colors hover:text-primary ${
+                  pathname === "/sell-item" ? "text-primary font-medium" : "text-foreground/80"
+                }`}
+              >
+                Sell Your Item
+              </Link>
+            </div>
+          </div>
+
+          {/* Right side controls - takes up 1/3 of the space */}
+          <div className="flex-1 flex items-center justify-end space-x-4">
             <button
               className="text-foreground/80 transition-all duration-200 hover:text-primary"
               onClick={toggleSearch}
