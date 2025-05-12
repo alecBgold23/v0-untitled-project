@@ -703,7 +703,7 @@ export default function SellItemPage() {
                           name="description"
                           value={itemDescription}
                           onChange={(e) => setItemDescription(e.target.value)}
-                          placeholder="Please describe your item (brand, size, color, etc.)"
+                          placeholder="Describe your item with specific details similar to the suggested description (brand, model, size, color, features, etc.)"
                           rows={4}
                           className={`w-full border ${
                             formErrors.itemDescription ? "border-red-300" : "border-input"
