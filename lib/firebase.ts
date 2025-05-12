@@ -1,10 +1,8 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps } from "firebase/app"
-import { getAnalytics } from "firebase/analytics"
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app"
+import { getAuth, type Auth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyA_gSO-HeeMRCfa-rKNfojSqhObfNPkQyU",
   authDomain: "bluberry-email-auth.firebaseapp.com",
@@ -16,22 +14,26 @@ const firebaseConfig = {
 }
 
 // Initialize Firebase
-let app
-let analytics
-let auth
+let app: FirebaseApp | undefined
+let auth: Auth | undefined
 
-// Check if we're in the browser and if Firebase hasn't been initialized
-if (typeof window !== "undefined" && !getApps().length) {
-  app = initializeApp(firebaseConfig)
-  auth = getAuth(app)
-  // Only initialize analytics in production
-  if (process.env.NODE_ENV === "production") {
-    analytics = getAnalytics(app)
+// Only initialize Firebase on the client side
+function initializeFirebase() {
+  if (typeof window !== "undefined") {
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig)
+      auth = getAuth(app)
+    } else {
+      app = getApps()[0]
+      auth = getAuth(app)
+    }
   }
-} else {
-  // If Firebase has already been initialized, use the existing instance
-  app = getApps()[0]
-  auth = getAuth(app)
+
+  return { app, auth }
 }
 
-export { app, analytics, auth, RecaptchaVerifier, signInWithPhoneNumber }
+// Initialize Firebase lazily
+const { auth: lazyAuth } = initializeFirebase()
+
+// Export the initialized auth instance and other Firebase functions
+export { lazyAuth as auth, RecaptchaVerifier, signInWithPhoneNumber }

@@ -35,6 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!auth) return () => {}
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user)
       setLoading(false)
@@ -44,42 +46,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signUp = async (email: string, password: string) => {
+    if (!auth) throw new Error("Firebase auth is not initialized")
     await createUserWithEmailAndPassword(auth, email, password)
   }
 
   const signIn = async (email: string, password: string) => {
+    if (!auth) throw new Error("Firebase auth is not initialized")
     await signInWithEmailAndPassword(auth, email, password)
   }
 
   const logout = async () => {
+    if (!auth) throw new Error("Firebase auth is not initialized")
     await signOut(auth)
   }
 
   const resetPassword = async (email: string) => {
+    if (!auth) throw new Error("Firebase auth is not initialized")
     await sendPasswordResetEmail(auth, email)
   }
 
   const updateUserProfile = async (displayName: string) => {
-    if (auth.currentUser) {
-      await updateProfile(auth.currentUser, { displayName })
-      // Force refresh the user state
-      setUser({ ...auth.currentUser })
-    }
+    if (!auth || !auth.currentUser) throw new Error("No user is signed in")
+    await updateProfile(auth.currentUser, { displayName })
+    // Force refresh the user state
+    setUser({ ...auth.currentUser })
   }
 
   const linkPhoneNumber = async (phoneNumber: string, recaptchaVerifier: RecaptchaVerifier) => {
-    if (auth.currentUser) {
-      return linkWithPhoneNumber(auth.currentUser, phoneNumber, recaptchaVerifier)
-    }
-    throw new Error("No user is signed in")
+    if (!auth || !auth.currentUser) throw new Error("No user is signed in")
+    return linkWithPhoneNumber(auth.currentUser, phoneNumber, recaptchaVerifier)
   }
 
   const updateUserPhoneNumber = async (phoneCredential: any) => {
-    if (auth.currentUser) {
-      await updatePhoneNumber(auth.currentUser, phoneCredential)
-      // Force refresh the user state
-      setUser({ ...auth.currentUser })
-    }
+    if (!auth || !auth.currentUser) throw new Error("No user is signed in")
+    await updatePhoneNumber(auth.currentUser, phoneCredential)
+    // Force refresh the user state
+    setUser({ ...auth.currentUser })
   }
 
   const value = {
