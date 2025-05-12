@@ -42,6 +42,7 @@ export default function SellItemPage() {
 
   // Form field states
   const [itemCategory, setItemCategory] = useState("")
+  const [customCategory, setCustomCategory] = useState("")
   const [itemName, setItemName] = useState("")
   const [itemDescription, setItemDescription] = useState("")
   const [itemPhotos, setItemPhotos] = useState([])
@@ -72,12 +73,21 @@ export default function SellItemPage() {
   const section2Ref = useRef(null)
   const section3Ref = useRef(null)
 
+  // Get effective category (either selected or custom)
+  const getEffectiveCategory = () => {
+    if (itemCategory === "other" && customCategory.trim()) {
+      return customCategory.trim()
+    }
+    return itemCategory
+  }
+
   // Validate step 1
   useEffect(() => {
+    const effectiveCategory = getEffectiveCategory()
     setStep1Valid(
-      itemName.trim() !== "" && itemCategory !== "" && itemDescription.trim() !== "" && itemPhotos.length >= 3,
+      itemName.trim() !== "" && effectiveCategory !== "" && itemDescription.trim() !== "" && itemPhotos.length >= 3,
     )
-  }, [itemCategory, itemName, itemDescription, itemPhotos])
+  }, [itemCategory, customCategory, itemName, itemDescription, itemPhotos])
 
   // Validate step 2
   useEffect(() => {
@@ -154,9 +164,16 @@ export default function SellItemPage() {
     if (!itemName.trim()) {
       errors.itemName = "Item name is required"
     }
-    if (!itemCategory) {
-      errors.itemCategory = "Please select a category"
+
+    const effectiveCategory = getEffectiveCategory()
+    if (!effectiveCategory) {
+      if (itemCategory === "other" && !customCategory.trim()) {
+        errors.customCategory = "Please specify a category"
+      } else {
+        errors.itemCategory = "Please select a category"
+      }
     }
+
     if (!itemDescription.trim()) {
       errors.itemDescription = "Item description is required"
     }
@@ -345,9 +362,12 @@ export default function SellItemPage() {
       setIsSubmitting(true)
 
       try {
+        // Get effective category for submission
+        const effectiveCategory = getEffectiveCategory()
+
         // Log form data for debugging
         console.log("Form submission data:", {
-          itemCategory,
+          itemCategory: effectiveCategory,
           itemName,
           itemDescription,
           itemCondition,
@@ -364,7 +384,7 @@ export default function SellItemPage() {
           fullName,
           email,
           itemName,
-          itemCategory,
+          itemCategory: effectiveCategory,
           itemCondition,
           itemDescription,
           itemIssues,
@@ -671,7 +691,17 @@ export default function SellItemPage() {
                           <Label htmlFor="item-category" className="text-sm font-medium mb-2 block">
                             Item Category <span className="text-red-500">*</span>
                           </Label>
-                          <Select value={itemCategory} onValueChange={setItemCategory} name="category" required>
+                          <Select
+                            value={itemCategory}
+                            onValueChange={(value) => {
+                              setItemCategory(value)
+                              if (value !== "other") {
+                                setCustomCategory("")
+                              }
+                            }}
+                            name="category"
+                            required
+                          >
                             <SelectTrigger
                               id="item-category"
                               className={`w-full border ${
@@ -680,14 +710,48 @@ export default function SellItemPage() {
                             >
                               <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
-                            <SelectContent className="bg-popover border border-border rounded-lg shadow-md">
+                            <SelectContent className="bg-popover border border-border rounded-lg shadow-md max-h-[300px]">
                               <SelectItem value="electronics">Electronics</SelectItem>
+                              <SelectItem value="computers">Computers & Accessories</SelectItem>
+                              <SelectItem value="phones">Phones & Tablets</SelectItem>
                               <SelectItem value="furniture">Furniture</SelectItem>
+                              <SelectItem value="home-appliances">Home Appliances</SelectItem>
+                              <SelectItem value="kitchen">Kitchen & Dining</SelectItem>
                               <SelectItem value="clothing">Clothing</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
+                              <SelectItem value="shoes">Shoes & Accessories</SelectItem>
+                              <SelectItem value="jewelry">Jewelry & Watches</SelectItem>
+                              <SelectItem value="toys">Toys & Games</SelectItem>
+                              <SelectItem value="books">Books & Media</SelectItem>
+                              <SelectItem value="sports">Sports & Outdoors</SelectItem>
+                              <SelectItem value="tools">Tools & Home Improvement</SelectItem>
+                              <SelectItem value="automotive">Automotive</SelectItem>
+                              <SelectItem value="musical">Musical Instruments</SelectItem>
+                              <SelectItem value="collectibles">Collectibles & Art</SelectItem>
+                              <SelectItem value="health">Health & Beauty</SelectItem>
+                              <SelectItem value="baby">Baby & Kids</SelectItem>
+                              <SelectItem value="pet">Pet Supplies</SelectItem>
+                              <SelectItem value="garden">Garden & Outdoor</SelectItem>
+                              <SelectItem value="other">Other (specify)</SelectItem>
                             </SelectContent>
                           </Select>
                           {formErrors.itemCategory && <ErrorMessage message={formErrors.itemCategory} />}
+
+                          {/* Custom category input field */}
+                          {itemCategory === "other" && (
+                            <div className="mt-2">
+                              <Input
+                                id="custom-category"
+                                name="custom-category"
+                                value={customCategory}
+                                onChange={(e) => setCustomCategory(e.target.value)}
+                                placeholder="Please specify category"
+                                className={`w-full border ${
+                                  formErrors.customCategory ? "border-red-300" : "border-input"
+                                } rounded-lg focus-visible:ring-[#3b82f6] bg-background shadow-sm transition-all duration-200`}
+                              />
+                              {formErrors.customCategory && <ErrorMessage message={formErrors.customCategory} />}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -714,7 +778,7 @@ export default function SellItemPage() {
 
                         <div className="mt-2 flex justify-end">
                           <AIDescriptionButton
-                            inputText={itemDescription || `${itemName} ${itemCategory}`}
+                            inputText={itemDescription || `${itemName} ${getEffectiveCategory()}`}
                             onDescriptionGenerated={handleAIDescription}
                             className="bg-gradient-to-r from-[#3b82f6]/10 to-[#4f46e5]/10 hover:from-[#3b82f6]/20 hover:to-[#4f46e5]/20 text-[#3b82f6] border-[#3b82f6]/30"
                           />
@@ -1102,7 +1166,7 @@ export default function SellItemPage() {
                               </p>
                               <p className="text-sm text-muted-foreground mt-1">
                                 <span className="font-medium text-foreground">Category:</span>{" "}
-                                {itemCategory.charAt(0).toUpperCase() + itemCategory.slice(1)}
+                                {getEffectiveCategory().charAt(0).toUpperCase() + getEffectiveCategory().slice(1)}
                               </p>
                               <p className="text-sm text-muted-foreground mt-1">
                                 <span className="font-medium text-foreground">Condition:</span>{" "}
