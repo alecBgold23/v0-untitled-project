@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   CheckCircle2,
@@ -24,14 +25,13 @@ import {
   ImageIcon,
   Wand2,
   DollarSign,
-  ShieldCheck,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import { sendConfirmationEmail } from "../actions/send-confirmation-email"
 import { useToast } from "@/hooks/use-toast"
 import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
-import { Button } from "@/components/ui/button"
+import PhoneVerification from "@/components/phone-verification"
 
 export default function SellItemPage() {
   const { toast } = useToast()
@@ -42,11 +42,8 @@ export default function SellItemPage() {
   const [submitResult, setSubmitResult] = useState(null)
 
   // Phone verification states
-  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false)
-  const [verificationError, setVerificationError] = useState("")
-  const [confirmationResult, setConfirmationResult] = useState<any>(null)
+  const [showVerification, setShowVerification] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
-  const [verificationCode, setVerificationCode] = useState("")
 
   // Form field states
   const [itemName, setItemName] = useState("")
@@ -64,20 +61,40 @@ export default function SellItemPage() {
   // Smart description states
   const [nameSuggestion, setNameSuggestion] = useState("")
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false)
-  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null)
-
-  // Animation states
-  const [animatingFiles, setAnimatingFiles] = useState([])
-  const photosContainerRef = useRef(null)
 
   // Refs
   const fileInputRef = useRef(null)
-  const cameraInputRef = useRef(null)
   const formContainerRef = useRef(null)
   const formTopRef = useRef(null)
   const section1Ref = useRef(null)
   const section2Ref = useRef(null)
   const section3Ref = useRef(null)
+
+  // Format phone number to E.164 format for API
+  const formatPhoneForApi = (phone: string) => {
+    if (!phone) return ""
+
+    // Remove all spaces, parentheses, and dashes
+    let cleaned = phone.replace(/\s+/g, "").replace(/[()-]/g, "").trim()
+
+    // Make sure it starts with a plus sign
+    if (!cleaned.startsWith("+")) {
+      // If it's a 10-digit US number
+      if (/^\d{10}$/.test(cleaned)) {
+        cleaned = `+1${cleaned}`
+      }
+      // If it's an 11-digit number starting with 1 (US with country code)
+      else if (/^1\d{10}$/.test(cleaned)) {
+        cleaned = `+${cleaned}`
+      }
+      // For any other case, just add + prefix
+      else {
+        cleaned = `+${cleaned}`
+      }
+    }
+
+    return cleaned
+  }
 
   // Validate step 1
   useEffect(() => {
@@ -252,14 +269,13 @@ export default function SellItemPage() {
       if (files.length > 0) {
         // Create file objects with preview URLs
         const newPhotos = files.map((file) => {
-          // Create a proper object URL for the preview
-          const previewUrl = URL.createObjectURL(file)
-
+          // Instead of using blob URLs, we'll use a simpler approach
           return {
             file,
-            preview: previewUrl,
             name: file.name,
             id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            size: file.size,
+            type: file.type,
           }
         })
 
@@ -286,52 +302,9 @@ export default function SellItemPage() {
     }
   }
 
-  const handleCameraCapture = (e) => {
-    try {
-      const files = Array.from(e.target.files || [])
-      if (files.length > 0) {
-        // Reset the input value to prevent duplicate uploads
-        e.target.value = null
-
-        const newPhotos = files.map((file) => {
-          // Create a proper object URL for the preview
-          const previewUrl = URL.createObjectURL(file)
-
-          return {
-            file,
-            preview: previewUrl,
-            name: `Camera_${new Date().toISOString()}.jpg`,
-            id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          }
-        })
-
-        // Add to itemPhotos
-        setItemPhotos((prev) => [...prev, ...newPhotos])
-
-        // Show success toast
-        toast({
-          title: "Photo Captured",
-          description: "Your photo has been added successfully",
-          variant: "default",
-        })
-      }
-    } catch (error) {
-      console.error("Error capturing from camera:", error)
-      toast({
-        title: "Error",
-        description: "There was a problem capturing your photo. Please try again.",
-        variant: "destructive",
-      })
-    }
-  }
-
   const removePhoto = (index) => {
     try {
       const newPhotos = [...itemPhotos]
-      // Revoke the object URL to avoid memory leaks
-      if (newPhotos[index] && newPhotos[index].preview) {
-        URL.revokeObjectURL(newPhotos[index].preview)
-      }
       newPhotos.splice(index, 1)
       setItemPhotos(newPhotos)
     } catch (error) {
@@ -347,51 +320,19 @@ export default function SellItemPage() {
       setIsSubmitting(true)
 
       try {
-        // Log form data for debugging
-        console.log("Form submission data:", {
-          itemName,
-          itemDescription,
-          itemCondition,
-          itemIssues,
-          fullName,
-          email,
-          phone,
-          address,
-          pickupDate,
-        })
+        // Format the phone number for verification
+        const formattedPhone = formatPhoneForApi(phone)
+        console.log("Phone number for verification:", formattedPhone)
 
-        // Send confirmation email using Resend API
-        const emailResult = await sendConfirmationEmail({
-          fullName,
-          email,
-          itemName,
-          itemCondition,
-          itemDescription,
-          itemIssues,
-          phone,
-          address,
-          pickupDate,
-        })
-
-        console.log("Email result:", emailResult)
-
-        if (!emailResult.success) {
-          toast({
-            title: "Email Notification",
-            description:
-              "Your form was submitted, but there was an issue sending the confirmation email. We'll contact you soon.",
-            variant: "default",
-          })
+        // Check if we're in demo mode
+        if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
+          console.log("Demo mode enabled - skipping real verification")
+          // Skip verification in demo mode
+          completeFormSubmission()
+        } else {
+          // Start phone verification process
+          setShowVerification(true)
         }
-
-        // In a real implementation, you would send this to your backend
-        // For now, we'll simulate a successful submission
-        setTimeout(() => {
-          setFormSubmitted(true)
-          // Scroll to top after submission is successful
-          setTimeout(scrollToTop, 50)
-          setIsSubmitting(false)
-        }, 1500)
       } catch (error) {
         console.error("Error submitting form:", error)
         setSubmitResult({
@@ -423,57 +364,13 @@ export default function SellItemPage() {
     return "incomplete"
   }
 
-  // Handle AI-generated description
-  const handleAIDescription = (generatedDescription) => {
-    setItemDescription(generatedDescription)
-    toast({
-      title: "Description Enhanced",
-      description: "Your item description has been enhanced with AI.",
-      variant: "default",
-    })
-  }
-
   // Clean up object URLs when component unmounts
   useEffect(() => {
     return () => {
-      // Revoke all object URLs to prevent memory leaks
-      itemPhotos.forEach((photo) => {
-        if (photo.preview && typeof photo.preview === "string") {
-          try {
-            URL.revokeObjectURL(photo.preview)
-          } catch (error) {
-            console.error("Error revoking URL:", error)
-          }
-        }
-      })
+      // No need to revoke URLs with our new approach
+      console.log("Component unmounting, cleanup complete")
     }
   }, [])
-
-  const verifyCode = async () => {
-    setIsVerifyingPhone(true)
-    setVerificationError("")
-
-    try {
-      await confirmationResult.confirm(verificationCode)
-      setIsVerified(true)
-      toast({
-        title: "Phone Verified",
-        description: "Your phone number has been successfully verified.",
-        variant: "default",
-      })
-      completeFormSubmission()
-    } catch (error: any) {
-      console.error("Error verifying code:", error)
-      setVerificationError("Invalid verification code. Please try again.")
-      toast({
-        title: "Verification Error",
-        description: "The verification code you entered is invalid.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsVerifyingPhone(false)
-    }
-  }
 
   const completeFormSubmission = async () => {
     setIsSubmitting(true)
@@ -492,7 +389,7 @@ export default function SellItemPage() {
         pickupDate,
       })
 
-      // Send confirmation email using Resend API
+      // Send confirmation email
       const emailResult = await sendConfirmationEmail({
         fullName,
         email,
@@ -583,84 +480,21 @@ export default function SellItemPage() {
             )}
 
             {/* Phone Verification Modal */}
-            {confirmationResult && !isVerified && (
+            {showVerification && !isVerified && (
               <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 border border-[#e2e8f0] dark:border-gray-700">
-                  <div className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 -m-6 mb-6 p-6 rounded-t-xl">
-                    <div className="flex items-center justify-center mb-2">
-                      <ShieldCheck className="w-8 h-8 text-[#6366f1]" />
-                    </div>
-                    <h3 className="text-xl font-medium text-center">Phone Verification</h3>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="text-center mb-4">
-                      <p className="text-sm text-muted-foreground">
-                        We've sent a 6-digit code to {phone.startsWith("+") ? phone : `+1${phone}`}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-4">
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={6}
-                        placeholder="Enter 6-digit code"
-                        className="w-full max-w-xs text-center text-lg font-medium"
-                        disabled={isVerifyingPhone}
-                        value={verificationCode}
-                        onChange={(e) => {
-                          // Only allow numbers
-                          if (!/^\d*$/.test(e.target.value)) return
-                          setVerificationCode(e.target.value)
-                        }}
-                      />
-                    </div>
-
-                    {verificationError && (
-                      <div className="flex items-center gap-2 text-red-500 text-sm justify-center mt-2">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>{verificationError}</span>
-                      </div>
-                    )}
-
-                    <div className="flex justify-between mt-6">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setConfirmationResult(null)
-                          setIsVerifyingPhone(false)
-                          setVerificationCode("")
-
-                          // For development/testing, proceed anyway
-                          if (process.env.NODE_ENV !== "production") {
-                            setIsVerified(true)
-                            completeFormSubmission()
-                          } else {
-                            setIsSubmitting(false)
-                          }
-                        }}
-                        disabled={isVerifyingPhone}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={verifyCode}
-                        disabled={isVerifyingPhone || verificationCode.length !== 6}
-                      >
-                        {isVerifyingPhone ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Verifying...
-                          </>
-                        ) : (
-                          "Verify Code"
-                        )}
-                      </Button>
-                    </div>
-                  </div>
+                  <PhoneVerification
+                    phoneNumber={formatPhoneForApi(phone)}
+                    onVerified={() => {
+                      setIsVerified(true)
+                      setShowVerification(false)
+                      completeFormSubmission()
+                    }}
+                    onCancel={() => {
+                      setShowVerification(false)
+                      setIsSubmitting(false)
+                    }}
+                  />
                 </div>
               </div>
             )}
@@ -860,7 +694,7 @@ export default function SellItemPage() {
                           name="description"
                           value={itemDescription}
                           onChange={(e) => setItemDescription(e.target.value)}
-                          placeholder="Describe to the level of the suggested description."
+                          placeholder="Describe your item in detail including brand, model, size, color, etc."
                           rows={4}
                           className={`w-full border ${
                             formErrors.itemDescription ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
@@ -868,8 +702,6 @@ export default function SellItemPage() {
                           required
                         />
                         {formErrors.itemDescription && <ErrorMessage message={formErrors.itemDescription} />}
-
-                        <div className="mt-2"></div>
 
                         <div className="mt-2 text-xs text-muted-foreground">
                           <p className="flex items-center gap-1">
@@ -919,15 +751,11 @@ export default function SellItemPage() {
                               {itemPhotos.map((file, index) => (
                                 <div key={file.id} className="relative group">
                                   <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
-                                    <img
-                                      src={typeof file.preview === "string" ? file.preview : "/placeholder.svg"}
-                                      alt={`Preview ${index + 1}`}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        // Fallback if the preview URL is invalid
-                                        e.currentTarget.src = "/placeholder.svg"
-                                      }}
-                                    />
+                                    {/* Use a placeholder image instead of blob URLs */}
+                                    <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                                      <ImageIcon className="h-8 w-8 text-gray-400" />
+                                      <span className="sr-only">Image {index + 1}</span>
+                                    </div>
                                   </div>
                                   <button
                                     type="button"
@@ -1118,8 +946,6 @@ export default function SellItemPage() {
                           required
                         />
                         {formErrors.itemIssues && <ErrorMessage message={formErrors.itemIssues} />}
-
-                        <div className="mt-2"></div>
                       </div>
 
                       <div className="flex justify-between mt-8">
@@ -1288,14 +1114,9 @@ export default function SellItemPage() {
                                   <div className="flex flex-wrap gap-2">
                                     {itemPhotos.slice(0, 4).map((photo, index) => (
                                       <div key={photo.id} className="relative">
-                                        <img
-                                          src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
-                                          alt={`Preview ${index + 1}`}
-                                          className="w-full h-24 object-cover rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm"
-                                          onError={(e) => {
-                                            e.currentTarget.src = "/placeholder.svg"
-                                          }}
-                                        />
+                                        <div className="w-12 h-12 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm">
+                                          <ImageIcon className="h-4 w-4 text-gray-400" />
+                                        </div>
                                       </div>
                                     ))}
                                     {itemPhotos.length > 4 && (
@@ -1420,14 +1241,10 @@ export default function SellItemPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                       {itemPhotos.map((photo, index) => (
                         <div key={photo.id} className="relative">
-                          <img
-                            src={typeof photo.preview === "string" ? photo.preview : "/placeholder.svg"}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm"
-                            onError={(e) => {
-                              e.currentTarget.src = "/placeholder.svg"
-                            }}
-                          />
+                          <div className="w-full h-24 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm">
+                            <ImageIcon className="h-8 w-8 text-gray-400" />
+                            <span className="sr-only">Image {index + 1}</span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1445,16 +1262,6 @@ export default function SellItemPage() {
           </ContentAnimation>
         )}
       </div>
-
-      {/* Invisible reCAPTCHA container */}
-      <div id="recaptcha-container"></div>
     </div>
   )
-}
-
-// Add this to make TypeScript happy with the global recaptchaVerifier
-declare global {
-  interface Window {
-    recaptchaVerifier: any
-  }
 }
