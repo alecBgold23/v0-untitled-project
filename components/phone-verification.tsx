@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import type React from "react"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, Loader2, AlertCircle, Shield, RefreshCw } from "lucide-react"
+import { CheckCircle, Loader2, AlertCircle, Shield, RefreshCw, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Progress } from "@/components/ui/progress"
 
@@ -25,6 +26,8 @@ export default function PhoneVerification({ phoneNumber, onVerified, onCancel }:
   const [timeLeft, setTimeLeft] = useState(60)
   const [resendDisabled, setResendDisabled] = useState(true)
   const [progress, setProgress] = useState(100)
+  const [codeInputs, setCodeInputs] = useState(["", "", "", "", "", ""])
+  const [focusedInput, setFocusedInput] = useState<number | null>(null)
 
   // Format phone number for display
   const formatPhoneForDisplay = (phone: string) => {
@@ -50,7 +53,7 @@ export default function PhoneVerification({ phoneNumber, onVerified, onCancel }:
   const displayPhone = formatPhoneForDisplay(phoneNumber)
 
   // Timer for resend code
-  useState(() => {
+  useEffect(() => {
     if (!codeSent) return
 
     const timer = setInterval(() => {
@@ -70,7 +73,7 @@ export default function PhoneVerification({ phoneNumber, onVerified, onCancel }:
     }, 1000)
 
     return () => clearInterval(timer)
-  })
+  }, [codeSent, timeLeft])
 
   // Send verification code
   const sendVerificationCode = async () => {
@@ -122,9 +125,53 @@ export default function PhoneVerification({ phoneNumber, onVerified, onCancel }:
     }
   }
 
+  // Handle input change for code inputs
+  const handleCodeInputChange = (index: number, value: string) => {
+    // Only allow numbers
+    if (!/^\d*$/.test(value)) return
+
+    const newCodeInputs = [...codeInputs]
+    newCodeInputs[index] = value
+    setCodeInputs(newCodeInputs)
+
+    // Auto-focus next input if this one is filled
+    if (value && index < 5) {
+      setFocusedInput(index + 1)
+    }
+
+    // Combine all inputs for the verification code
+    setCode(newCodeInputs.join(""))
+
+    // Clear error when typing
+    if (error) setError("")
+  }
+
+  // Handle backspace in code inputs
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (!codeInputs[index] && index > 0) {
+        // If current input is empty and backspace is pressed, focus previous input
+        setFocusedInput(index - 1)
+      }
+    }
+  }
+
+  // Focus the input when focusedInput changes
+  useEffect(() => {
+    if (focusedInput !== null) {
+      const inputElement = document.getElementById(`code-input-${focusedInput}`)
+      if (inputElement) {
+        inputElement.focus()
+      }
+    }
+  }, [focusedInput])
+
   // Verify code
   const verifyCode = async () => {
-    if (!code || code.length !== 6) {
+    // Combine code inputs
+    const combinedCode = codeInputs.join("")
+
+    if (combinedCode.length !== 6) {
       setError("Please enter a valid 6-digit code")
       return
     }
@@ -140,7 +187,7 @@ export default function PhoneVerification({ phoneNumber, onVerified, onCancel }:
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ phoneNumber, code }),
+        body: JSON.stringify({ phoneNumber, code: combinedCode }),
       })
 
       const data = await response.json()
@@ -174,22 +221,25 @@ export default function PhoneVerification({ phoneNumber, onVerified, onCancel }:
       })
 
       // Clear the code input
-      setCode("")
+      setCodeInputs(["", "", "", "", "", ""])
+      // Focus on the first input
+      setFocusedInput(0)
     } finally {
       setIsLoading(false)
     }
   }
 
   // Send code automatically when component mounts
-  useState(() => {
+  useEffect(() => {
     if (!codeSent && phoneNumber) {
       sendVerificationCode()
     }
-  })
+  }, [])
 
   // Demo mode for testing without Twilio
   const handleDemoVerification = () => {
-    if (code === "123456") {
+    const combinedCode = codeInputs.join("")
+    if (combinedCode === "123456") {
       setIsVerified(true)
       toast({
         title: "Demo mode: Phone verified",
@@ -205,27 +255,30 @@ export default function PhoneVerification({ phoneNumber, onVerified, onCancel }:
 
   if (isVerified) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Phone Verified</CardTitle>
-          <CardDescription>Your phone number has been verified!</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="bg-gradient-to-r from-[#0ea5e9]/5 via-[#6366f1]/5 to-[#8b5cf6]/5 rounded-xl overflow-hidden border border-[#e2e8f0] dark:border-gray-700">
+        <div className="p-6 border-b border-[#e2e8f0] dark:border-gray-700 bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-medium text-gray-800 dark:text-gray-100">Phone Verified</h2>
+          </div>
+          <p className="text-muted-foreground text-sm mt-1">Your phone number has been verified!</p>
+        </div>
+        <div className="p-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur-[2px]">
           <div className="flex flex-col items-center justify-center py-6">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-500" />
+            <div className="w-16 h-16 bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="h-8 w-8 text-[#6366f1]" />
             </div>
-            <p className="text-center text-muted-foreground">
+            <p className="text-center text-muted-foreground mb-6">
               Thank you for verifying your phone number. You can now continue.
             </p>
+            <Button
+              onClick={onVerified}
+              className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+            >
+              Continue
+            </Button>
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button className="w-full" onClick={onVerified}>
-            Continue
-          </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     )
   }
 
@@ -233,38 +286,48 @@ export default function PhoneVerification({ phoneNumber, onVerified, onCancel }:
   const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true"
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Phone Verification</CardTitle>
-        <CardDescription>
+    <div className="bg-gradient-to-r from-[#0ea5e9]/5 via-[#6366f1]/5 to-[#8b5cf6]/5 rounded-xl overflow-hidden border border-[#e2e8f0] dark:border-gray-700">
+      <div className="p-6 border-b border-[#e2e8f0] dark:border-gray-700 bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-medium text-gray-800 dark:text-gray-100">Phone Verification</h2>
+          <button
+            onClick={onCancel}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <p className="text-muted-foreground text-sm mt-1">
           {codeSent
             ? `We've sent a verification code to ${displayPhone}`
             : "We'll send a verification code to your phone"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        </p>
+      </div>
+      <div className="p-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur-[2px]">
         <div className="space-y-6">
           <div className="flex flex-col space-y-4">
             <div className="flex justify-center items-center mb-2">
-              <Shield className="h-5 w-5 text-primary mr-2" />
+              <Shield className="h-5 w-5 text-[#6366f1] mr-2" />
               <span className="text-sm font-medium">Enter verification code</span>
             </div>
 
-            <Input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              value={code}
-              onChange={(e) => {
-                // Only allow numbers
-                if (!/^\d*$/.test(e.target.value)) return
-                setCode(e.target.value)
-                // Clear error when typing
-                if (error) setError("")
-              }}
-              placeholder="6-digit code"
-              className="text-center text-lg font-medium"
-            />
+            <div className="flex justify-center gap-2">
+              {codeInputs.map((digit, index) => (
+                <Input
+                  key={index}
+                  id={`code-input-${index}`}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleCodeInputChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  onFocus={() => setFocusedInput(index)}
+                  className="w-10 h-12 text-center text-lg font-medium p-0 border-[#e2e8f0] dark:border-gray-700 focus-visible:ring-[#6366f1] focus-visible:border-[#6366f1] bg-white dark:bg-gray-900"
+                />
+              ))}
+            </div>
 
             {error && (
               <div className="flex items-center justify-center text-red-500 text-sm mt-2">
@@ -287,10 +350,11 @@ export default function PhoneVerification({ phoneNumber, onVerified, onCancel }:
                   ) : (
                     <button
                       onClick={() => {
-                        setCode("")
+                        setCodeInputs(["", "", "", "", "", ""])
+                        setFocusedInput(0)
                         sendVerificationCode()
                       }}
-                      className="text-primary hover:text-primary/80 flex items-center"
+                      className="text-[#6366f1] hover:text-[#4f46e5] flex items-center"
                       disabled={isSending}
                     >
                       <RefreshCw className="h-3 w-3 mr-1" />
@@ -299,13 +363,23 @@ export default function PhoneVerification({ phoneNumber, onVerified, onCancel }:
                   )}
                 </div>
 
-                {resendDisabled && <Progress value={progress} className="h-1 w-full" />}
+                {resendDisabled && (
+                  <Progress
+                    value={progress}
+                    className="h-1 w-full bg-gray-200 dark:bg-gray-700"
+                    indicatorClassName="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6]"
+                  />
+                )}
               </div>
             )}
           </div>
 
           {!codeSent && (
-            <Button className="w-full" onClick={sendVerificationCode} disabled={isSending}>
+            <Button
+              className="w-full bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white shadow-md hover:shadow-lg transition-all duration-300"
+              onClick={sendVerificationCode}
+              disabled={isSending}
+            >
               {isSending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -317,22 +391,32 @@ export default function PhoneVerification({ phoneNumber, onVerified, onCancel }:
             </Button>
           )}
         </div>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={onCancel} disabled={isLoading}>
-          Cancel
-        </Button>
-        <Button onClick={isDemoMode ? handleDemoVerification : verifyCode} disabled={isLoading || code.length !== 6}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Verifying...
-            </>
-          ) : (
-            "Verify"
-          )}
-        </Button>
-      </CardFooter>
-    </Card>
+
+        <div className="flex justify-between mt-8">
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            disabled={isLoading}
+            className="border-[#e2e8f0] dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground shadow-sm hover:bg-muted/50 transition-all duration-300"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={isDemoMode ? handleDemoVerification : verifyCode}
+            disabled={isLoading || codeInputs.some((input) => !input)}
+            className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white shadow-md hover:shadow-lg transition-all duration-300"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Verifying...
+              </>
+            ) : (
+              "Verify"
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
   )
 }

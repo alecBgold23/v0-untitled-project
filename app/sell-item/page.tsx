@@ -269,13 +269,16 @@ export default function SellItemPage() {
       if (files.length > 0) {
         // Create file objects with preview URLs
         const newPhotos = files.map((file) => {
-          // Instead of using blob URLs, we'll use a simpler approach
+          // Create a safe URL for preview
+          const previewUrl = URL.createObjectURL(file)
+
           return {
             file,
             name: file.name,
             id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             size: file.size,
             type: file.type,
+            previewUrl, // Store the preview URL
           }
         })
 
@@ -367,10 +370,14 @@ export default function SellItemPage() {
   // Clean up object URLs when component unmounts
   useEffect(() => {
     return () => {
-      // No need to revoke URLs with our new approach
-      console.log("Component unmounting, cleanup complete")
+      // Revoke all created object URLs to prevent memory leaks
+      itemPhotos.forEach((photo) => {
+        if (photo.previewUrl) {
+          URL.revokeObjectURL(photo.previewUrl)
+        }
+      })
     }
-  }, [])
+  }, [itemPhotos])
 
   const completeFormSubmission = async () => {
     setIsSubmitting(true)
@@ -751,11 +758,30 @@ export default function SellItemPage() {
                               {itemPhotos.map((file, index) => (
                                 <div key={file.id} className="relative group">
                                   <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
-                                    {/* Use a placeholder image instead of blob URLs */}
-                                    <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                                      <ImageIcon className="h-8 w-8 text-gray-400" />
-                                      <span className="sr-only">Image {index + 1}</span>
-                                    </div>
+                                    {file.previewUrl ? (
+                                      <img
+                                        src={file.previewUrl || "/placeholder.svg"}
+                                        alt={`Preview ${index + 1}`}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          // Fallback to icon if image fails to load
+                                          e.currentTarget.style.display = "none"
+                                          e.currentTarget.parentElement.innerHTML = `
+                    <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-gray-400">
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
+                        <circle cx="9" cy="9" r="2"></circle>
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                      </svg>
+                    </div>
+                  `
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                                        <ImageIcon className="h-8 w-8 text-gray-400" />
+                                      </div>
+                                    )}
                                   </div>
                                   <button
                                     type="button"
@@ -1114,8 +1140,30 @@ export default function SellItemPage() {
                                   <div className="flex flex-wrap gap-2">
                                     {itemPhotos.slice(0, 4).map((photo, index) => (
                                       <div key={photo.id} className="relative">
-                                        <div className="w-12 h-12 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm">
-                                          <ImageIcon className="h-4 w-4 text-gray-400" />
+                                        <div className="w-12 h-12 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
+                                          {photo.previewUrl ? (
+                                            <img
+                                              src={photo.previewUrl || "/placeholder.svg"}
+                                              alt={`Preview ${index + 1}`}
+                                              className="w-full h-full object-cover"
+                                              onError={(e) => {
+                                                e.currentTarget.style.display = "none"
+                                                e.currentTarget.parentElement.innerHTML = `
+                    <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-4 w-4 text-gray-400">
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
+                        <circle cx="9" cy="9" r="2"></circle>
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                      </svg>
+                    </div>
+                  `
+                                              }}
+                                            />
+                                          ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                                              <ImageIcon className="h-4 w-4 text-gray-400" />
+                                            </div>
+                                          )}
                                         </div>
                                       </div>
                                     ))}
@@ -1241,9 +1289,30 @@ export default function SellItemPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                       {itemPhotos.map((photo, index) => (
                         <div key={photo.id} className="relative">
-                          <div className="w-full h-24 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm">
-                            <ImageIcon className="h-8 w-8 text-gray-400" />
-                            <span className="sr-only">Image {index + 1}</span>
+                          <div className="w-full h-24 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
+                            {photo.previewUrl ? (
+                              <img
+                                src={photo.previewUrl || "/placeholder.svg"}
+                                alt={`Submitted image ${index + 1}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none"
+                                  e.currentTarget.parentElement.innerHTML = `
+                    <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-gray-400">
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
+                        <circle cx="9" cy="9" r="2"></circle>
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                      </svg>
+                    </div>
+                  `
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                                <ImageIcon className="h-8 w-8 text-gray-400" />
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
