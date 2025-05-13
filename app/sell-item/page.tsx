@@ -493,6 +493,18 @@ export default function SellItemPage() {
             </p>
 
             <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10 blur-3xl rounded-full opacity-70"></div>
+            <div className="mt-4 flex justify-center">
+              <Link href="/sell-multiple-items">
+                <Button
+                  variant="outline"
+                  className="group border-[#6366f1] text-[#6366f1] hover:bg-[#6366f1] hover:text-white transition-all duration-300"
+                >
+                  <Package className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                  Need to sell multiple items? Click here
+                  <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </ContentAnimation>
 
