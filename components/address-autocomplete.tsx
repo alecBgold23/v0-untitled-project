@@ -26,162 +26,169 @@ export default function AddressAutocomplete({
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const observerRef = useRef<MutationObserver | null>(null)
   const { theme } = useTheme()
 
-  // Apply custom styles to Google Places Autocomplete dropdown
-  useEffect(() => {
-    // Add custom styles for the Google Places Autocomplete dropdown
-    const style = document.createElement("style")
-    style.textContent = `
-      /* Base styles for the dropdown */
-      .pac-container {
-        border-radius: 0.375rem;
-        border: 1px solid hsl(var(--border));
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        font-family: var(--font-poppins), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        z-index: 9999 !important;
-        width: 240px !important;
-        max-height: 300px;
-        overflow-y: auto;
-        /* Remove default positioning - will be set by JavaScript */
-        position: absolute !important;
-        margin-top: 2px !important;
+  // Function to position the dropdown
+  const positionDropdown = () => {
+    if (!inputRef.current) return
+
+    const pacContainers = document.querySelectorAll(".pac-container")
+    if (pacContainers.length === 0) return
+
+    const rect = inputRef.current.getBoundingClientRect()
+
+    pacContainers.forEach((container) => {
+      const containerEl = container as HTMLElement
+
+      // Calculate right-aligned position
+      const rightAlignedLeft = rect.right - containerEl.offsetWidth
+      const safeLeft = Math.max(10, rightAlignedLeft)
+
+      // Position below the input but aligned to the right
+      containerEl.style.left = `${safeLeft}px`
+      containerEl.style.top = `${rect.bottom + window.scrollY}px`
+
+      // Apply dark mode
+      if (theme === "dark") {
+        containerEl.style.backgroundColor = "#1e1e1e"
+        containerEl.style.color = "#ffffff"
+        containerEl.style.borderColor = "#333333"
+      } else {
+        containerEl.style.backgroundColor = "#ffffff"
+        containerEl.style.color = "#000000"
+        containerEl.style.borderColor = "#e5e7eb"
       }
-      
+
+      // Ensure other styles
+      containerEl.style.width = "240px"
+      containerEl.style.maxHeight = "300px"
+      containerEl.style.overflowY = "auto"
+      containerEl.style.borderRadius = "0.375rem"
+      containerEl.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.1)"
+      containerEl.style.zIndex = "9999"
+    })
+  }
+
+  // Set up the observer to watch for dropdown changes
+  useEffect(() => {
+    // Disconnect any existing observer
+    if (observerRef.current) {
+      observerRef.current.disconnect()
+    }
+
+    // Create a new observer
+    observerRef.current = new MutationObserver((mutations) => {
+      // Check if any mutations involve the pac-container
+      const shouldReposition = mutations.some((mutation) => {
+        // Check added nodes
+        if (mutation.addedNodes.length > 0) {
+          return Array.from(mutation.addedNodes).some(
+            (node) => node.nodeName === "DIV" && (node as HTMLElement).classList?.contains("pac-container"),
+          )
+        }
+
+        // Check if the mutation target is a pac-container or contains one
+        if (mutation.target.nodeName === "DIV") {
+          return (
+            (mutation.target as HTMLElement).classList?.contains("pac-container") ||
+            (mutation.target as HTMLElement).querySelector(".pac-container")
+          )
+        }
+
+        return false
+      })
+
+      if (shouldReposition) {
+        positionDropdown()
+      }
+    })
+
+    // Start observing the document body
+    observerRef.current.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true,
+    })
+
+    // Clean up on unmount
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+      }
+    }
+  }, [theme])
+
+  // Handle window events
+  useEffect(() => {
+    const handleResize = () => positionDropdown()
+    const handleScroll = () => positionDropdown()
+
+    window.addEventListener("resize", handleResize)
+    window.addEventListener("scroll", handleScroll)
+
+    return () => {
+      window.removeEventListener("resize", handleResize)
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [])
+
+  // Apply custom styles to Google Places Autocomplete dropdown items
+  useEffect(() => {
+    const styleId = "address-autocomplete-item-styles"
+
+    // Remove existing style
+    const existingStyle = document.getElementById(styleId)
+    if (existingStyle) {
+      existingStyle.remove()
+    }
+
+    // Create new style for dropdown items only (not positioning)
+    const style = document.createElement("style")
+    style.id = styleId
+    style.textContent = `
       .pac-item {
-        padding: 4px 8px;
-        cursor: pointer;
-        font-size: 0.75rem;
-        border-top: 1px solid hsl(var(--border));
-        line-height: 1.2;
+        padding: 8px !important;
+        cursor: pointer !important;
+        font-size: 0.875rem !important;
+        border-top: 1px solid ${theme === "dark" ? "#333333" : "#e5e7eb"} !important;
+        line-height: 1.5 !important;
       }
       
       .pac-item:first-child {
-        border-top: none;
+        border-top: none !important;
       }
       
       .pac-item:hover {
-        background-color: rgba(59, 130, 246, 0.05);
+        background-color: ${theme === "dark" ? "#2d2d2d" : "#f3f4f6"} !important;
       }
       
       .pac-item-query {
-        font-size: 0.75rem;
-        padding-right: 3px;
+        font-size: 0.875rem !important;
+        padding-right: 3px !important;
+        color: ${theme === "dark" ? "#ffffff" : "#000000"} !important;
       }
       
       .pac-icon {
-        display: none;
+        display: none !important;
       }
       
       .pac-item-selected, .pac-item-selected:hover {
-        background-color: rgba(59, 130, 246, 0.1);
+        background-color: ${theme === "dark" ? "#3b3b3b" : "#e5e7eb"} !important;
       }
       
       .pac-matched {
-        font-weight: 600;
-      }
-      
-      .pac-logo:after {
-        margin-right: 5px;
-        margin-bottom: 3px;
-        height: 14px;
-        padding-right: 3px;
-        background-size: 50px 14px;
-      }
-      
-      /* Dark mode styles */
-      .dark .pac-container {
-        background-color: hsl(var(--background));
-        border-color: hsl(var(--border));
-      }
-      
-      .dark .pac-item {
-        border-color: hsl(var(--border));
-        color: hsl(var(--foreground));
-      }
-      
-      .dark .pac-item:hover {
-        background-color: hsl(var(--accent));
-      }
-      
-      .dark .pac-item-query {
-        color: hsl(var(--foreground));
-      }
-      
-      .dark .pac-matched {
-        color: hsl(var(--primary));
+        font-weight: 600 !important;
+        color: ${theme === "dark" ? "#60a5fa" : "#2563eb"} !important;
       }
     `
     document.head.appendChild(style)
 
     return () => {
-      document.head.removeChild(style)
-    }
-  }, [])
-
-  // Function to position the dropdown
-  const positionDropdown = () => {
-    const pacContainers = document.querySelectorAll(".pac-container")
-    if (!inputRef.current || pacContainers.length === 0) return
-
-    const inputRect = inputRef.current.getBoundingClientRect()
-
-    pacContainers.forEach((container) => {
-      // Apply theme
-      if (theme === "dark") {
-        container.classList.add("dark")
-      } else {
-        container.classList.remove("dark")
+      if (document.getElementById(styleId)) {
+        document.getElementById(styleId)?.remove()
       }
-
-      // Position the dropdown
-      const containerEl = container as HTMLElement
-
-      // Calculate the right-aligned position
-      // This positions the dropdown so its right edge aligns with the input's right edge
-      const rightAlignedLeft = inputRect.right - 240 // 240px is the dropdown width
-
-      // Make sure it doesn't go off-screen to the left
-      const safeLeft = Math.max(10, rightAlignedLeft)
-
-      // Position below the input but aligned to the right
-      containerEl.style.left = `${safeLeft}px`
-      containerEl.style.top = `${inputRect.bottom + window.scrollY}px`
-    })
-  }
-
-  // Reposition dropdown when it appears
-  useEffect(() => {
-    // Create a mutation observer to watch for the dropdown being added to the DOM
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
-          // Check if any of the added nodes is a .pac-container
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeName === "DIV" && (node as HTMLElement).classList.contains("pac-container")) {
-              positionDropdown()
-            }
-          })
-        }
-      })
-    })
-
-    // Start observing the document body for added nodes
-    observer.observe(document.body, {
-      childList: true,
-      subtree: false,
-    })
-
-    // Also reposition on window resize
-    window.addEventListener("resize", positionDropdown)
-
-    // And on scroll
-    window.addEventListener("scroll", positionDropdown)
-
-    return () => {
-      observer.disconnect()
-      window.removeEventListener("resize", positionDropdown)
-      window.removeEventListener("scroll", positionDropdown)
     }
   }, [theme])
 
@@ -202,16 +209,24 @@ export default function AddressAutocomplete({
         }
       })
 
-      // When the dropdown opens, position it correctly
-      inputRef.current.addEventListener("focus", () => {
-        // Small delay to ensure the dropdown has been created
-        setTimeout(positionDropdown, 300)
-      })
+      // Set up input event listeners
+      if (inputRef.current) {
+        // When the input gets focus
+        inputRef.current.addEventListener("focus", positionDropdown)
 
-      // Also position on input
-      inputRef.current.addEventListener("input", () => {
-        setTimeout(positionDropdown, 300)
-      })
+        // When the user types
+        inputRef.current.addEventListener("input", () => {
+          // Use setTimeout to ensure the dropdown has updated
+          setTimeout(positionDropdown, 10)
+          setTimeout(positionDropdown, 100)
+          setTimeout(positionDropdown, 300)
+        })
+
+        // When the user presses a key
+        inputRef.current.addEventListener("keydown", () => {
+          setTimeout(positionDropdown, 10)
+        })
+      }
     } catch (error) {
       console.error("Error initializing Google Maps Places Autocomplete:", error)
     }
