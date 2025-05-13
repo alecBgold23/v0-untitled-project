@@ -96,19 +96,20 @@ export default function SellItemPage() {
     return cleaned
   }
 
-  // Validate step 1
+  // Validate step 1 (combined item details and condition)
   useEffect(() => {
-    setStep1Valid(itemName.trim() !== "" && itemDescription.trim() !== "" && itemPhotos.length >= 3)
-  }, [itemName, itemDescription, itemPhotos])
+    setStep1Valid(
+      itemName.trim() !== "" &&
+        itemDescription.trim() !== "" &&
+        itemPhotos.length >= 3 &&
+        itemCondition !== "" &&
+        itemIssues.trim() !== "",
+    )
+  }, [itemName, itemDescription, itemPhotos, itemCondition, itemIssues])
 
-  // Validate step 2
+  // Validate step 2 (contact info)
   useEffect(() => {
-    setStep2Valid(itemCondition !== "" && itemIssues.trim() !== "")
-  }, [itemCondition, itemIssues])
-
-  // Validate step 3
-  useEffect(() => {
-    setStep3Valid(
+    setStep2Valid(
       fullName.trim() !== "" &&
         email.trim() !== "" &&
         email.includes("@") &&
@@ -182,12 +183,6 @@ export default function SellItemPage() {
     if (itemPhotos.length < 3) {
       errors.itemPhotos = "Please upload at least 3 photos"
     }
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  const validateStep2 = () => {
-    const errors = {}
     if (!itemCondition) {
       errors.itemCondition = "Please select the item condition"
     }
@@ -198,7 +193,7 @@ export default function SellItemPage() {
     return Object.keys(errors).length === 0
   }
 
-  const validateStep3 = () => {
+  const validateStep2 = () => {
     const errors = {}
     if (!fullName.trim()) {
       errors.fullName = "Full name is required"
@@ -245,18 +240,6 @@ export default function SellItemPage() {
 
     if (validateStep1()) {
       setFormStep(2)
-      setFormErrors({})
-      // Scroll to the top of the page after changing step
-      setTimeout(scrollToTop, 50) // Small timeout to ensure state has updated
-    }
-  }
-
-  const handleContinueStep2 = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    if (validateStep2()) {
-      setFormStep(3)
       setFormErrors({})
       // Scroll to the top of the page after changing step
       setTimeout(scrollToTop, 50) // Small timeout to ensure state has updated
@@ -324,7 +307,7 @@ export default function SellItemPage() {
     e.preventDefault()
     e.stopPropagation()
 
-    if (validateStep3()) {
+    if (validateStep2()) {
       setIsSubmitting(true)
 
       try {
@@ -470,7 +453,7 @@ export default function SellItemPage() {
       {/* Add a ref at the top of the form for scrolling */}
       <div ref={formTopRef} className="scroll-target"></div>
 
-      <div className="container mx-auto py-16 px-4 max-w-5xl">
+      <div className="container mx-auto py-16 px-4 max-w-3xl">
         <ContentAnimation>
           {/* Professional Header */}
           <div className="text-center mb-12 relative">
@@ -488,23 +471,11 @@ export default function SellItemPage() {
               </span>
             </h1>
 
-            <p className="text-muted-foreground max-w-md mx-auto text-sm md:text-base">
+            <p className="text-muted-foreground max-w-md mx-auto text-sm md:text-base mb-2">
               Complete the form below to get an offer for your item within 24 hours.
             </p>
 
             <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10 blur-3xl rounded-full opacity-70"></div>
-            <div className="mt-4 flex justify-center">
-              <Link href="/sell-multiple-items">
-                <Button
-                  variant="outline"
-                  className="group border-[#6366f1] text-[#6366f1] hover:bg-[#6366f1] hover:text-white transition-all duration-300"
-                >
-                  <Package className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
-                  Need to sell multiple items? Click here
-                  <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-                </Button>
-              </Link>
-            </div>
           </div>
         </ContentAnimation>
 
@@ -536,21 +507,21 @@ export default function SellItemPage() {
               </div>
             )}
 
-            {/* Elegant Progress Steps */}
+            {/* Progress Steps */}
             <ContentAnimation delay={0.2}>
-              <div className="mb-12 relative">
+              <div className="mb-8 relative">
                 <div className="hidden md:flex justify-between items-center relative z-10 px-8">
                   {/* Progress line */}
                   <div className="absolute top-1/2 left-0 w-full h-0.5 bg-muted -translate-y-1/2"></div>
                   <div
                     className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] -translate-y-1/2 transition-all duration-500"
-                    style={{ width: formStep === 1 ? "0%" : formStep === 2 ? "50%" : "100%" }}
+                    style={{ width: formStep === 1 ? "0%" : "100%" }}
                   ></div>
 
                   {/* Step 1 */}
                   <div className="flex flex-col items-center relative bg-[#f8fafc] dark:bg-gray-900 px-4">
                     <div
-                      className={`w-14 h-14 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
+                      className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
                         getStepStatus(1) === "complete"
                           ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
                           : getStepStatus(1) === "current"
@@ -559,9 +530,9 @@ export default function SellItemPage() {
                       }`}
                     >
                       {getStepStatus(1) === "complete" ? (
-                        <Check className="w-6 h-6" />
+                        <Check className="w-5 h-5" />
                       ) : (
-                        <Package className="w-6 h-6" />
+                        <Package className="w-5 h-5" />
                       )}
                     </div>
                     <span
@@ -580,7 +551,7 @@ export default function SellItemPage() {
                   {/* Step 2 */}
                   <div className="flex flex-col items-center relative bg-[#f8fafc] dark:bg-gray-900 px-4">
                     <div
-                      className={`w-14 h-14 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
+                      className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
                         getStepStatus(2) === "complete"
                           ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
                           : getStepStatus(2) === "current"
@@ -588,11 +559,7 @@ export default function SellItemPage() {
                             : "bg-white dark:bg-gray-800 border border-muted text-muted-foreground"
                       }`}
                     >
-                      {getStepStatus(2) === "complete" ? (
-                        <Check className="w-6 h-6" />
-                      ) : (
-                        <Sparkles className="w-6 h-6" />
-                      )}
+                      <User className="w-5 h-5" />
                     </div>
                     <span
                       className={`text-sm font-medium mt-2 ${
@@ -603,49 +570,22 @@ export default function SellItemPage() {
                             : "text-muted-foreground"
                       }`}
                     >
-                      Condition
-                    </span>
-                  </div>
-
-                  {/* Step 3 */}
-                  <div className="flex flex-col items-center relative bg-[#f8fafc] dark:bg-gray-900 px-4">
-                    <div
-                      className={`w-14 h-14 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
-                        getStepStatus(3) === "complete"
-                          ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
-                          : getStepStatus(3) === "current"
-                            ? "bg-white dark:bg-gray-800 border-2 border-[#6366f1] text-[#6366f1]"
-                            : "bg-white dark:bg-gray-800 border border-muted text-muted-foreground"
-                      }`}
-                    >
-                      <User className="w-6 h-6" />
-                    </div>
-                    <span
-                      className={`text-sm font-medium mt-2 ${
-                        getStepStatus(3) === "current"
-                          ? "text-[#6366f1]"
-                          : getStepStatus(3) === "complete"
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                      }`}
-                    >
                       Contact Info
                     </span>
                   </div>
                 </div>
 
                 {/* Mobile progress indicator */}
-                <div className="flex md:hidden justify-between items-center mb-6">
+                <div className="flex md:hidden justify-between items-center mb-4">
                   <div className="text-lg font-medium">
-                    Step {formStep} of 3:{" "}
-                    {formStep === 1 ? "Item Details" : formStep === 2 ? "Condition" : "Contact Info"}
+                    Step {formStep} of 2: {formStep === 1 ? "Item Details" : "Contact Info"}
                   </div>
-                  <div className="text-sm text-muted-foreground">{Math.round((formStep / 3) * 100)}% Complete</div>
+                  <div className="text-sm text-muted-foreground">{Math.round((formStep / 2) * 100)}% Complete</div>
                 </div>
-                <div className="h-1 w-full bg-muted rounded-full overflow-hidden mb-8 md:hidden">
+                <div className="h-1 w-full bg-muted rounded-full overflow-hidden mb-6 md:hidden">
                   <div
                     className="h-full bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] transition-all duration-500"
-                    style={{ width: `${(formStep / 3) * 100}%` }}
+                    style={{ width: `${(formStep / 2) * 100}%` }}
                   ></div>
                 </div>
               </div>
@@ -657,26 +597,25 @@ export default function SellItemPage() {
                 className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 rounded-xl shadow-lg border border-[#e2e8f0] dark:border-gray-700 overflow-hidden transition-all duration-300"
               >
                 {/* Form header */}
-                <div className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 p-6 border-b border-[#e2e8f0] dark:border-gray-700">
+                <div className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center">
+                  <div className="mb-2">
+                    <Link href="/sell-multiple-items" className="text-[#6366f1] hover:underline text-sm">
+                      Need to sell multiple items? Click here
+                    </Link>
+                  </div>
                   <h2 className="text-xl font-medium tracking-tight text-gray-800 dark:text-gray-100">
-                    {formStep === 1
-                      ? "Tell us about your item"
-                      : formStep === 2
-                        ? "Describe the condition"
-                        : "Your contact information"}
+                    {formStep === 1 ? "Item Details & Condition" : "Your contact information"}
                   </h2>
                   <p className="text-muted-foreground text-sm mt-1">
                     {formStep === 1
-                      ? "Provide basic details about what you're selling"
-                      : formStep === 2
-                        ? "Help us understand the current state of your item"
-                        : "Let us know how to reach you and arrange pickup"}
+                      ? "Provide details about what you're selling and its condition"
+                      : "Let us know how to reach you and arrange pickup"}
                   </p>
                 </div>
 
-                <div className="p-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur-[2px]">
+                <div className="p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-[2px]">
                   {formStep === 1 && (
-                    <div className="space-y-8" id="section1" ref={section1Ref}>
+                    <div className="space-y-6" id="section1" ref={section1Ref}>
                       <div className="transition-all duration-300">
                         <Label htmlFor="item-name" className="text-sm font-medium mb-2 block">
                           Item Name <span className="text-red-500">*</span>
@@ -732,23 +671,154 @@ export default function SellItemPage() {
                           value={itemDescription}
                           onChange={(e) => setItemDescription(e.target.value)}
                           placeholder="Describe your item in detail including brand, model, size, color, etc."
-                          rows={4}
+                          rows={3}
                           className={`w-full border ${
                             formErrors.itemDescription ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
                           } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
                           required
                         />
                         {formErrors.itemDescription && <ErrorMessage message={formErrors.itemDescription} />}
+                      </div>
 
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          <p className="flex items-center gap-1">
-                            <Sparkles className="h-3 w-3" />
-                            <span>
-                              Start typing your item name for suggestions or click "Enhance with AI" for a complete
-                              description.
-                            </span>
-                          </p>
+                      <div className="transition-all duration-300">
+                        <Label className="text-sm font-medium mb-2 block">
+                          Item Condition <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="grid grid-cols-5 gap-1">
+                          {/* Clickable condition options */}
+                          <div
+                            className={`flex flex-col items-center p-2 rounded-lg border ${
+                              itemCondition === "like-new"
+                                ? "border-[#6366f1] bg-[#6366f1]/5"
+                                : "border-[#e2e8f0] dark:border-gray-700"
+                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
+                            onClick={() => setItemCondition("like-new")}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                                itemCondition === "like-new"
+                                  ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              <Sparkles className="w-4 h-4" />
+                            </div>
+                            <Label htmlFor="like-new" className="text-xs font-medium cursor-pointer text-center">
+                              Like New
+                            </Label>
+                          </div>
+
+                          <div
+                            className={`flex flex-col items-center p-2 rounded-lg border ${
+                              itemCondition === "excellent"
+                                ? "border-[#6366f1] bg-[#6366f1]/5"
+                                : "border-[#e2e8f0] dark:border-gray-700"
+                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
+                            onClick={() => setItemCondition("excellent")}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                                itemCondition === "excellent"
+                                  ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                            </div>
+                            <Label htmlFor="excellent" className="text-xs font-medium cursor-pointer text-center">
+                              Excellent
+                            </Label>
+                          </div>
+
+                          <div
+                            className={`flex flex-col items-center p-2 rounded-lg border ${
+                              itemCondition === "good"
+                                ? "border-[#6366f1] bg-[#6366f1]/5"
+                                : "border-[#e2e8f0] dark:border-gray-700"
+                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
+                            onClick={() => setItemCondition("good")}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                                itemCondition === "good"
+                                  ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              <Check className="w-4 h-4" />
+                            </div>
+                            <Label htmlFor="good" className="text-xs font-medium cursor-pointer text-center">
+                              Good
+                            </Label>
+                          </div>
+
+                          <div
+                            className={`flex flex-col items-center p-2 rounded-lg border ${
+                              itemCondition === "fair"
+                                ? "border-[#6366f1] bg-[#6366f1]/5"
+                                : "border-[#e2e8f0] dark:border-gray-700"
+                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
+                            onClick={() => setItemCondition("fair")}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                                itemCondition === "fair"
+                                  ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              <Info className="w-4 h-4" />
+                            </div>
+                            <Label htmlFor="fair" className="text-xs font-medium cursor-pointer text-center">
+                              Fair
+                            </Label>
+                          </div>
+
+                          <div
+                            className={`flex flex-col items-center p-2 rounded-lg border ${
+                              itemCondition === "poor"
+                                ? "border-[#6366f1] bg-[#6366f1]/5"
+                                : "border-[#e2e8f0] dark:border-gray-700"
+                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
+                            onClick={() => setItemCondition("poor")}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                                itemCondition === "poor"
+                                  ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              <AlertCircle className="w-4 h-4" />
+                            </div>
+                            <Label htmlFor="poor" className="text-xs font-medium cursor-pointer text-center">
+                              Poor
+                            </Label>
+                          </div>
                         </div>
+                        {formErrors.itemCondition && <ErrorMessage message={formErrors.itemCondition} />}
+                      </div>
+
+                      <div className="transition-all duration-300">
+                        <div className="flex justify-between items-center mb-2">
+                          <Label htmlFor="item-issues" className="text-sm font-medium">
+                            Any issues or defects? <span className="text-red-500">*</span>
+                          </Label>
+                          <div className="text-xs text-muted-foreground">{itemIssues.length} characters</div>
+                        </div>
+                        <Textarea
+                          id="item-issues"
+                          name="issues"
+                          value={itemIssues}
+                          onChange={(e) => setItemIssues(e.target.value)}
+                          placeholder="Please describe any scratches, dents, missing parts, or functional issues. If none, please write 'None'."
+                          rows={3}
+                          className={`w-full border ${
+                            formErrors.itemIssues ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
+                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          required
+                        />
+                        {formErrors.itemIssues && <ErrorMessage message={formErrors.itemIssues} />}
                       </div>
 
                       <div className="transition-all duration-300">
@@ -760,10 +830,10 @@ export default function SellItemPage() {
                         {/* Simple file upload component */}
                         <div
                           onClick={() => fileInputRef.current?.click()}
-                          className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors duration-200 border-[#6366f1]/40 hover:border-[#6366f1] bg-[#f8fafc] dark:bg-gray-900 hover:bg-[#6366f1]/5 shadow-sm"
+                          className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors duration-200 border-[#6366f1]/40 hover:border-[#6366f1] bg-[#f8fafc] dark:bg-gray-900 hover:bg-[#6366f1]/5 shadow-sm"
                         >
                           <div className="flex flex-col items-center justify-center gap-2">
-                            <ImageIcon className="w-8 h-8 text-[#6366f1]/70" />
+                            <ImageIcon className="w-6 h-6 text-[#6366f1]/70" />
                             <p className="font-medium text-sm text-[#6366f1]">Click to Upload Images</p>
                             <p className="text-xs text-muted-foreground mt-1">
                               {itemPhotos.length} of 3 required (max 10)
@@ -787,7 +857,7 @@ export default function SellItemPage() {
                             <div className="flex flex-wrap gap-3">
                               {itemPhotos.map((file, index) => (
                                 <div key={file.id} className="relative group">
-                                  <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
+                                  <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
                                     {file.previewUrl ? (
                                       <img
                                         src={file.previewUrl || "/placeholder.svg"}
@@ -797,14 +867,14 @@ export default function SellItemPage() {
                                           console.error(`Error loading image ${index}:`, e)
                                           e.currentTarget.style.display = "none"
                                           e.currentTarget.parentElement.innerHTML = `
-                    <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-gray-400">
-                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                        <circle cx="9" cy="9" r="2"></circle>
-                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
-                      </svg>
-                    </div>
-                  `
+                          <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-gray-400">
+                              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
+                              <circle cx="9" cy="9" r="2"></circle>
+                              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                            </svg>
+                          </div>
+                        `
                                         }}
                                       />
                                     ) : (
@@ -842,12 +912,12 @@ export default function SellItemPage() {
                         </div>
                       </div>
 
-                      <div className="flex justify-end mt-8">
+                      <div className="flex justify-end mt-6">
                         <button
                           type="button"
                           onClick={handleContinueStep1}
                           disabled={!step1Valid}
-                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium"
+                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium"
                         >
                           <span>Continue</span>
                           <ChevronRight className="w-4 h-4" />
@@ -857,278 +927,96 @@ export default function SellItemPage() {
                   )}
 
                   {formStep === 2 && (
-                    <div className="space-y-8" id="section2" ref={section2Ref}>
+                    <div className="space-y-6" id="section3" ref={section3Ref}>
                       <div className="transition-all duration-300">
-                        <Label className="text-sm font-medium mb-4 block">
-                          Item Condition <span className="text-red-500">*</span>
+                        <Label htmlFor="full-name" className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span>
+                            Full Name <span className="text-red-500">*</span>
+                          </span>
                         </Label>
-                        <div className="grid md:grid-cols-5 gap-4">
-                          {/* Clickable condition options */}
-                          <div
-                            className={`flex flex-col items-center p-4 rounded-lg border ${
-                              itemCondition === "like-new"
-                                ? "border-[#6366f1] bg-[#6366f1]/5"
-                                : "border-[#e2e8f0] dark:border-gray-700"
-                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
-                            onClick={() => setItemCondition("like-new")}
-                          >
-                            <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
-                                itemCondition === "like-new"
-                                  ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              <Sparkles className="w-5 h-5" />
-                            </div>
-                            <Label htmlFor="like-new" className="font-medium cursor-pointer text-center">
-                              Like New
-                            </Label>
-                            <p className="text-xs text-muted-foreground text-center mt-1">Appears new</p>
-                          </div>
-
-                          <div
-                            className={`flex flex-col items-center p-4 rounded-lg border ${
-                              itemCondition === "excellent"
-                                ? "border-[#6366f1] bg-[#6366f1]/5"
-                                : "border-[#e2e8f0] dark:border-gray-700"
-                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
-                            onClick={() => setItemCondition("excellent")}
-                          >
-                            <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
-                                itemCondition === "excellent"
-                                  ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              <CheckCircle2 className="w-5 h-5" />
-                            </div>
-                            <Label htmlFor="excellent" className="font-medium cursor-pointer text-center">
-                              Excellent
-                            </Label>
-                            <p className="text-xs text-muted-foreground text-center mt-1">Minimal wear</p>
-                          </div>
-
-                          <div
-                            className={`flex flex-col items-center p-4 rounded-lg border ${
-                              itemCondition === "good"
-                                ? "border-[#6366f1] bg-[#6366f1]/5"
-                                : "border-[#e2e8f0] dark:border-gray-700"
-                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
-                            onClick={() => setItemCondition("good")}
-                          >
-                            <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
-                                itemCondition === "good"
-                                  ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              <Check className="w-5 h-5" />
-                            </div>
-                            <Label htmlFor="good" className="font-medium cursor-pointer text-center">
-                              Good
-                            </Label>
-                            <p className="text-xs text-muted-foreground text-center mt-1">Some wear</p>
-                          </div>
-
-                          <div
-                            className={`flex flex-col items-center p-4 rounded-lg border ${
-                              itemCondition === "fair"
-                                ? "border-[#6366f1] bg-[#6366f1]/5"
-                                : "border-[#e2e8f0] dark:border-gray-700"
-                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
-                            onClick={() => setItemCondition("fair")}
-                          >
-                            <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
-                                itemCondition === "fair"
-                                  ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              <Info className="w-5 h-5" />
-                            </div>
-                            <Label htmlFor="fair" className="font-medium cursor-pointer text-center">
-                              Fair
-                            </Label>
-                            <p className="text-xs text-muted-foreground text-center mt-1">Visible wear</p>
-                          </div>
-
-                          <div
-                            className={`flex flex-col items-center p-4 rounded-lg border ${
-                              itemCondition === "poor"
-                                ? "border-[#6366f1] bg-[#6366f1]/5"
-                                : "border-[#e2e8f0] dark:border-gray-700"
-                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
-                            onClick={() => setItemCondition("poor")}
-                          >
-                            <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
-                                itemCondition === "poor"
-                                  ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              <AlertCircle className="w-5 h-5" />
-                            </div>
-                            <Label htmlFor="poor" className="font-medium cursor-pointer text-center">
-                              Poor
-                            </Label>
-                            <p className="text-xs text-muted-foreground text-center mt-1">Needs repair</p>
-                          </div>
-                        </div>
-                        {formErrors.itemCondition && <ErrorMessage message={formErrors.itemCondition} />}
-                      </div>
-
-                      <div className="transition-all duration-300">
-                        <div className="flex justify-between items-center mb-2">
-                          <Label htmlFor="item-issues" className="text-sm font-medium">
-                            Any issues or defects? <span className="text-red-500">*</span>
-                          </Label>
-                          <div className="text-xs text-muted-foreground">{itemIssues.length} characters</div>
-                        </div>
-                        <Textarea
-                          id="item-issues"
-                          name="issues"
-                          value={itemIssues}
-                          onChange={(e) => setItemIssues(e.target.value)}
-                          placeholder="Please describe any scratches, dents, missing parts, or functional issues. If none, please write 'None'."
-                          rows={4}
+                        <Input
+                          id="full-name"
+                          name="name"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder="Your full name"
                           className={`w-full border ${
-                            formErrors.itemIssues ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
+                            formErrors.fullName ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
                           } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
                           required
                         />
-                        {formErrors.itemIssues && <ErrorMessage message={formErrors.itemIssues} />}
+                        {formErrors.fullName && <ErrorMessage message={formErrors.fullName} />}
                       </div>
 
-                      <div className="flex justify-between mt-8">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            scrollToTop()
-                            // Change form step after scroll animation starts
-                            setTimeout(() => {
-                              setFormStep(1)
-                            }, 100)
-                          }}
-                          className="px-6 py-3 rounded-lg border border-[#e2e8f0] dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground shadow-sm hover:bg-muted/50 transition-all duration-300 flex items-center gap-2 font-medium"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                          <span>Back</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleContinueStep2}
-                          disabled={!step2Valid}
-                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium"
-                        >
-                          <span>Continue</span>
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
+                      <div className="transition-all duration-300">
+                        <Label htmlFor="email" className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <span>
+                            Email Address <span className="text-red-500">*</span>
+                          </span>
+                        </Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="your.email@example.com"
+                          className={`w-full border ${
+                            formErrors.email ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
+                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          required
+                        />
+                        {formErrors.email && <ErrorMessage message={formErrors.email} />}
                       </div>
-                    </div>
-                  )}
 
-                  {formStep === 3 && (
-                    <div className="space-y-8" id="section3" ref={section3Ref}>
-                      <div className="grid md:grid-cols-2 gap-8">
-                        <div className="transition-all duration-300">
-                          <Label htmlFor="full-name" className="text-sm font-medium mb-2 flex items-center gap-2">
-                            <User className="w-4 h-4 text-muted-foreground" />
-                            <span>
-                              Full Name <span className="text-red-500">*</span>
-                            </span>
-                          </Label>
+                      <div className="transition-all duration-300">
+                        <Label htmlFor="phone" className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <span>
+                            Phone Number <span className="text-red-500">*</span>
+                          </span>
+                        </Label>
+                        <div className="relative">
                           <Input
-                            id="full-name"
-                            name="name"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            placeholder="Your full name"
+                            id="phone"
+                            name="phone"
+                            type="tel"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="(123) 456-7890"
                             className={`w-full border ${
-                              formErrors.fullName ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                              formErrors.phone ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
+                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 pl-10`}
                             required
                           />
-                          {formErrors.fullName && <ErrorMessage message={formErrors.fullName} />}
-                        </div>
-
-                        <div className="transition-all duration-300">
-                          <Label htmlFor="email" className="text-sm font-medium mb-2 flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-muted-foreground" />
-                            <span>
-                              Email Address <span className="text-red-500">*</span>
-                            </span>
-                          </Label>
-                          <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="your.email@example.com"
-                            className={`w-full border ${
-                              formErrors.email ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
-                            required
-                          />
-                          {formErrors.email && <ErrorMessage message={formErrors.email} />}
-                        </div>
-                      </div>
-
-                      <div className="grid md:grid-cols-2 gap-8">
-                        <div className="transition-all duration-300">
-                          <Label htmlFor="phone" className="text-sm font-medium mb-2 flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-muted-foreground" />
-                            <span>
-                              Phone Number <span className="text-red-500">*</span>
-                            </span>
-                          </Label>
-                          <div className="relative">
-                            <Input
-                              id="phone"
-                              name="phone"
-                              type="tel"
-                              value={phone}
-                              onChange={(e) => setPhone(e.target.value)}
-                              placeholder="(123) 456-7890"
-                              className={`w-full border ${
-                                formErrors.phone ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                              } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 pl-10`}
-                              required
-                            />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                              <Phone className="w-4 h-4" />
-                            </div>
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            <Phone className="w-4 h-4" />
                           </div>
-                          {formErrors.phone && <ErrorMessage message={formErrors.phone} />}
                         </div>
+                        {formErrors.phone && <ErrorMessage message={formErrors.phone} />}
+                      </div>
 
-                        <div className="transition-all duration-300">
-                          <Label htmlFor="pickup_date" className="text-sm font-medium mb-2 flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <span>
-                              Preferred Pickup Date <span className="text-red-500">*</span>
-                            </span>
-                          </Label>
-                          <Input
-                            id="pickup_date"
-                            name="pickup_date"
-                            type="date"
-                            value={pickupDate}
-                            onChange={(e) => setPickupDate(e.target.value)}
-                            className={`w-full border ${
-                              formErrors.pickupDate ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
-                            required
-                          />
-                          {formErrors.pickupDate && <ErrorMessage message={formErrors.pickupDate} />}
-                        </div>
+                      <div className="transition-all duration-300">
+                        <Label htmlFor="pickup_date" className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <span>
+                            Preferred Pickup Date <span className="text-red-500">*</span>
+                          </span>
+                        </Label>
+                        <Input
+                          id="pickup_date"
+                          name="pickup_date"
+                          type="date"
+                          value={pickupDate}
+                          onChange={(e) => setPickupDate(e.target.value)}
+                          className={`w-full border ${
+                            formErrors.pickupDate ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
+                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          required
+                        />
+                        {formErrors.pickupDate && <ErrorMessage message={formErrors.pickupDate} />}
                       </div>
 
                       {/* Address Autocomplete */}
@@ -1235,7 +1123,7 @@ export default function SellItemPage() {
                             scrollToTop()
                             // Change form step after scroll animation starts
                             setTimeout(() => {
-                              setFormStep(2)
+                              setFormStep(1)
                             }, 100)
                           }}
                           className="px-6 py-3 rounded-lg border border-[#e2e8f0] dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground shadow-sm hover:bg-muted/50 transition-all duration-300 flex items-center gap-2 font-medium"
@@ -1246,7 +1134,7 @@ export default function SellItemPage() {
 
                         <Button
                           type="submit"
-                          disabled={!step3Valid || isSubmitting}
+                          disabled={!step2Valid || isSubmitting}
                           className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
                         >
                           <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:opacity-0 transition-opacity duration-300"></span>
