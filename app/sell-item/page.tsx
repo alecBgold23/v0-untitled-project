@@ -271,6 +271,7 @@ export default function SellItemPage() {
         const newPhotos = files.map((file) => {
           // Create a safe URL for preview
           const previewUrl = URL.createObjectURL(file)
+          console.log(`Created preview URL for ${file.name}:`, previewUrl)
 
           return {
             file,
@@ -308,6 +309,10 @@ export default function SellItemPage() {
   const removePhoto = (index) => {
     try {
       const newPhotos = [...itemPhotos]
+      // Revoke the URL before removing the photo
+      if (newPhotos[index].previewUrl) {
+        URL.revokeObjectURL(newPhotos[index].previewUrl)
+      }
       newPhotos.splice(index, 1)
       setItemPhotos(newPhotos)
     } catch (error) {
@@ -377,7 +382,7 @@ export default function SellItemPage() {
         }
       })
     }
-  }, [itemPhotos])
+  }, [])
 
   const completeFormSubmission = async () => {
     setIsSubmitting(true)
@@ -443,6 +448,19 @@ export default function SellItemPage() {
       })
     }
   }
+
+  // Debug function to check image URLs
+  const debugImageUrls = () => {
+    console.log(
+      "Current image URLs:",
+      itemPhotos.map((p) => ({ id: p.id, url: p.previewUrl })),
+    )
+  }
+
+  // Call debug function when photos change
+  useEffect(() => {
+    debugImageUrls()
+  }, [itemPhotos])
 
   return (
     <div
@@ -764,7 +782,7 @@ export default function SellItemPage() {
                                         alt={`Preview ${index + 1}`}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
-                                          // Fallback to icon if image fails to load
+                                          console.error(`Error loading image ${index}:`, e)
                                           e.currentTarget.style.display = "none"
                                           e.currentTarget.parentElement.innerHTML = `
                     <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
@@ -1139,36 +1157,21 @@ export default function SellItemPage() {
                                   <p className="text-sm font-medium text-foreground mb-2">Photos:</p>
                                   <div className="flex flex-wrap gap-2">
                                     {itemPhotos.slice(0, 4).map((photo, index) => (
-                                      <div key={photo.id} className="relative">
-                                        <div className="w-12 h-12 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
-                                          {photo.previewUrl ? (
+                                      <div key={photo.id} className="w-16 h-16 relative">
+                                        <div className="w-full h-full rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
+                                          {photo.previewUrl && (
                                             <img
                                               src={photo.previewUrl || "/placeholder.svg"}
                                               alt={`Preview ${index + 1}`}
                                               className="w-full h-full object-cover"
-                                              onError={(e) => {
-                                                e.currentTarget.style.display = "none"
-                                                e.currentTarget.parentElement.innerHTML = `
-                    <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-4 w-4 text-gray-400">
-                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                        <circle cx="9" cy="9" r="2"></circle>
-                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
-                      </svg>
-                    </div>
-                  `
-                                              }}
+                                              style={{ display: "block" }}
                                             />
-                                          ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                                              <ImageIcon className="h-4 w-4 text-gray-400" />
-                                            </div>
                                           )}
                                         </div>
                                       </div>
                                     ))}
                                     {itemPhotos.length > 4 && (
-                                      <div className="w-12 h-12 bg-muted flex items-center justify-center rounded-md border border-[#e2e8f0] dark:border-gray-700">
+                                      <div className="w-16 h-16 bg-muted flex items-center justify-center rounded-md border border-[#e2e8f0] dark:border-gray-700">
                                         <span className="text-xs font-medium">+{itemPhotos.length - 4}</span>
                                       </div>
                                     )}
@@ -1289,29 +1292,14 @@ export default function SellItemPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                       {itemPhotos.map((photo, index) => (
                         <div key={photo.id} className="relative">
-                          <div className="w-full h-24 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
-                            {photo.previewUrl ? (
+                          <div className="w-full h-32 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
+                            {photo.previewUrl && (
                               <img
                                 src={photo.previewUrl || "/placeholder.svg"}
                                 alt={`Submitted image ${index + 1}`}
                                 className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none"
-                                  e.currentTarget.parentElement.innerHTML = `
-                    <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-gray-400">
-                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                        <circle cx="9" cy="9" r="2"></circle>
-                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
-                      </svg>
-                    </div>
-                  `
-                                }}
+                                style={{ display: "block" }}
                               />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                                <ImageIcon className="h-8 w-8 text-gray-400" />
-                              </div>
                             )}
                           </div>
                         </div>
