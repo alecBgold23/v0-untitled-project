@@ -31,7 +31,6 @@ import { sendConfirmationEmail } from "../actions/send-confirmation-email"
 import { useToast } from "@/hooks/use-toast"
 import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
-import { auth, RecaptchaVerifier, signInWithPhoneNumber } from "@/lib/firebase"
 import { Button } from "@/components/ui/button"
 
 export default function SellItemPage() {
@@ -340,98 +339,6 @@ export default function SellItemPage() {
     }
   }
 
-  // Send verification code
-  const sendVerificationCode = async () => {
-    setVerificationError("")
-    setIsVerifyingPhone(true)
-
-    try {
-      // Skip phone verification in development/testing
-      if (process.env.NODE_ENV === "development") {
-        console.log("Skipping phone verification in development mode")
-        setIsVerified(true)
-        setIsVerifyingPhone(false)
-        completeFormSubmission()
-        return
-      }
-
-      const formattedPhoneNumber = phone.startsWith("+") ? phone : `+1${phone}` // Default to US format if no country code
-
-      // Check if auth is available
-      if (!auth) {
-        throw new Error("Firebase auth is not initialized")
-      }
-
-      // Create a new RecaptchaVerifier instance directly
-      const recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
-        callback: () => {
-          console.log("reCAPTCHA solved!")
-        },
-        "expired-callback": () => {
-          console.log("reCAPTCHA expired")
-          setVerificationError("reCAPTCHA verification expired. Please try again.")
-          setIsVerifyingPhone(false)
-        },
-      })
-
-      const confirmation = await signInWithPhoneNumber(auth, formattedPhoneNumber, recaptchaVerifier)
-      setConfirmationResult(confirmation)
-
-      toast({
-        title: "Verification code sent",
-        description: `We've sent a code to ${formattedPhoneNumber}`,
-      })
-    } catch (error: any) {
-      console.error("Error during phone authentication:", error)
-      setVerificationError(error.message || "Error sending verification code")
-      setIsVerifyingPhone(false)
-
-      // Show a more user-friendly error message
-      toast({
-        title: "Verification Error",
-        description: "We couldn't send a verification code. Please check your phone number and try again.",
-        variant: "destructive",
-      })
-
-      // For now, in case of error, let's proceed with form submission
-      // This is a fallback for development/testing
-      if (process.env.NODE_ENV !== "production") {
-        setIsVerified(true)
-        completeFormSubmission()
-      }
-    }
-  }
-
-  // Verify the code entered by the user
-  const verifyCode = async () => {
-    if (!verificationCode || verificationCode.length !== 6) {
-      setVerificationError("Please enter a valid 6-digit code")
-      return
-    }
-
-    setVerificationError("")
-    setIsVerifyingPhone(true)
-
-    try {
-      await confirmationResult.confirm(verificationCode)
-      setIsVerified(true)
-      setIsVerifyingPhone(false)
-
-      toast({
-        title: "Phone verified",
-        description: "Your phone number has been successfully verified",
-      })
-
-      // Proceed with form submission after verification
-      completeFormSubmission()
-    } catch (error: any) {
-      console.error("Error verifying code:", error)
-      setVerificationError(error.message || "Invalid verification code")
-      setIsVerifyingPhone(false)
-    }
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -440,32 +347,131 @@ export default function SellItemPage() {
       setIsSubmitting(true)
 
       try {
-        // For development/testing, skip verification
-        if (process.env.NODE_ENV !== "production") {
-          // Simulate verification
-          setIsVerified(true)
-          completeFormSubmission()
-          return
+        // Log form data for debugging
+        console.log("Form submission data:", {
+          itemName,
+          itemDescription,
+          itemCondition,
+          itemIssues,
+          fullName,
+          email,
+          phone,
+          address,
+          pickupDate,
+        })
+
+        // Send confirmation email using Resend API
+        const emailResult = await sendConfirmationEmail({
+          fullName,
+          email,
+          itemName,
+          itemCondition,
+          itemDescription,
+          itemIssues,
+          phone,
+          address,
+          pickupDate,
+        })
+
+        console.log("Email result:", emailResult)
+
+        if (!emailResult.success) {
+          toast({
+            title: "Email Notification",
+            description:
+              "Your form was submitted, but there was an issue sending the confirmation email. We'll contact you soon.",
+            variant: "default",
+          })
         }
 
-        // Start phone verification process
-        await sendVerificationCode()
+        // In a real implementation, you would send this to your backend
+        // For now, we'll simulate a successful submission
+        setTimeout(() => {
+          setFormSubmitted(true)
+          // Scroll to top after submission is successful
+          setTimeout(scrollToTop, 50)
+          setIsSubmitting(false)
+        }, 1500)
       } catch (error) {
-        console.error("Error starting verification:", error)
+        console.error("Error submitting form:", error)
+        setSubmitResult({
+          success: false,
+          message: "An unexpected error occurred. Please try again later.",
+        })
         setIsSubmitting(false)
 
         toast({
           title: "Error",
-          description: "There was a problem starting phone verification. Please try again.",
+          description: "There was a problem submitting your form. Please try again.",
           variant: "destructive",
         })
-
-        // For development/testing, proceed anyway
-        if (process.env.NODE_ENV !== "production") {
-          setIsVerified(true)
-          completeFormSubmission()
-        }
       }
+    }
+  }
+
+  const ErrorMessage = ({ message }) => (
+    <div className="flex items-center gap-1 text-red-500 text-sm mt-1">
+      <AlertCircle className="h-4 w-4" />
+      <span>{message}</span>
+    </div>
+  )
+
+  // Get step completion status
+  const getStepStatus = (step) => {
+    if (formStep > step) return "complete"
+    if (formStep === step) return "current"
+    return "incomplete"
+  }
+
+  // Handle AI-generated description
+  const handleAIDescription = (generatedDescription) => {
+    setItemDescription(generatedDescription)
+    toast({
+      title: "Description Enhanced",
+      description: "Your item description has been enhanced with AI.",
+      variant: "default",
+    })
+  }
+
+  // Clean up object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      // Revoke all object URLs to prevent memory leaks
+      itemPhotos.forEach((photo) => {
+        if (photo.preview && typeof photo.preview === "string") {
+          try {
+            URL.revokeObjectURL(photo.preview)
+          } catch (error) {
+            console.error("Error revoking URL:", error)
+          }
+        }
+      })
+    }
+  }, [])
+
+  const verifyCode = async () => {
+    setIsVerifyingPhone(true)
+    setVerificationError("")
+
+    try {
+      await confirmationResult.confirm(verificationCode)
+      setIsVerified(true)
+      toast({
+        title: "Phone Verified",
+        description: "Your phone number has been successfully verified.",
+        variant: "default",
+      })
+      completeFormSubmission()
+    } catch (error: any) {
+      console.error("Error verifying code:", error)
+      setVerificationError("Invalid verification code. Please try again.")
+      toast({
+        title: "Verification Error",
+        description: "The verification code you entered is invalid.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsVerifyingPhone(false)
     }
   }
 
@@ -533,46 +539,6 @@ export default function SellItemPage() {
       })
     }
   }
-
-  const ErrorMessage = ({ message }) => (
-    <div className="flex items-center gap-1 text-red-500 text-sm mt-1">
-      <AlertCircle className="h-4 w-4" />
-      <span>{message}</span>
-    </div>
-  )
-
-  // Get step completion status
-  const getStepStatus = (step) => {
-    if (formStep > step) return "complete"
-    if (formStep === step) return "current"
-    return "incomplete"
-  }
-
-  // Handle AI-generated description
-  const handleAIDescription = (generatedDescription) => {
-    setItemDescription(generatedDescription)
-    toast({
-      title: "Description Enhanced",
-      description: "Your item description has been enhanced with AI.",
-      variant: "default",
-    })
-  }
-
-  // Clean up object URLs when component unmounts
-  useEffect(() => {
-    return () => {
-      // Revoke all object URLs to prevent memory leaks
-      itemPhotos.forEach((photo) => {
-        if (photo.preview && typeof photo.preview === "string") {
-          try {
-            URL.revokeObjectURL(photo.preview)
-          } catch (error) {
-            console.error("Error revoking URL:", error)
-          }
-        }
-      })
-    }
-  }, [])
 
   return (
     <div
@@ -1258,10 +1224,6 @@ export default function SellItemPage() {
                               <Phone className="w-4 h-4" />
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3" />
-                            <span>Your phone will be verified with a code before submission</span>
-                          </p>
                           {formErrors.phone && <ErrorMessage message={formErrors.phone} />}
                         </div>
 
@@ -1398,7 +1360,7 @@ export default function SellItemPage() {
                           <span>Back</span>
                         </button>
 
-                        <button
+                        <Button
                           type="submit"
                           disabled={!step3Valid || isSubmitting}
                           className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
@@ -1412,12 +1374,11 @@ export default function SellItemPage() {
                               </>
                             ) : (
                               <>
-                                <span>Submit & Verify</span>
-                                <ShieldCheck className="w-4 h-4" />
+                                <span>Submit</span>
                               </>
                             )}
                           </span>
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )}

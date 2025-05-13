@@ -1,20 +1,14 @@
 "use client"
 
 import type React from "react"
-
 import { createContext, useContext, useEffect, useState } from "react"
-import {
-  type User,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  updateProfile,
-  linkWithPhoneNumber,
-  updatePhoneNumber,
-} from "firebase/auth"
-import { auth, type RecaptchaVerifier } from "@/lib/firebase"
+
+// Define a simple User type without Firebase dependencies
+type User = {
+  id: string
+  email: string
+  displayName?: string
+}
 
 type AuthContextType = {
   user: User | null
@@ -24,64 +18,86 @@ type AuthContextType = {
   logout: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
   updateUserProfile: (displayName: string) => Promise<void>
-  linkPhoneNumber: (phoneNumber: string, recaptchaVerifier: RecaptchaVerifier) => Promise<any>
-  updateUserPhoneNumber: (phoneCredential: any) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
+  // Check for existing session on mount
   useEffect(() => {
-    if (!auth) return () => {}
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
+    // Check localStorage or cookies for existing session
+    const storedUser = localStorage.getItem("user")
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser))
+      } catch (e) {
+        console.error("Failed to parse stored user", e)
+        localStorage.removeItem("user")
+      }
+    }
+    setLoading(false)
   }, [])
 
   const signUp = async (email: string, password: string) => {
-    if (!auth) throw new Error("Firebase auth is not initialized")
-    await createUserWithEmailAndPassword(auth, email, password)
+    // Simulate signup - in a real app, this would call your API
+    setLoading(true)
+    try {
+      // Create a new user
+      const newUser = {
+        id: Math.random().toString(36).substring(2, 15),
+        email,
+        displayName: email.split("@")[0],
+      }
+
+      // Store user in localStorage (for demo purposes)
+      localStorage.setItem("user", JSON.stringify(newUser))
+      setUser(newUser)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const signIn = async (email: string, password: string) => {
-    if (!auth) throw new Error("Firebase auth is not initialized")
-    await signInWithEmailAndPassword(auth, email, password)
+    // Simulate signin - in a real app, this would call your API
+    setLoading(true)
+    try {
+      // Create a user object (in a real app, this would come from your backend)
+      const user = {
+        id: Math.random().toString(36).substring(2, 15),
+        email,
+        displayName: email.split("@")[0],
+      }
+
+      // Store user in localStorage (for demo purposes)
+      localStorage.setItem("user", JSON.stringify(user))
+      setUser(user)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const logout = async () => {
-    if (!auth) throw new Error("Firebase auth is not initialized")
-    await signOut(auth)
+    // Clear the user from state and storage
+    localStorage.removeItem("user")
+    setUser(null)
   }
 
   const resetPassword = async (email: string) => {
-    if (!auth) throw new Error("Firebase auth is not initialized")
-    await sendPasswordResetEmail(auth, email)
+    // Simulate password reset - in a real app, this would call your API
+    console.log(`Password reset email sent to ${email}`)
+    // This would typically trigger an email to the user
   }
 
   const updateUserProfile = async (displayName: string) => {
-    if (!auth || !auth.currentUser) throw new Error("No user is signed in")
-    await updateProfile(auth.currentUser, { displayName })
-    // Force refresh the user state
-    setUser({ ...auth.currentUser })
-  }
+    if (!user) throw new Error("No user is signed in")
 
-  const linkPhoneNumber = async (phoneNumber: string, recaptchaVerifier: RecaptchaVerifier) => {
-    if (!auth || !auth.currentUser) throw new Error("No user is signed in")
-    return linkWithPhoneNumber(auth.currentUser, phoneNumber, recaptchaVerifier)
-  }
-
-  const updateUserPhoneNumber = async (phoneCredential: any) => {
-    if (!auth || !auth.currentUser) throw new Error("No user is signed in")
-    await updatePhoneNumber(auth.currentUser, phoneCredential)
-    // Force refresh the user state
-    setUser({ ...auth.currentUser })
+    // Update the user's profile
+    const updatedUser = { ...user, displayName }
+    localStorage.setItem("user", JSON.stringify(updatedUser))
+    setUser(updatedUser)
   }
 
   const value = {
@@ -92,8 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     resetPassword,
     updateUserProfile,
-    linkPhoneNumber,
-    updateUserPhoneNumber,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
