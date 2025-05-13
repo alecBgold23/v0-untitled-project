@@ -530,6 +530,13 @@ export default function SellMultipleItemsPage() {
     </div>
   )
 
+  // Get step completion status
+  const getStepStatus = (step) => {
+    if (formStep > step) return "complete"
+    if (formStep === step) return "current"
+    return "incomplete"
+  }
+
   return (
     <div
       className="min-h-screen bg-gradient-to-b from-[#f8fafc] to-[#f1f5f9] dark:from-gray-900 dark:to-gray-950"
@@ -545,7 +552,7 @@ export default function SellMultipleItemsPage() {
             <div className="inline-flex items-center justify-center mb-4">
               <div className="h-px w-12 bg-gradient-to-r from-[#0ea5e9] to-transparent"></div>
               <span className="mx-4 text-sm font-medium uppercase tracking-wider text-muted-foreground">
-                Bulk selling
+                Sell with confidence
               </span>
               <div className="h-px w-12 bg-gradient-to-l from-[#0ea5e9] to-transparent"></div>
             </div>
@@ -557,7 +564,7 @@ export default function SellMultipleItemsPage() {
             </h1>
 
             <p className="text-muted-foreground max-w-md mx-auto text-sm md:text-base mb-2">
-              Add all the items you want to sell in one convenient form.
+              Complete the form below to get an offer for your items within 24 hours.
             </p>
 
             <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10 blur-3xl rounded-full opacity-70"></div>
@@ -607,18 +614,26 @@ export default function SellMultipleItemsPage() {
                   <div className="flex flex-col items-center relative bg-[#f8fafc] dark:bg-gray-900 px-4">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
-                        formStep > 1
+                        getStepStatus(1) === "complete"
                           ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
-                          : formStep === 1
+                          : getStepStatus(1) === "current"
                             ? "bg-white dark:bg-gray-800 border-2 border-[#6366f1] text-[#6366f1]"
                             : "bg-white dark:bg-gray-800 border border-muted text-muted-foreground"
                       }`}
                     >
-                      {formStep > 1 ? <Check className="w-5 h-5" /> : <Package className="w-5 h-5" />}
+                      {getStepStatus(1) === "complete" ? (
+                        <Check className="w-5 h-5" />
+                      ) : (
+                        <Package className="w-5 h-5" />
+                      )}
                     </div>
                     <span
                       className={`text-sm font-medium mt-2 ${
-                        formStep === 1 ? "text-[#6366f1]" : formStep > 1 ? "text-foreground" : "text-muted-foreground"
+                        getStepStatus(1) === "current"
+                          ? "text-[#6366f1]"
+                          : getStepStatus(1) === "complete"
+                            ? "text-foreground"
+                            : "text-muted-foreground"
                       }`}
                     >
                       Item Details
@@ -629,9 +644,9 @@ export default function SellMultipleItemsPage() {
                   <div className="flex flex-col items-center relative bg-[#f8fafc] dark:bg-gray-900 px-4">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
-                        formStep > 2
+                        getStepStatus(2) === "complete"
                           ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
-                          : formStep === 2
+                          : getStepStatus(2) === "current"
                             ? "bg-white dark:bg-gray-800 border-2 border-[#6366f1] text-[#6366f1]"
                             : "bg-white dark:bg-gray-800 border border-muted text-muted-foreground"
                       }`}
@@ -640,7 +655,11 @@ export default function SellMultipleItemsPage() {
                     </div>
                     <span
                       className={`text-sm font-medium mt-2 ${
-                        formStep === 2 ? "text-[#6366f1]" : formStep > 2 ? "text-foreground" : "text-muted-foreground"
+                        getStepStatus(2) === "current"
+                          ? "text-[#6366f1]"
+                          : getStepStatus(2) === "complete"
+                            ? "text-foreground"
+                            : "text-muted-foreground"
                       }`}
                     >
                       Contact Info
@@ -667,10 +686,10 @@ export default function SellMultipleItemsPage() {
             <ContentAnimation delay={0.3}>
               <form
                 onSubmit={handleSubmit}
-                className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 rounded-xl shadow-lg border border-[#e2e8f0] dark:border-gray-700 overflow-hidden transition-all duration-300"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#6366f1]/10 dark:border-[#6366f1]/20 overflow-hidden transition-all duration-300"
               >
                 {/* Form header */}
-                <div className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center">
+                <div className="bg-gradient-to-r from-[#0ea5e9]/30 via-[#6366f1]/30 to-[#8b5cf6]/30 p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center">
                   <div className="mb-2">
                     <Link href="/sell-item" className="text-[#6366f1] hover:underline text-sm">
                       Only selling one item? Click here
@@ -686,18 +705,18 @@ export default function SellMultipleItemsPage() {
                   </p>
                 </div>
 
-                <div className="p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-[2px]">
+                <div className="p-6">
                   {formStep === 1 && (
-                    <div className="space-y-8">
+                    <div className="space-y-6">
                       {/* Items list */}
                       <div className="space-y-6">
                         {items.map((item, index) => (
                           <Card
                             key={item.id}
                             id={item.id}
-                            className={`border ${item.isValid ? "border-[#e2e8f0] dark:border-gray-700" : "border-red-300"} transition-all duration-300 hover:shadow-md`}
+                            className={`border ${item.isValid ? "border-[#e2e8f0] dark:border-gray-700" : "border-[#6366f1]/30"} transition-all duration-300 hover:shadow-md bg-white dark:bg-gray-800`}
                           >
-                            <CardHeader className="bg-gradient-to-r from-[#0ea5e9]/5 via-[#6366f1]/5 to-[#8b5cf6]/5 py-3 px-4">
+                            <CardHeader className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 py-3 px-4 border-b border-[#e2e8f0] dark:border-gray-700">
                               <div className="flex justify-between items-center">
                                 <div>
                                   <CardTitle className="text-base flex items-center gap-2">
@@ -755,107 +774,103 @@ export default function SellMultipleItemsPage() {
 
                             {item.isExpanded && (
                               <CardContent className="pt-4 px-4 space-y-4">
-                                <div className="grid md:grid-cols-2 gap-4">
-                                  <div>
-                                    <Label htmlFor={`item-name-${index}`} className="text-sm font-medium mb-1 block">
-                                      Item Name <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Input
-                                      id={`item-name-${index}`}
-                                      value={item.name}
-                                      onChange={(e) => updateItemField(index, "name", e.target.value)}
-                                      placeholder="e.g., Leather Sofa, Samsung TV"
-                                      className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
-                                      required
-                                    />
-                                  </div>
+                                <div className="transition-all duration-300">
+                                  <Label htmlFor={`item-name-${index}`} className="text-sm font-medium mb-2 block">
+                                    Item Name <span className="text-red-500">*</span>
+                                  </Label>
+                                  <Input
+                                    id={`item-name-${index}`}
+                                    value={item.name}
+                                    onChange={(e) => updateItemField(index, "name", e.target.value)}
+                                    placeholder="e.g., Leather Sofa, Samsung TV"
+                                    className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
+                                    required
+                                  />
+                                </div>
 
-                                  <div>
-                                    <Label className="text-sm font-medium mb-1 block">
-                                      Item Condition <span className="text-red-500">*</span>
+                                <div className="transition-all duration-300">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <Label htmlFor={`item-description-${index}`} className="text-sm font-medium">
+                                      Brief Description <span className="text-red-500">*</span>
                                     </Label>
-                                    <div className="grid grid-cols-5 gap-1">
-                                      {/* Clickable condition options */}
-                                      {["like-new", "excellent", "good", "fair", "poor"].map((condition) => (
+                                    <div className="text-xs text-muted-foreground">
+                                      {item.description.length} characters
+                                    </div>
+                                  </div>
+                                  <Textarea
+                                    id={`item-description-${index}`}
+                                    value={item.description}
+                                    onChange={(e) => updateItemField(index, "description", e.target.value)}
+                                    placeholder="Describe your item in detail including brand, model, size, color, etc."
+                                    rows={3}
+                                    className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
+                                    required
+                                  />
+                                </div>
+
+                                <div className="transition-all duration-300">
+                                  <Label className="text-sm font-medium mb-2 block">
+                                    Item Condition <span className="text-red-500">*</span>
+                                  </Label>
+                                  <div className="grid grid-cols-5 gap-1">
+                                    {/* Clickable condition options */}
+                                    {["like-new", "excellent", "good", "fair", "poor"].map((condition) => (
+                                      <div
+                                        key={condition}
+                                        className={`flex flex-col items-center p-2 rounded-lg border ${
+                                          item.condition === condition
+                                            ? "border-[#6366f1] bg-[#6366f1]/5"
+                                            : "border-[#e2e8f0] dark:border-gray-700"
+                                        } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
+                                        onClick={() => updateItemField(index, "condition", condition)}
+                                      >
                                         <div
-                                          key={condition}
-                                          className={`flex flex-col items-center p-1 rounded-lg border ${
+                                          className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
                                             item.condition === condition
-                                              ? "border-[#6366f1] bg-[#6366f1]/5"
-                                              : "border-[#e2e8f0] dark:border-gray-700"
-                                          } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
-                                          onClick={() => updateItemField(index, "condition", condition)}
+                                              ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
+                                              : "bg-muted text-muted-foreground"
+                                          }`}
                                         >
-                                          <div
-                                            className={`w-6 h-6 rounded-full flex items-center justify-center mb-1 ${
-                                              item.condition === condition
-                                                ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
-                                                : "bg-muted text-muted-foreground"
-                                            }`}
-                                          >
-                                            {condition === "like-new" && <Sparkles className="w-3 h-3" />}
-                                            {condition === "excellent" && <CheckCircle2 className="w-3 h-3" />}
-                                            {condition === "good" && <Check className="w-3 h-3" />}
-                                            {condition === "fair" && <Info className="w-3 h-3" />}
-                                            {condition === "poor" && <AlertCircle className="w-3 h-3" />}
-                                          </div>
-                                          <Label
-                                            htmlFor={`condition-${condition}-${index}`}
-                                            className="text-[10px] font-medium cursor-pointer text-center"
-                                          >
-                                            {condition
-                                              .split("-")
-                                              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                                              .join(" ")}
-                                          </Label>
+                                          {condition === "like-new" && <Sparkles className="w-4 h-4" />}
+                                          {condition === "excellent" && <CheckCircle2 className="w-4 h-4" />}
+                                          {condition === "good" && <Check className="w-4 h-4" />}
+                                          {condition === "fair" && <Info className="w-4 h-4" />}
+                                          {condition === "poor" && <AlertCircle className="w-4 h-4" />}
                                         </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="grid md:grid-cols-2 gap-4">
-                                  <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                      <Label htmlFor={`item-description-${index}`} className="text-sm font-medium">
-                                        Brief Description <span className="text-red-500">*</span>
-                                      </Label>
-                                      <div className="text-xs text-muted-foreground">
-                                        {item.description.length} chars
+                                        <Label
+                                          htmlFor={`condition-${condition}-${index}`}
+                                          className="text-xs font-medium cursor-pointer text-center"
+                                        >
+                                          {condition
+                                            .split("-")
+                                            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                            .join(" ")}
+                                        </Label>
                                       </div>
-                                    </div>
-                                    <Textarea
-                                      id={`item-description-${index}`}
-                                      value={item.description}
-                                      onChange={(e) => updateItemField(index, "description", e.target.value)}
-                                      placeholder="Describe your item in detail including brand, model, size, color, etc."
-                                      rows={2}
-                                      className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
-                                      required
-                                    />
-                                  </div>
-
-                                  <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                      <Label htmlFor={`item-issues-${index}`} className="text-sm font-medium">
-                                        Any issues or defects? <span className="text-red-500">*</span>
-                                      </Label>
-                                      <div className="text-xs text-muted-foreground">{item.issues.length} chars</div>
-                                    </div>
-                                    <Textarea
-                                      id={`item-issues-${index}`}
-                                      value={item.issues}
-                                      onChange={(e) => updateItemField(index, "issues", e.target.value)}
-                                      placeholder="Please describe any scratches, dents, missing parts, or functional issues. If none, please write 'None'."
-                                      rows={2}
-                                      className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
-                                      required
-                                    />
+                                    ))}
                                   </div>
                                 </div>
 
-                                <div>
-                                  <Label className="text-sm font-medium mb-1 block">
+                                <div className="transition-all duration-300">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <Label htmlFor={`item-issues-${index}`} className="text-sm font-medium">
+                                      Any issues or defects? <span className="text-red-500">*</span>
+                                    </Label>
+                                    <div className="text-xs text-muted-foreground">{item.issues.length} characters</div>
+                                  </div>
+                                  <Textarea
+                                    id={`item-issues-${index}`}
+                                    value={item.issues}
+                                    onChange={(e) => updateItemField(index, "issues", e.target.value)}
+                                    placeholder="Please describe any scratches, dents, missing parts, or functional issues. If none, please write 'None'."
+                                    rows={3}
+                                    className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
+                                    required
+                                  />
+                                </div>
+
+                                <div className="transition-all duration-300">
+                                  <Label className="text-sm font-medium mb-2 block">
                                     Item Photos <span className="text-red-500">*</span>{" "}
                                     <span className="text-sm font-normal text-muted-foreground">(at least 1)</span>
                                   </Label>
@@ -863,12 +878,12 @@ export default function SellMultipleItemsPage() {
                                   {/* File upload */}
                                   <div
                                     onClick={() => fileInputRefs.current[`item-${index}`]?.click()}
-                                    className="border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors duration-200 border-[#6366f1]/40 hover:border-[#6366f1] bg-[#f8fafc] dark:bg-gray-900 hover:bg-[#6366f1]/5 shadow-sm"
+                                    className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors duration-200 border-[#6366f1]/40 hover:border-[#6366f1] bg-white dark:bg-gray-800 hover:bg-[#6366f1]/5 shadow-sm"
                                   >
-                                    <div className="flex flex-col items-center justify-center gap-1">
-                                      <ImageIcon className="w-5 h-5 text-[#6366f1]/70" />
-                                      <p className="font-medium text-xs text-[#6366f1]">Click to Upload Images</p>
-                                      <p className="text-xs text-muted-foreground">
+                                    <div className="flex flex-col items-center justify-center gap-2">
+                                      <ImageIcon className="w-6 h-6 text-[#6366f1]/70" />
+                                      <p className="font-medium text-sm text-[#6366f1]">Click to Upload Images</p>
+                                      <p className="text-xs text-muted-foreground mt-1">
                                         {item.photos.length} of 1 required (max 5)
                                       </p>
                                     </div>
@@ -884,11 +899,11 @@ export default function SellMultipleItemsPage() {
 
                                   {/* Photo previews */}
                                   {item.photos.length > 0 && (
-                                    <div className="mt-2">
-                                      <div className="flex flex-wrap gap-2">
+                                    <div className="mt-4">
+                                      <div className="flex flex-wrap gap-3">
                                         {item.photos.map((photo, photoIndex) => (
                                           <div key={photo.id} className="relative group">
-                                            <div className="w-14 h-14 bg-white dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
+                                            <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
                                               {photo.previewUrl ? (
                                                 <img
                                                   src={photo.previewUrl || "/placeholder.svg"}
@@ -917,16 +932,30 @@ export default function SellMultipleItemsPage() {
                                             <button
                                               type="button"
                                               onClick={() => removePhoto(index, photoIndex)}
-                                              className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full p-0.5 w-4 h-4 flex items-center justify-center shadow-md border border-gray-200"
+                                              className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md border border-gray-200"
                                               aria-label="Remove photo"
                                             >
-                                              <X className="w-2 h-2" />
+                                              <X className="w-3 h-3" />
                                             </button>
                                           </div>
                                         ))}
                                       </div>
                                     </div>
                                   )}
+
+                                  {/* Upload progress indicator */}
+                                  <div className="flex items-center gap-1 mt-3 w-full">
+                                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full ${
+                                          item.photos.length >= 1
+                                            ? "bg-green-500"
+                                            : "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6]"
+                                        }`}
+                                        style={{ width: `${Math.min(100, (item.photos.length / 1) * 100)}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
                                 </div>
                               </CardContent>
                             )}
@@ -971,24 +1000,23 @@ export default function SellMultipleItemsPage() {
                         <Button
                           type="button"
                           onClick={addItem}
-                          className="bg-[#6366f1]/10 text-[#6366f1] hover:bg-[#6366f1]/20 border border-[#6366f1]/20 transition-all duration-300 text-sm py-1 h-auto"
+                          className="bg-[#6366f1]/10 text-[#6366f1] hover:bg-[#6366f1]/20 border border-[#6366f1]/20 transition-all duration-300"
                         >
-                          <Plus className="w-3 h-3 mr-2" />
+                          <Plus className="w-4 h-4 mr-2" />
                           Add Another Item
                         </Button>
                       </div>
 
-                      {/* Continue button */}
-                      <div className="flex justify-end mt-8">
-                        <Button
+                      <div className="flex justify-end mt-6">
+                        <button
                           type="button"
                           onClick={handleContinueToStep2}
                           disabled={!step1Valid}
-                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium h-auto"
+                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium"
                         >
-                          <span>Continue to Contact Info</span>
+                          <span>Continue</span>
                           <ChevronRight className="w-4 h-4" />
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1008,9 +1036,7 @@ export default function SellMultipleItemsPage() {
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                           placeholder="Your full name"
-                          className={`w-full border ${
-                            formErrors.fullName ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
                           required
                         />
                         {formErrors.fullName && <ErrorMessage message={formErrors.fullName} />}
@@ -1030,9 +1056,7 @@ export default function SellMultipleItemsPage() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="your.email@example.com"
-                          className={`w-full border ${
-                            formErrors.email ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
                           required
                         />
                         {formErrors.email && <ErrorMessage message={formErrors.email} />}
@@ -1054,8 +1078,8 @@ export default function SellMultipleItemsPage() {
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="(123) 456-7890"
                             className={`w-full border ${
-                              formErrors.phone ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 pl-10`}
+                              formErrors.phone ? "border-[#6366f1]/50" : "border-[#e2e8f0] dark:border-gray-700"
+                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 pl-10`}
                             required
                           />
                           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -1078,9 +1102,7 @@ export default function SellMultipleItemsPage() {
                           type="date"
                           value={pickupDate}
                           onChange={(e) => setPickupDate(e.target.value)}
-                          className={`w-full border ${
-                            formErrors.pickupDate ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
                           required
                         />
                         {formErrors.pickupDate && <ErrorMessage message={formErrors.pickupDate} />}
@@ -1105,67 +1127,56 @@ export default function SellMultipleItemsPage() {
                             <DollarSign className="w-4 h-4 text-[#6366f1]" />
                             <span>Items Summary ({items.length})</span>
                           </h4>
-
-                          <Accordion type="single" collapsible className="w-full">
-                            {items.map((item, index) => (
-                              <AccordionItem key={item.id} value={`item-${index}`}>
-                                <AccordionTrigger className="text-sm hover:no-underline">
-                                  <span className="flex items-center gap-2">
-                                    <Package className="h-4 w-4 text-[#6366f1]" />
-                                    {item.name || `Item ${index + 1}`}
-                                    <span className="text-xs bg-[#6366f1]/10 text-[#6366f1] px-2 py-0.5 rounded-full">
-                                      {item.condition
-                                        ? item.condition
-                                            .split("-")
-                                            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                                        : "No condition"}
-                                    </span>
-                                  </span>
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                  <div className="grid md:grid-cols-2 gap-4 pt-2">
-                                    <div>
-                                      <p className="text-sm text-muted-foreground">
-                                        <span className="font-medium text-foreground">Description:</span>{" "}
-                                        {item.description}
-                                      </p>
-                                      <p className="text-sm text-muted-foreground mt-1">
-                                        <span className="font-medium text-foreground">Issues:</span> {item.issues}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      {item.photos.length > 0 && (
-                                        <div>
-                                          <p className="text-sm font-medium text-foreground mb-2">Photos:</p>
-                                          <div className="flex flex-wrap gap-2">
-                                            {item.photos.slice(0, 3).map((photo, photoIndex) => (
-                                              <div key={photo.id} className="w-12 h-12 relative">
-                                                <div className="w-full h-full rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
-                                                  {photo.previewUrl && (
-                                                    <img
-                                                      src={photo.previewUrl || "/placeholder.svg"}
-                                                      alt={`Preview ${photoIndex + 1}`}
-                                                      className="w-full h-full object-cover"
-                                                      style={{ display: "block" }}
-                                                    />
-                                                  )}
-                                                </div>
-                                              </div>
-                                            ))}
-                                            {item.photos.length > 3 && (
-                                              <div className="w-12 h-12 bg-muted flex items-center justify-center rounded-md border border-[#e2e8f0] dark:border-gray-700">
-                                                <span className="text-xs font-medium">+{item.photos.length - 3}</span>
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            ))}
-                          </Accordion>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                <span className="font-medium text-foreground">Items:</span> {items.length} items
+                              </p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                <span className="font-medium text-foreground">Names:</span>{" "}
+                                {items.map((item) => item.name).join(", ")}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-foreground mb-2">Item Details:</p>
+                              <Accordion type="single" collapsible className="w-full">
+                                {items.map((item, index) => (
+                                  <AccordionItem key={item.id} value={`item-${index}`}>
+                                    <AccordionTrigger className="text-sm hover:no-underline py-2">
+                                      <span className="flex items-center gap-2">
+                                        <Package className="h-4 w-4 text-[#6366f1]" />
+                                        {item.name || `Item ${index + 1}`}
+                                      </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <div className="pt-2">
+                                        <p className="text-sm text-muted-foreground">
+                                          <span className="font-medium text-foreground">Condition:</span>{" "}
+                                          {item.condition
+                                            ? item.condition
+                                                .split("-")
+                                                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                                .join(" ")
+                                            : "Not specified"}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                          <span className="font-medium text-foreground">Description:</span>{" "}
+                                          {item.description}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                          <span className="font-medium text-foreground">Issues:</span> {item.issues}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                          <span className="font-medium text-foreground">Photos:</span>{" "}
+                                          {item.photos.length}
+                                        </p>
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                ))}
+                              </Accordion>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
@@ -1212,16 +1223,16 @@ export default function SellMultipleItemsPage() {
                               setFormStep(1)
                             }, 100)
                           }}
-                          className="px-6 py-3 rounded-lg border border-[#e2e8f0] dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground shadow-sm hover:bg-muted/50 transition-all duration-300 flex items-center gap-2 font-medium"
+                          className="px-6 py-2 rounded-lg border border-[#e2e8f0] dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground shadow-sm hover:bg-muted/50 transition-all duration-300 flex items-center gap-2 font-medium"
                         >
                           <ChevronLeft className="w-4 h-4" />
-                          <span>Back to Items</span>
+                          <span>Back</span>
                         </button>
 
                         <Button
                           type="submit"
                           disabled={!step2Valid || isSubmitting}
-                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
+                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
                         >
                           <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:opacity-0 transition-opacity duration-300"></span>
                           <span className="relative flex items-center justify-center gap-2">
@@ -1232,7 +1243,7 @@ export default function SellMultipleItemsPage() {
                               </>
                             ) : (
                               <>
-                                <span>Submit {items.length} Items</span>
+                                <span>Submit</span>
                               </>
                             )}
                           </span>
@@ -1247,15 +1258,15 @@ export default function SellMultipleItemsPage() {
         ) : (
           <ContentAnimation>
             <ConfettiEffect trigger={formSubmitted} />
-            <div className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 rounded-xl shadow-lg border border-[#e2e8f0] dark:border-gray-700 overflow-hidden transition-all duration-500">
-              <div className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 p-6 border-b border-[#e2e8f0] dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#e2e8f0] dark:border-gray-700 overflow-hidden transition-all duration-500">
+              <div className="bg-gradient-to-r from-[#0ea5e9]/30 via-[#6366f1]/30 to-[#8b5cf6]/30 p-6 border-b border-[#e2e8f0] dark:border-gray-700">
                 <h2 className="text-xl font-medium text-gray-800 dark:text-gray-100">Submission Received</h2>
                 <p className="text-muted-foreground text-sm mt-1">
                   Thank you for your submission. We'll be in touch soon.
                 </p>
               </div>
 
-              <div className="p-8 text-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-[2px]">
+              <div className="p-8 text-center">
                 <div className="w-20 h-20 bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle2 className="w-10 h-10 text-[#6366f1]" />
                 </div>
@@ -1271,12 +1282,11 @@ export default function SellMultipleItemsPage() {
                   the details. You can expect to hear from us within 24 hours with a price offer.
                 </p>
 
-                {/* Show submitted items in confirmation */}
+                {/* Show submitted photos in confirmation */}
                 {items.length > 0 && (
                   <div className="bg-[#f8fafc] dark:bg-gray-900 border border-[#e2e8f0] dark:border-gray-700 rounded-lg p-6 max-w-3xl mx-auto mb-8">
                     <h3 className="text-lg font-medium mb-4 text-[#6366f1]">Your Submitted Items</h3>
-
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                       {items.map((item, index) => (
                         <div
                           key={item.id}
@@ -1291,39 +1301,36 @@ export default function SellMultipleItemsPage() {
                             </span>
                           </div>
 
-                          <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                <span className="font-medium text-foreground">Description:</span> {item.description}
-                              </p>
-                            </div>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            <span className="font-medium text-foreground">Description:</span> {item.description}
+                          </p>
 
-                            <div>
-                              {item.photos.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                  {item.photos.slice(0, 3).map((photo, photoIndex) => (
-                                    <div key={photo.id} className="w-16 h-16 relative">
-                                      <div className="w-full h-full rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
-                                        {photo.previewUrl && (
-                                          <img
-                                            src={photo.previewUrl || "/placeholder.svg"}
-                                            alt={`Submitted image ${photoIndex + 1}`}
-                                            className="w-full h-full object-cover"
-                                            style={{ display: "block" }}
-                                          />
-                                        )}
-                                      </div>
+                          {item.photos.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-sm font-medium text-foreground mb-1">Photos:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {item.photos.slice(0, 2).map((photo, photoIndex) => (
+                                  <div key={photo.id} className="w-16 h-16 relative">
+                                    <div className="w-full h-full rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
+                                      {photo.previewUrl && (
+                                        <img
+                                          src={photo.previewUrl || "/placeholder.svg"}
+                                          alt={`Submitted image ${photoIndex + 1}`}
+                                          className="w-full h-full object-cover"
+                                          style={{ display: "block" }}
+                                        />
+                                      )}
                                     </div>
-                                  ))}
-                                  {item.photos.length > 3 && (
-                                    <div className="w-16 h-16 bg-muted flex items-center justify-center rounded-md border border-[#e2e8f0] dark:border-gray-700">
-                                      <span className="text-xs font-medium">+{item.photos.length - 3}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                                  </div>
+                                ))}
+                                {item.photos.length > 2 && (
+                                  <div className="w-16 h-16 bg-muted flex items-center justify-center rounded-md border border-[#e2e8f0] dark:border-gray-700">
+                                    <span className="text-xs font-medium">+{item.photos.length - 2}</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       ))}
                     </div>
