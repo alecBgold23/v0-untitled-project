@@ -597,7 +597,7 @@ export default function SellItemPage() {
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#e2e8f0] dark:border-gray-700 overflow-hidden transition-all duration-300 relative"
               >
                 {/* Form header */}
-                <div className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center">
+                <div className="bg-gradient-to-r from-[#00b4ff]/50 via-[#4338ca]/50 to-[#c026d3]/50 p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center shadow-sm">
                   <div className="mb-2">
                     <Link href="/sell-multiple-items" className="text-[#6366f1] hover:underline text-sm">
                       Need to sell multiple items? Click here
@@ -1161,8 +1161,8 @@ export default function SellItemPage() {
         ) : (
           <ContentAnimation>
             <ConfettiEffect trigger={formSubmitted} />
-            <div className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 rounded-xl shadow-lg border border-[#e2e8f0] dark:border-gray-700 overflow-hidden transition-all duration-500">
-              <div className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 p-6 border-b border-[#e2e8f0] dark:border-gray-700">
+            <div className="bg-gradient-to-r from-[#00b4ff]/40 via-[#4338ca]/40 to-[#c026d3]/40 rounded-xl shadow-lg border border-[#e2e8f0] dark:border-gray-700 overflow-hidden transition-all duration-500">
+              <div className="bg-gradient-to-r from-[#00b4ff]/50 via-[#4338ca]/50 to-[#c026d3]/50 p-6 border-b border-[#e2e8f0] dark:border-gray-700 shadow-sm">
                 <h2 className="text-xl font-medium text-gray-800 dark:text-gray-100">Submission Received</h2>
                 <p className="text-muted-foreground text-sm mt-1">
                   Thank you for your submission. We'll be in touch soon.

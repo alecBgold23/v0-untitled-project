@@ -33,7 +33,6 @@ import AddressAutocomplete from "@/components/address-autocomplete"
 import PhoneVerification from "@/components/phone-verification"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AIItemDescriptionButton } from "@/components/ai-item-description-button"
 
 export default function SellMultipleItemsPage() {
   const { toast } = useToast()
@@ -156,8 +155,8 @@ export default function SellMultipleItemsPage() {
       issues: "",
       isExpanded: true,
       isValid: false,
-      nameSuggestion: "", // Add suggestion state for new items
-      isLoadingSuggestion: false, // Add loading state for new items
+      nameSuggestion: "", // Reset suggestion for the duplicated item
+      isLoadingSuggestion: false, // Reset loading state for the duplicated item
     }
 
     setItems([...items, newItem])
@@ -830,17 +829,17 @@ export default function SellMultipleItemsPage() {
                 onSubmit={handleSubmit}
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#6366f1]/10 dark:border-[#6366f1]/20 overflow-hidden transition-all duration-300 relative z-20"
               >
-                {/* Form header */}
-                <div className="bg-gradient-to-r from-[#0ea5e9]/30 via-[#6366f1]/30 to-[#8b5cf6]/30 p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center">
+                {/* Form header - Updated with more vibrant gradient */}
+                <div className="bg-gradient-to-r from-[#0284c7] via-[#4f46e5] to-[#7c3aed] p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center">
                   <div className="mb-2">
-                    <Link href="/sell-item" className="text-[#6366f1] hover:underline text-sm">
+                    <Link href="/sell-item" className="text-white hover:underline text-sm">
                       Only selling one item? Click here
                     </Link>
                   </div>
-                  <h2 className="text-xl font-medium tracking-tight text-gray-800 dark:text-gray-100">
+                  <h2 className="text-xl font-medium tracking-tight text-white">
                     {formStep === 1 ? "Add your items" : "Your contact information"}
                   </h2>
-                  <p className="text-muted-foreground text-sm mt-1">
+                  <p className="text-white/80 text-sm mt-1">
                     {formStep === 1
                       ? `You're currently adding ${items.length} item${items.length > 1 ? "s" : ""}`
                       : "Let us know how to reach you and arrange pickup"}
@@ -960,20 +959,9 @@ export default function SellMultipleItemsPage() {
 
                                 <div className="transition-all duration-300">
                                   <div className="flex justify-between items-center mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <Label htmlFor={`item-description-${index}`} className="text-sm font-medium">
-                                        Brief Description <span className="text-red-500">*</span>
-                                      </Label>
-                                      <AIItemDescriptionButton
-                                        itemName={item.name}
-                                        itemCondition={formatCondition(item.condition)}
-                                        onDescriptionGenerated={(description) =>
-                                          handleDescriptionChange({ target: { value: description } }, index)
-                                        }
-                                        disabled={!item.name.trim()}
-                                        className="h-7 text-xs"
-                                      />
-                                    </div>
+                                    <Label htmlFor={`item-description-${index}`} className="text-sm font-medium">
+                                      Brief Description <span className="text-red-500">*</span>
+                                    </Label>
                                     <div className="text-xs text-muted-foreground">
                                       {item.description.length} characters
                                     </div>
@@ -1193,7 +1181,7 @@ export default function SellMultipleItemsPage() {
                           type="button"
                           onClick={handleContinueToStep2}
                           disabled={!step1Valid}
-                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium"
+                          className="bg-gradient-to-r from-[#0284c7] via-[#4f46e5] to-[#7c3aed] hover:from-[#0284c7]/90 hover:via-[#4f46e5]/90 hover:to-[#7c3aed]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium"
                         >
                           <span>Continue</span>
                           <ChevronRight className="w-4 h-4" />
@@ -1375,7 +1363,7 @@ export default function SellMultipleItemsPage() {
                         <Button
                           type="submit"
                           disabled={isSubmitting || !step2Valid}
-                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium"
+                          className="bg-gradient-to-r from-[#0284c7] via-[#4f46e5] to-[#7c3aed] hover:from-[#0284c7]/90 hover:via-[#4f46e5]/90 hover:to-[#7c3aed]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium"
                         >
                           {isSubmitting ? (
                             <>
