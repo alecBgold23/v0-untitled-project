@@ -594,7 +594,7 @@ export default function SellItemPage() {
             <ContentAnimation delay={0.3}>
               <form
                 onSubmit={handleSubmit}
-                className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 rounded-xl shadow-lg border border-[#e2e8f0] dark:border-gray-700 overflow-hidden transition-all duration-300"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#e2e8f0] dark:border-gray-700 overflow-hidden transition-all duration-300 relative"
               >
                 {/* Form header */}
                 <div className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center">
@@ -628,7 +628,7 @@ export default function SellItemPage() {
                           placeholder="e.g., Leather Sofa, Samsung TV"
                           className={`w-full border ${
                             formErrors.itemName ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 relative z-10`}
                           required
                         />
                         {formErrors.itemName && <ErrorMessage message={formErrors.itemName} />}
@@ -674,7 +674,7 @@ export default function SellItemPage() {
                           rows={3}
                           className={`w-full border ${
                             formErrors.itemDescription ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 relative z-10`}
                           required
                         />
                         {formErrors.itemDescription && <ErrorMessage message={formErrors.itemDescription} />}
@@ -691,7 +691,7 @@ export default function SellItemPage() {
                               itemCondition === "like-new"
                                 ? "border-[#6366f1] bg-[#6366f1]/5"
                                 : "border-[#e2e8f0] dark:border-gray-700"
-                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
+                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md relative z-10`}
                             onClick={() => setItemCondition("like-new")}
                           >
                             <div
@@ -713,7 +713,7 @@ export default function SellItemPage() {
                               itemCondition === "excellent"
                                 ? "border-[#6366f1] bg-[#6366f1]/5"
                                 : "border-[#e2e8f0] dark:border-gray-700"
-                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
+                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md relative z-10`}
                             onClick={() => setItemCondition("excellent")}
                           >
                             <div
@@ -735,7 +735,7 @@ export default function SellItemPage() {
                               itemCondition === "good"
                                 ? "border-[#6366f1] bg-[#6366f1]/5"
                                 : "border-[#e2e8f0] dark:border-gray-700"
-                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
+                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md relative z-10`}
                             onClick={() => setItemCondition("good")}
                           >
                             <div
@@ -757,7 +757,7 @@ export default function SellItemPage() {
                               itemCondition === "fair"
                                 ? "border-[#6366f1] bg-[#6366f1]/5"
                                 : "border-[#e2e8f0] dark:border-gray-700"
-                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
+                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md relative z-10`}
                             onClick={() => setItemCondition("fair")}
                           >
                             <div
@@ -779,7 +779,7 @@ export default function SellItemPage() {
                               itemCondition === "poor"
                                 ? "border-[#6366f1] bg-[#6366f1]/5"
                                 : "border-[#e2e8f0] dark:border-gray-700"
-                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
+                            } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md relative z-10`}
                             onClick={() => setItemCondition("poor")}
                           >
                             <div
@@ -815,7 +815,7 @@ export default function SellItemPage() {
                           rows={3}
                           className={`w-full border ${
                             formErrors.itemIssues ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 relative z-10`}
                           required
                         />
                         {formErrors.itemIssues && <ErrorMessage message={formErrors.itemIssues} />}
@@ -943,7 +943,7 @@ export default function SellItemPage() {
                           placeholder="Your full name"
                           className={`w-full border ${
                             formErrors.fullName ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 relative z-10`}
                           required
                         />
                         {formErrors.fullName && <ErrorMessage message={formErrors.fullName} />}
@@ -965,7 +965,7 @@ export default function SellItemPage() {
                           placeholder="your.email@example.com"
                           className={`w-full border ${
                             formErrors.email ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 relative z-10`}
                           required
                         />
                         {formErrors.email && <ErrorMessage message={formErrors.email} />}
@@ -988,7 +988,7 @@ export default function SellItemPage() {
                             placeholder="(123) 456-7890"
                             className={`w-full border ${
                               formErrors.phone ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 pl-10`}
+                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 pl-10 relative z-10`}
                             required
                           />
                           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -1013,7 +1013,7 @@ export default function SellItemPage() {
                           onChange={(e) => setPickupDate(e.target.value)}
                           className={`w-full border ${
                             formErrors.pickupDate ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50`}
+                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 relative z-10`}
                           required
                         />
                         {formErrors.pickupDate && <ErrorMessage message={formErrors.pickupDate} />}

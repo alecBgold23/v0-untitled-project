@@ -2,11 +2,8 @@
 
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   CheckCircle2,
   AlertCircle,
@@ -27,15 +24,16 @@ import {
   Plus,
   Trash2,
   Copy,
+  Wand2,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import { sendConfirmationEmail } from "../actions/send-confirmation-email"
 import { useToast } from "@/hooks/use-toast"
-import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
 import PhoneVerification from "@/components/phone-verification"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { AIItemDescriptionButton } from "@/components/ai-item-description-button"
 
 export default function SellMultipleItemsPage() {
   const { toast } = useToast()
@@ -68,6 +66,8 @@ export default function SellMultipleItemsPage() {
       issues: "",
       isExpanded: true,
       isValid: false,
+      nameSuggestion: "", // Add suggestion state for each item
+      isLoadingSuggestion: false, // Add loading state for each item
     },
   ])
 
@@ -77,7 +77,7 @@ export default function SellMultipleItemsPage() {
   const fileInputRefs = useRef({})
 
   // Format phone number to E.164 format for API
-  const formatPhoneForApi = (phone: string) => {
+  const formatPhoneForApi = (phone) => {
     if (!phone) return ""
 
     // Remove all spaces, parentheses, and dashes
@@ -156,6 +156,8 @@ export default function SellMultipleItemsPage() {
       issues: "",
       isExpanded: true,
       isValid: false,
+      nameSuggestion: "", // Add suggestion state for new items
+      isLoadingSuggestion: false, // Add loading state for new items
     }
 
     setItems([...items, newItem])
@@ -205,6 +207,8 @@ export default function SellMultipleItemsPage() {
       id: "item-" + Date.now(),
       isExpanded: true,
       photos: [...itemToDuplicate.photos], // Create a new array with the same photos
+      nameSuggestion: "", // Reset suggestion for the duplicated item
+      isLoadingSuggestion: false, // Reset loading state for the duplicated item
     }
 
     const updatedItems = [...items]
@@ -537,6 +541,144 @@ export default function SellMultipleItemsPage() {
     return "incomplete"
   }
 
+  // Format condition for display and AI
+  const formatCondition = (condition) => {
+    if (!condition) return "Not specified"
+    return condition
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ")
+  }
+
+  // Handle name input change
+  const handleNameChange = (e, index) => {
+    const value = e.target.value
+    const updatedItems = [...items]
+    updatedItems[index] = {
+      ...updatedItems[index],
+      name: value,
+    }
+    setItems(updatedItems)
+  }
+
+  // Handle description input change
+  const handleDescriptionChange = (e, index) => {
+    const value = e.target.value
+    const updatedItems = [...items]
+    updatedItems[index] = {
+      ...updatedItems[index],
+      description: value,
+    }
+    setItems(updatedItems)
+  }
+
+  // Handle issues input change
+  const handleIssuesChange = (e, index) => {
+    const value = e.target.value
+    const updatedItems = [...items]
+    updatedItems[index] = {
+      ...updatedItems[index],
+      issues: value,
+    }
+    setItems(updatedItems)
+  }
+
+  // Fetch name suggestion when user types
+  useEffect(() => {
+    // Create a copy of the items array to track which items need suggestions
+    const itemsToFetch = items
+      .map((item, index) => {
+        // Only fetch suggestions for items with names that are at least 3 characters long
+        if (item.name.trim().length >= 3) {
+          return { index, name: item.name }
+        }
+        return null
+      })
+      .filter(Boolean) // Remove null entries
+
+    // If there are no items to fetch suggestions for, return early
+    if (itemsToFetch.length === 0) return
+
+    // Set up timeouts for each item
+    const timeouts = itemsToFetch.map(({ index, name }) => {
+      return setTimeout(() => {
+        fetchNameSuggestion(name, index)
+      }, 800) // wait for user to stop typing
+    })
+
+    // Clean up timeouts on unmount or when dependencies change
+    return () => {
+      timeouts.forEach((timeout) => clearTimeout(timeout))
+    }
+  }, [items.map((item) => item.name).join(",")]) // Dependency on all item names
+
+  // Fetch suggestion for a specific item
+  const fetchNameSuggestion = async (text, index) => {
+    // Update loading state for this specific item
+    const updatedItems = [...items]
+    updatedItems[index] = {
+      ...updatedItems[index],
+      isLoadingSuggestion: true,
+    }
+    setItems(updatedItems)
+
+    try {
+      const res = await fetch("/api/description-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: text }),
+      })
+      const data = await res.json()
+
+      // Update the items array with the new suggestion
+      const newUpdatedItems = [...items] // Create a fresh copy
+      if (res.ok && data.suggestion) {
+        newUpdatedItems[index] = {
+          ...newUpdatedItems[index],
+          nameSuggestion: data.suggestion,
+          isLoadingSuggestion: false,
+        }
+      } else {
+        newUpdatedItems[index] = {
+          ...newUpdatedItems[index],
+          nameSuggestion: "",
+          isLoadingSuggestion: false,
+        }
+      }
+      setItems(newUpdatedItems)
+    } catch (err) {
+      console.error(err)
+      // Update the items array to clear loading state on error
+      const newUpdatedItems = [...items]
+      newUpdatedItems[index] = {
+        ...newUpdatedItems[index],
+        nameSuggestion: "",
+        isLoadingSuggestion: false,
+      }
+      setItems(newUpdatedItems)
+    }
+  }
+
+  // Apply suggestion for a specific item
+  const applySuggestion = (index) => {
+    const item = items[index]
+    if (item.nameSuggestion) {
+      const updatedItems = [...items]
+      updatedItems[index] = {
+        ...updatedItems[index],
+        description: item.nameSuggestion,
+        nameSuggestion: "", // Clear the suggestion after applying
+      }
+      setItems(updatedItems)
+
+      toast({
+        title: "Suggestion Applied",
+        description: "The enhanced description has been applied.",
+        variant: "default",
+      })
+    }
+  }
+
   return (
     <div
       className="min-h-screen bg-gradient-to-b from-[#f8fafc] to-[#f1f5f9] dark:from-gray-900 dark:to-gray-950"
@@ -686,7 +828,7 @@ export default function SellMultipleItemsPage() {
             <ContentAnimation delay={0.3}>
               <form
                 onSubmit={handleSubmit}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#6366f1]/10 dark:border-[#6366f1]/20 overflow-hidden transition-all duration-300"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#6366f1]/10 dark:border-[#6366f1]/20 overflow-hidden transition-all duration-300 relative z-20"
               >
                 {/* Form header */}
                 <div className="bg-gradient-to-r from-[#0ea5e9]/30 via-[#6366f1]/30 to-[#8b5cf6]/30 p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center">
@@ -714,7 +856,9 @@ export default function SellMultipleItemsPage() {
                           <Card
                             key={item.id}
                             id={item.id}
-                            className={`border ${item.isValid ? "border-[#e2e8f0] dark:border-gray-700" : "border-[#6366f1]/30"} transition-all duration-300 hover:shadow-md bg-white dark:bg-gray-800`}
+                            className={`border ${
+                              item.isValid ? "border-[#e2e8f0] dark:border-gray-700" : "border-[#6366f1]/30"
+                            } transition-all duration-300 hover:shadow-md bg-white dark:bg-gray-800`}
                           >
                             <CardHeader className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 py-3 px-4 border-b border-[#e2e8f0] dark:border-gray-700">
                               <div className="flex justify-between items-center">
@@ -778,32 +922,69 @@ export default function SellMultipleItemsPage() {
                                   <Label htmlFor={`item-name-${index}`} className="text-sm font-medium mb-2 block">
                                     Item Name <span className="text-red-500">*</span>
                                   </Label>
-                                  <Input
+                                  <input
                                     id={`item-name-${index}`}
                                     value={item.name}
-                                    onChange={(e) => updateItemField(index, "name", e.target.value)}
+                                    onChange={(e) => handleNameChange(e, index)}
                                     placeholder="e.g., Leather Sofa, Samsung TV"
-                                    className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
+                                    className="flex h-10 w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
                                     required
                                   />
+
+                                  {/* Smart name suggestion - moved here from description section */}
+                                  {item.isLoadingSuggestion && (
+                                    <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                      <span>Generating suggestion...</span>
+                                    </div>
+                                  )}
+
+                                  {item.nameSuggestion && (
+                                    <div
+                                      onClick={() => applySuggestion(index)}
+                                      className="mt-3 p-3 bg-[#6366f1]/5 border border-[#6366f1]/20 rounded-lg cursor-pointer hover:bg-[#6366f1]/10 transition-colors duration-200"
+                                    >
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <Wand2 className="h-4 w-4 text-[#6366f1]" />
+                                        <span className="text-sm font-medium text-[#6366f1]">
+                                          Suggested Description
+                                        </span>
+                                        <span className="text-xs bg-[#6366f1]/10 text-[#6366f1] px-2 py-0.5 rounded-full">
+                                          Click to Apply
+                                        </span>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">{item.nameSuggestion}</p>
+                                    </div>
+                                  )}
                                 </div>
 
                                 <div className="transition-all duration-300">
                                   <div className="flex justify-between items-center mb-2">
-                                    <Label htmlFor={`item-description-${index}`} className="text-sm font-medium">
-                                      Brief Description <span className="text-red-500">*</span>
-                                    </Label>
+                                    <div className="flex items-center gap-2">
+                                      <Label htmlFor={`item-description-${index}`} className="text-sm font-medium">
+                                        Brief Description <span className="text-red-500">*</span>
+                                      </Label>
+                                      <AIItemDescriptionButton
+                                        itemName={item.name}
+                                        itemCondition={formatCondition(item.condition)}
+                                        onDescriptionGenerated={(description) =>
+                                          handleDescriptionChange({ target: { value: description } }, index)
+                                        }
+                                        disabled={!item.name.trim()}
+                                        className="h-7 text-xs"
+                                      />
+                                    </div>
                                     <div className="text-xs text-muted-foreground">
                                       {item.description.length} characters
                                     </div>
                                   </div>
-                                  <Textarea
+                                  <textarea
                                     id={`item-description-${index}`}
                                     value={item.description}
-                                    onChange={(e) => updateItemField(index, "description", e.target.value)}
+                                    onChange={(e) => handleDescriptionChange(e, index)}
                                     placeholder="Describe your item in detail including brand, model, size, color, etc."
                                     rows={3}
-                                    className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
+                                    className="flex min-h-[80px] w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
                                     required
                                   />
                                 </div>
@@ -858,13 +1039,13 @@ export default function SellMultipleItemsPage() {
                                     </Label>
                                     <div className="text-xs text-muted-foreground">{item.issues.length} characters</div>
                                   </div>
-                                  <Textarea
+                                  <textarea
                                     id={`item-issues-${index}`}
                                     value={item.issues}
-                                    onChange={(e) => updateItemField(index, "issues", e.target.value)}
+                                    onChange={(e) => handleIssuesChange(e, index)}
                                     placeholder="Please describe any scratches, dents, missing parts, or functional issues. If none, please write 'None'."
                                     rows={3}
-                                    className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
+                                    className="flex min-h-[80px] w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
                                     required
                                   />
                                 </div>
@@ -1030,13 +1211,13 @@ export default function SellMultipleItemsPage() {
                             Full Name <span className="text-red-500">*</span>
                           </span>
                         </Label>
-                        <Input
+                        <input
                           id="full-name"
                           name="name"
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                           placeholder="Your full name"
-                          className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
+                          className="flex h-10 w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
                           required
                         />
                         {formErrors.fullName && <ErrorMessage message={formErrors.fullName} />}
@@ -1049,14 +1230,14 @@ export default function SellMultipleItemsPage() {
                             Email Address <span className="text-red-500">*</span>
                           </span>
                         </Label>
-                        <Input
+                        <input
                           id="email"
                           name="email"
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="your.email@example.com"
-                          className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
+                          className="flex h-10 w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
                           required
                         />
                         {formErrors.email && <ErrorMessage message={formErrors.email} />}
@@ -1070,19 +1251,19 @@ export default function SellMultipleItemsPage() {
                           </span>
                         </Label>
                         <div className="relative">
-                          <Input
+                          <input
                             id="phone"
                             name="phone"
                             type="tel"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="(123) 456-7890"
-                            className={`w-full border ${
-                              formErrors.phone ? "border-[#6366f1]/50" : "border-[#e2e8f0] dark:border-gray-700"
-                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 pl-10`}
+                            className={`flex h-10 w-full rounded-md border ${
+                              formErrors.phone ? "border-[#6366f1]/50" : "border-input/50"
+                            } bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 pl-10 relative z-30`}
                             required
                           />
-                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
                             <Phone className="w-4 h-4" />
                           </div>
                         </div>
@@ -1096,13 +1277,13 @@ export default function SellMultipleItemsPage() {
                             Preferred Pickup Date <span className="text-red-500">*</span>
                           </span>
                         </Label>
-                        <Input
+                        <input
                           id="pickup_date"
                           name="pickup_date"
                           type="date"
                           value={pickupDate}
                           onChange={(e) => setPickupDate(e.target.value)}
-                          className="w-full border border-[#e2e8f0] dark:border-gray-700 rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50"
+                          className="flex h-10 w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
                           required
                         />
                         {formErrors.pickupDate && <ErrorMessage message={formErrors.pickupDate} />}
@@ -1157,7 +1338,7 @@ export default function SellMultipleItemsPage() {
                                                 .split("-")
                                                 .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
                                                 .join(" ")
-                                            : "Not specified"}
+                                            : ""}
                                         </p>
                                         <p className="text-sm text-muted-foreground mt-1">
                                           <span className="font-medium text-foreground">Description:</span>{" "}
@@ -1180,73 +1361,33 @@ export default function SellMultipleItemsPage() {
                         </div>
                       </div>
 
-                      <div className="mt-6 transition-all duration-300">
-                        <div className="p-6 rounded-lg bg-[#f8fafc] dark:bg-gray-900 border border-[#e2e8f0] dark:border-gray-700 shadow-sm">
-                          <div className="flex items-start space-x-3">
-                            <Checkbox
-                              id="consent"
-                              name="consent"
-                              checked={termsAccepted}
-                              onCheckedChange={setTermsAccepted}
-                              className={`mt-1 border-[#6366f1] text-[#6366f1] focus-visible:ring-[#6366f1] ${formErrors.terms ? "border-red-300" : ""}`}
-                              required
-                            />
-                            <div>
-                              <Label htmlFor="consent" className="font-medium">
-                                I consent to being contacted by BluBerry <span className="text-red-500">*</span>
-                              </Label>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                By submitting this form, you agree to our{" "}
-                                <Link
-                                  href="/privacy-policy"
-                                  className="text-[#6366f1] underline hover:text-[#4f46e5] transition-colors"
-                                >
-                                  Privacy Policy
-                                </Link>
-                                . We'll use your information to process your request and contact you about your items.
-                              </p>
-                              {formErrors.terms && <ErrorMessage message={formErrors.terms} />}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-between mt-8">
-                        <button
+                      <div className="flex justify-between mt-6">
+                        <Button
                           type="button"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            scrollToTop()
-                            // Change form step after scroll animation starts
-                            setTimeout(() => {
-                              setFormStep(1)
-                            }, 100)
-                          }}
-                          className="px-6 py-2 rounded-lg border border-[#e2e8f0] dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground shadow-sm hover:bg-muted/50 transition-all duration-300 flex items-center gap-2 font-medium"
+                          variant="outline"
+                          onClick={() => setFormStep(1)}
+                          className="hover:bg-muted/50 transition-all duration-200"
                         >
-                          <ChevronLeft className="w-4 h-4" />
-                          <span>Back</span>
-                        </button>
+                          <ChevronLeft className="w-4 h-4 mr-2" />
+                          Back to Items
+                        </Button>
 
                         <Button
                           type="submit"
-                          disabled={!step2Valid || isSubmitting}
-                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
+                          disabled={isSubmitting || !step2Valid}
+                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium"
                         >
-                          <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:opacity-0 transition-opacity duration-300"></span>
-                          <span className="relative flex items-center justify-center gap-2">
-                            {isSubmitting ? (
-                              <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Submitting...</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>Submit</span>
-                              </>
-                            )}
-                          </span>
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                              <span>Submitting...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Submit</span>
+                              <Check className="w-4 h-4" />
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1256,94 +1397,18 @@ export default function SellMultipleItemsPage() {
             </ContentAnimation>
           </>
         ) : (
-          <ContentAnimation>
-            <ConfettiEffect trigger={formSubmitted} />
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#e2e8f0] dark:border-gray-700 overflow-hidden transition-all duration-500">
-              <div className="bg-gradient-to-r from-[#0ea5e9]/30 via-[#6366f1]/30 to-[#8b5cf6]/30 p-6 border-b border-[#e2e8f0] dark:border-gray-700">
-                <h2 className="text-xl font-medium text-gray-800 dark:text-gray-100">Submission Received</h2>
-                <p className="text-muted-foreground text-sm mt-1">
-                  Thank you for your submission. We'll be in touch soon.
-                </p>
-              </div>
-
-              <div className="p-8 text-center">
-                <div className="w-20 h-20 bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 className="w-10 h-10 text-[#6366f1]" />
-                </div>
-
-                <h2 className="text-3xl font-light mb-4 bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] bg-clip-text text-transparent">
-                  Thank You!
-                </h2>
-
-                <div className="w-24 h-1 mx-auto mb-6 bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] rounded-full"></div>
-
-                <p className="text-lg mb-8 text-muted-foreground max-w-xl mx-auto">
-                  We've received your submission for {items.length} item{items.length > 1 ? "s" : ""} and will review
-                  the details. You can expect to hear from us within 24 hours with a price offer.
-                </p>
-
-                {/* Show submitted photos in confirmation */}
-                {items.length > 0 && (
-                  <div className="bg-[#f8fafc] dark:bg-gray-900 border border-[#e2e8f0] dark:border-gray-700 rounded-lg p-6 max-w-3xl mx-auto mb-8">
-                    <h3 className="text-lg font-medium mb-4 text-[#6366f1]">Your Submitted Items</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {items.map((item, index) => (
-                        <div
-                          key={item.id}
-                          className="border border-[#e2e8f0] dark:border-gray-700 rounded-lg p-4 bg-white/50 dark:bg-gray-800/50"
-                        >
-                          <div className="flex justify-between items-center mb-2">
-                            <h4 className="font-medium">{item.name || `Item ${index + 1}`}</h4>
-                            <span className="text-xs bg-[#6366f1]/10 text-[#6366f1] px-2 py-0.5 rounded-full">
-                              {item.condition
-                                ? item.condition.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                                : "No condition"}
-                            </span>
-                          </div>
-
-                          <p className="text-sm text-muted-foreground mb-2">
-                            <span className="font-medium text-foreground">Description:</span> {item.description}
-                          </p>
-
-                          {item.photos.length > 0 && (
-                            <div className="mt-2">
-                              <p className="text-sm font-medium text-foreground mb-1">Photos:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {item.photos.slice(0, 2).map((photo, photoIndex) => (
-                                  <div key={photo.id} className="w-16 h-16 relative">
-                                    <div className="w-full h-full rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
-                                      {photo.previewUrl && (
-                                        <img
-                                          src={photo.previewUrl || "/placeholder.svg"}
-                                          alt={`Submitted image ${photoIndex + 1}`}
-                                          className="w-full h-full object-cover"
-                                          style={{ display: "block" }}
-                                        />
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                                {item.photos.length > 2 && (
-                                  <div className="w-16 h-16 bg-muted flex items-center justify-center rounded-md border border-[#e2e8f0] dark:border-gray-700">
-                                    <span className="text-xs font-medium">+{item.photos.length - 2}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="bg-[#f8fafc] dark:bg-gray-900 p-6 rounded-lg max-w-md mx-auto">
-                  <p className="text-sm text-muted-foreground">
-                    We've sent a confirmation email to <span className="font-medium text-foreground">{email}</span> with
-                    the details of your submission.
-                  </p>
-                </div>
-              </div>
+          <ContentAnimation delay={0.3}>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#6366f1]/10 dark:border-[#6366f1]/20 overflow-hidden transition-all duration-300 relative z-20 p-6 text-center">
+              <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-medium tracking-tight text-gray-800 dark:text-gray-100 mb-2">
+                Thank you for your submission!
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                We've received your request and will get back to you within 24 hours.
+              </p>
+              <Link href="/" className="text-[#6366f1] hover:underline text-sm mt-4 inline-block">
+                Back to Home
+              </Link>
             </div>
           </ContentAnimation>
         )}
