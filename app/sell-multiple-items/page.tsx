@@ -1276,23 +1276,18 @@ export default function SellMultipleItemsPage() {
                             Phone Number <span className="text-red-500">*</span>
                           </span>
                         </Label>
-                        <div className="relative">
-                          <input
-                            id="phone"
-                            name="phone"
-                            type="tel"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder="(123) 456-7890"
-                            className={`flex h-10 w-full rounded-md border ${
-                              formErrors.phone ? "border-[#6366f1]/50" : "border-input/50"
-                            } bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 pl-10 relative z-30`}
-                            required
-                          />
-                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
-                            <Phone className="w-4 h-4" />
-                          </div>
-                        </div>
+                        <input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="(123) 456-7890"
+                          className={`flex h-10 w-full rounded-md border ${
+                            formErrors.phone ? "border-[#6366f1]/50" : "border-input/50"
+                          } bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30`}
+                          required
+                        />
                         {formErrors.phone && <ErrorMessage message={formErrors.phone} />}
                       </div>
 
