@@ -105,16 +105,6 @@ export default function Navbar() {
 
           {/* Right side controls */}
           <div className="flex items-center space-x-4">
-            {/* Mobile menu button */}
-            <button
-              className="md:hidden text-foreground/80 transition-all duration-200 hover:text-primary"
-              onClick={toggleMenu}
-              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-            >
-              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -138,17 +128,26 @@ export default function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+
+            {/* Mobile menu button - moved here */}
+            <button
+              className="md:hidden text-foreground/80 transition-all duration-200 hover:text-primary"
+              onClick={toggleMenu}
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         </nav>
 
         {/* Mobile navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 flex flex-col gap-3 items-start bg-background border-t border-border">
+          <div className="md:hidden py-4 flex flex-col gap-3 items-center bg-background border-t border-border">
             {mainNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`px-3 py-2 text-sm rounded-md transition-colors hover:bg-muted w-full ${
+                className={`px-3 py-2 text-sm rounded-md transition-colors hover:bg-muted text-center w-full ${
                   pathname === item.href ? "text-primary font-medium" : "text-foreground/80"
                 }`}
               >
