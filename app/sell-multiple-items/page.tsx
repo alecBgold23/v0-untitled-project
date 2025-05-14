@@ -830,7 +830,7 @@ export default function SellMultipleItemsPage() {
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#6366f1]/10 dark:border-[#6366f1]/20 overflow-hidden transition-all duration-300 relative z-20"
               >
                 {/* Form header - Updated with more vibrant gradient */}
-                <div className="bg-gradient-to-r from-[#0284c7] via-[#4f46e5] to-[#7c3aed] p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center">
+                <div className="bg-gradient-to-r from-[#00b4ff]/50 via-[#4338ca]/50 to-[#c026d3]/50 p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center shadow-sm">
                   <div className="mb-2">
                     <Link href="/sell-item" className="text-white hover:underline text-sm">
                       Only selling one item? Click here
