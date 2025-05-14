@@ -22,7 +22,7 @@ export function PhoneInput({
   value,
   onChange,
   label = "Phone Number",
-  placeholder = "(555) 123-4567",
+  placeholder = "123456789",
   required = false,
   error,
   className = "",
@@ -134,15 +134,9 @@ export function PhoneInput({
           value={displayValue}
           onChange={handleChange}
           placeholder={placeholder}
-          className={`${showCountryCode ? "pl-14" : "pl-10"} ${error ? "border-red-300" : ""}`}
+          className={`${showCountryCode ? "pl-14" : ""} ${error ? "border-red-300" : ""}`}
           required={required}
         />
-
-        {!showCountryCode && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2">
-            <Phone className="h-4 w-4 text-muted-foreground" />
-          </div>
-        )}
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}

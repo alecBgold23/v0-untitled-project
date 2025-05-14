@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast"
 import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
 import PhoneVerification from "@/components/phone-verification"
+import { OpenAIApiStatus } from "@/components/openai-api-status"
 
 export default function SellItemPage() {
   const { toast } = useToast()
@@ -614,6 +615,7 @@ export default function SellItemPage() {
                 </div>
 
                 <div className="p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-[2px]">
+                  <OpenAIApiStatus />
                   {formStep === 1 && (
                     <div className="space-y-6" id="section1" ref={section1Ref}>
                       <div className="transition-all duration-300">
@@ -988,12 +990,9 @@ export default function SellItemPage() {
                             placeholder="(123) 456-7890"
                             className={`w-full border ${
                               formErrors.phone ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 pl-10 relative z-10`}
+                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 relative z-10`}
                             required
                           />
-                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                            <Phone className="w-4 h-4" />
-                          </div>
                         </div>
                         {formErrors.phone && <ErrorMessage message={formErrors.phone} />}
                       </div>

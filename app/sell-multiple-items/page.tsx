@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import {
@@ -54,8 +54,8 @@ export default function SellMultipleItemsPage() {
   const [pickupDate, setPickupDate] = useState("")
   const [termsAccepted, setTermsAccepted] = useState(false)
 
-  // Multiple items state
-  const [items, setItems] = useState([
+  // Multiple items state - using a stable reference with useRef
+  const itemsRef = useRef([
     {
       id: "item-" + Date.now(),
       name: "",
@@ -65,15 +65,29 @@ export default function SellMultipleItemsPage() {
       issues: "",
       isExpanded: true,
       isValid: false,
-      nameSuggestion: "", // Add suggestion state for each item
-      isLoadingSuggestion: false, // Add loading state for each item
+      nameSuggestion: "",
+      isLoadingSuggestion: false,
+      lastProcessedName: "", // Add this to track the last processed name
     },
   ])
+
+  // State to trigger re-renders when items change
+  const [itemsVersion, setItemsVersion] = useState(0)
+
+  // Getter for items that uses the ref
+  const getItems = () => itemsRef.current
+
+  // Setter for items that updates the ref and triggers a re-render
+  const setItems = useCallback((newItems) => {
+    itemsRef.current = newItems
+    setItemsVersion((prev) => prev + 1) // Increment version to trigger re-render
+  }, [])
 
   // Refs
   const formContainerRef = useRef(null)
   const formTopRef = useRef(null)
   const fileInputRefs = useRef({})
+  const suggestionTimeoutsRef = useRef({})
 
   // Format phone number to E.164 format for API
   const formatPhoneForApi = (phone) => {
@@ -103,9 +117,9 @@ export default function SellMultipleItemsPage() {
 
   // Validate step 1 (all items)
   useEffect(() => {
-    const allItemsValid = items.every((item) => item.isValid)
-    setStep1Valid(allItemsValid && items.length > 0)
-  }, [items])
+    const allItemsValid = getItems().every((item) => item.isValid)
+    setStep1Valid(allItemsValid && getItems().length > 0)
+  }, [itemsVersion]) // Use itemsVersion as dependency
 
   // Validate step 2 (contact info)
   useEffect(() => {
@@ -129,12 +143,12 @@ export default function SellMultipleItemsPage() {
     const isValid =
       item.name.trim() !== "" &&
       item.description.trim() !== "" &&
-      item.photos.length >= 1 &&
+      item.photos.length >= 3 &&
       item.condition !== "" &&
       item.issues.trim() !== ""
 
     // Update the item's validity
-    const updatedItems = [...items]
+    const updatedItems = [...getItems()]
     updatedItems[index] = {
       ...updatedItems[index],
       isValid,
@@ -155,11 +169,12 @@ export default function SellMultipleItemsPage() {
       issues: "",
       isExpanded: true,
       isValid: false,
-      nameSuggestion: "", // Reset suggestion for the duplicated item
-      isLoadingSuggestion: false, // Reset loading state for the duplicated item
+      nameSuggestion: "",
+      isLoadingSuggestion: false,
+      lastProcessedName: "", // Add this to track the last processed name
     }
 
-    setItems([...items, newItem])
+    setItems([...getItems(), newItem])
 
     // Scroll to the new item after it's added
     setTimeout(() => {
@@ -178,7 +193,7 @@ export default function SellMultipleItemsPage() {
 
   // Remove an item
   const removeItem = (index) => {
-    if (items.length <= 1) {
+    if (getItems().length <= 1) {
       toast({
         title: "Cannot Remove",
         description: "You must have at least one item in your submission.",
@@ -187,7 +202,7 @@ export default function SellMultipleItemsPage() {
       return
     }
 
-    const updatedItems = [...items]
+    const updatedItems = [...getItems()]
     updatedItems.splice(index, 1)
     setItems(updatedItems)
 
@@ -200,7 +215,7 @@ export default function SellMultipleItemsPage() {
 
   // Duplicate an item
   const duplicateItem = (index) => {
-    const itemToDuplicate = items[index]
+    const itemToDuplicate = getItems()[index]
     const newItem = {
       ...itemToDuplicate,
       id: "item-" + Date.now(),
@@ -208,9 +223,10 @@ export default function SellMultipleItemsPage() {
       photos: [...itemToDuplicate.photos], // Create a new array with the same photos
       nameSuggestion: "", // Reset suggestion for the duplicated item
       isLoadingSuggestion: false, // Reset loading state for the duplicated item
+      lastProcessedName: "", // Reset the last processed name
     }
 
-    const updatedItems = [...items]
+    const updatedItems = [...getItems()]
     updatedItems.splice(index + 1, 0, newItem)
     setItems(updatedItems)
 
@@ -229,22 +245,23 @@ export default function SellMultipleItemsPage() {
     })
   }
 
-  // Update item field
-  const updateItemField = (index, field, value) => {
-    const updatedItems = [...items]
+  // Update item field - memoized to prevent recreation on renders
+  const updateItemField = useCallback((index, field, value) => {
+    const updatedItems = [...getItems()]
     updatedItems[index] = {
       ...updatedItems[index],
       [field]: value,
     }
+
     setItems(updatedItems)
 
     // Validate the item after update
     setTimeout(() => validateItem(updatedItems[index], index), 100)
-  }
+  }, [])
 
   // Toggle item accordion
   const toggleItemAccordion = (index) => {
-    const updatedItems = [...items]
+    const updatedItems = [...getItems()]
     updatedItems[index] = {
       ...updatedItems[index],
       isExpanded: !updatedItems[index].isExpanded,
@@ -257,6 +274,19 @@ export default function SellMultipleItemsPage() {
     try {
       const files = Array.from(e.target.files || [])
       if (files.length > 0) {
+        // Check if adding these files would exceed the maximum
+        const currentCount = getItems()[index].photos.length
+        const newCount = currentCount + files.length
+
+        if (newCount > 10) {
+          toast({
+            title: "Too Many Files",
+            description: `You can only upload a maximum of 10 photos per item. You already have ${currentCount} photos.`,
+            variant: "destructive",
+          })
+          return
+        }
+
         // Create file objects with preview URLs
         const newPhotos = files.map((file) => {
           // Create a safe URL for preview
@@ -273,7 +303,7 @@ export default function SellMultipleItemsPage() {
         })
 
         // Add to item photos
-        const updatedItems = [...items]
+        const updatedItems = [...getItems()]
         updatedItems[index] = {
           ...updatedItems[index],
           photos: [...updatedItems[index].photos, ...newPhotos],
@@ -281,7 +311,9 @@ export default function SellMultipleItemsPage() {
         setItems(updatedItems)
 
         // Reset the input value to prevent duplicate uploads
-        e.target.value = null
+        if (e.target) {
+          e.target.value = null
+        }
 
         // Validate the item after adding photos
         setTimeout(() => validateItem(updatedItems[index], index), 100)
@@ -306,7 +338,7 @@ export default function SellMultipleItemsPage() {
   // Remove photo from an item
   const removePhoto = (itemIndex, photoIndex) => {
     try {
-      const updatedItems = [...items]
+      const updatedItems = [...getItems()]
       const item = updatedItems[itemIndex]
       const newPhotos = [...item.photos]
 
@@ -342,7 +374,7 @@ export default function SellMultipleItemsPage() {
   // Validate all items in step 1
   const validateStep1 = () => {
     let allValid = true
-    const updatedItems = [...items]
+    const updatedItems = [...getItems()]
 
     updatedItems.forEach((item, index) => {
       const isValid = validateItem(item, index)
@@ -455,7 +487,7 @@ export default function SellMultipleItemsPage() {
     try {
       // Log form data for debugging
       console.log("Form submission data:", {
-        items,
+        items: getItems(),
         fullName,
         email,
         phone,
@@ -467,10 +499,14 @@ export default function SellMultipleItemsPage() {
       const emailResult = await sendConfirmationEmail({
         fullName,
         email,
-        itemName: `Multiple Items (${items.length})`,
+        itemName: `Multiple Items (${getItems().length})`,
         itemCondition: "Multiple",
-        itemDescription: items.map((item) => `${item.name}: ${item.description}`).join(" | "),
-        itemIssues: items.map((item) => `${item.name}: ${item.issues}`).join(" | "),
+        itemDescription: getItems()
+          .map((item) => `${item.name}: ${item.description}`)
+          .join(" | "),
+        itemIssues: getItems()
+          .map((item) => `${item.name}: ${item.issues}`)
+          .join(" | "),
         phone,
         address,
         pickupDate,
@@ -515,12 +551,17 @@ export default function SellMultipleItemsPage() {
   useEffect(() => {
     return () => {
       // Revoke all created object URLs to prevent memory leaks
-      items.forEach((item) => {
+      getItems().forEach((item) => {
         item.photos.forEach((photo) => {
           if (photo.previewUrl) {
             URL.revokeObjectURL(photo.previewUrl)
           }
         })
+      })
+
+      // Clear any pending suggestion timeouts
+      Object.values(suggestionTimeoutsRef.current).forEach((timeout) => {
+        clearTimeout(timeout)
       })
     }
   }, [])
@@ -552,74 +593,65 @@ export default function SellMultipleItemsPage() {
   // Handle name input change
   const handleNameChange = (e, index) => {
     const value = e.target.value
-    const updatedItems = [...items]
-    updatedItems[index] = {
-      ...updatedItems[index],
-      name: value,
+    updateItemField(index, "name", value)
+
+    // Schedule suggestion generation with debounce
+    if (value.trim().length >= 3) {
+      // Clear any existing timeout for this item
+      if (suggestionTimeoutsRef.current[index]) {
+        clearTimeout(suggestionTimeoutsRef.current[index])
+      }
+
+      // Set a new timeout
+      suggestionTimeoutsRef.current[index] = setTimeout(() => {
+        const currentItems = getItems()
+        // Only fetch if the name is still the same and different from last processed
+        if (
+          currentItems[index] &&
+          currentItems[index].name === value &&
+          currentItems[index].name !== currentItems[index].lastProcessedName
+        ) {
+          fetchNameSuggestion(value, index)
+        }
+      }, 800)
     }
-    setItems(updatedItems)
   }
 
   // Handle description input change
   const handleDescriptionChange = (e, index) => {
     const value = e.target.value
-    const updatedItems = [...items]
-    updatedItems[index] = {
-      ...updatedItems[index],
-      description: value,
-    }
-    setItems(updatedItems)
+    updateItemField(index, "description", value)
   }
 
   // Handle issues input change
   const handleIssuesChange = (e, index) => {
     const value = e.target.value
-    const updatedItems = [...items]
-    updatedItems[index] = {
-      ...updatedItems[index],
-      issues: value,
-    }
-    setItems(updatedItems)
+    updateItemField(index, "issues", value)
   }
 
-  // Fetch name suggestion when user types
-  useEffect(() => {
-    // Create a copy of the items array to track which items need suggestions
-    const itemsToFetch = items
-      .map((item, index) => {
-        // Only fetch suggestions for items with names that are at least 3 characters long
-        if (item.name.trim().length >= 3) {
-          return { index, name: item.name }
-        }
-        return null
-      })
-      .filter(Boolean) // Remove null entries
-
-    // If there are no items to fetch suggestions for, return early
-    if (itemsToFetch.length === 0) return
-
-    // Set up timeouts for each item
-    const timeouts = itemsToFetch.map(({ index, name }) => {
-      return setTimeout(() => {
-        fetchNameSuggestion(name, index)
-      }, 800) // wait for user to stop typing
-    })
-
-    // Clean up timeouts on unmount or when dependencies change
-    return () => {
-      timeouts.forEach((timeout) => clearTimeout(timeout))
-    }
-  }, [items.map((item) => item.name).join(",")]) // Dependency on all item names
+  // Handle condition selection
+  const handleConditionSelect = (index, conditionValue) => {
+    console.log(`Setting condition for item ${index} to ${conditionValue}`)
+    updateItemField(index, "condition", conditionValue)
+  }
 
   // Fetch suggestion for a specific item
   const fetchNameSuggestion = async (text, index) => {
-    // Update loading state for this specific item
-    const updatedItems = [...items]
-    updatedItems[index] = {
-      ...updatedItems[index],
-      isLoadingSuggestion: true,
+    // Get current items
+    const currentItems = [...getItems()]
+
+    // Skip if this item no longer exists or already has a suggestion loading
+    if (!currentItems[index] || currentItems[index].isLoadingSuggestion) {
+      return
     }
-    setItems(updatedItems)
+
+    // Update loading state and mark this name as processed
+    currentItems[index] = {
+      ...currentItems[index],
+      isLoadingSuggestion: true,
+      lastProcessedName: text,
+    }
+    setItems(currentItems)
 
     try {
       const res = await fetch("/api/description-suggest", {
@@ -629,40 +661,46 @@ export default function SellMultipleItemsPage() {
       })
       const data = await res.json()
 
-      // Update the items array with the new suggestion
-      const newUpdatedItems = [...items] // Create a fresh copy
-      if (res.ok && data.suggestion) {
-        newUpdatedItems[index] = {
-          ...newUpdatedItems[index],
-          nameSuggestion: data.suggestion,
-          isLoadingSuggestion: false,
+      // Get fresh copy of items (they might have changed during the fetch)
+      const updatedItems = [...getItems()]
+
+      // Make sure the item still exists
+      if (updatedItems[index]) {
+        if (res.ok && data.suggestion) {
+          updatedItems[index] = {
+            ...updatedItems[index],
+            nameSuggestion: data.suggestion,
+            isLoadingSuggestion: false,
+          }
+        } else {
+          updatedItems[index] = {
+            ...updatedItems[index],
+            nameSuggestion: "",
+            isLoadingSuggestion: false,
+          }
         }
-      } else {
-        newUpdatedItems[index] = {
-          ...newUpdatedItems[index],
-          nameSuggestion: "",
-          isLoadingSuggestion: false,
-        }
+        setItems(updatedItems)
       }
-      setItems(newUpdatedItems)
     } catch (err) {
       console.error(err)
       // Update the items array to clear loading state on error
-      const newUpdatedItems = [...items]
-      newUpdatedItems[index] = {
-        ...newUpdatedItems[index],
-        nameSuggestion: "",
-        isLoadingSuggestion: false,
+      const updatedItems = [...getItems()]
+      if (updatedItems[index]) {
+        updatedItems[index] = {
+          ...updatedItems[index],
+          nameSuggestion: "",
+          isLoadingSuggestion: false,
+        }
+        setItems(updatedItems)
       }
-      setItems(newUpdatedItems)
     }
   }
 
   // Apply suggestion for a specific item
   const applySuggestion = (index) => {
-    const item = items[index]
+    const item = getItems()[index]
     if (item.nameSuggestion) {
-      const updatedItems = [...items]
+      const updatedItems = [...getItems()]
       updatedItems[index] = {
         ...updatedItems[index],
         description: item.nameSuggestion,
@@ -841,7 +879,7 @@ export default function SellMultipleItemsPage() {
                   </h2>
                   <p className="text-white/80 text-sm mt-1">
                     {formStep === 1
-                      ? `You're currently adding ${items.length} item${items.length > 1 ? "s" : ""}`
+                      ? `You're currently adding ${getItems().length} item${getItems().length > 1 ? "s" : ""}`
                       : "Let us know how to reach you and arrange pickup"}
                   </p>
                 </div>
@@ -851,7 +889,7 @@ export default function SellMultipleItemsPage() {
                     <div className="space-y-6">
                       {/* Items list */}
                       <div className="space-y-6">
-                        {items.map((item, index) => (
+                        {getItems().map((item, index) => (
                           <Card
                             key={item.id}
                             id={item.id}
@@ -983,34 +1021,34 @@ export default function SellMultipleItemsPage() {
                                   </Label>
                                   <div className="grid grid-cols-5 gap-1">
                                     {/* Clickable condition options */}
-                                    {["like-new", "excellent", "good", "fair", "poor"].map((condition) => (
+                                    {["like-new", "excellent", "good", "fair", "poor"].map((conditionOption) => (
                                       <div
-                                        key={condition}
+                                        key={conditionOption}
                                         className={`flex flex-col items-center p-2 rounded-lg border ${
-                                          item.condition === condition
+                                          item.condition === conditionOption
                                             ? "border-[#6366f1] bg-[#6366f1]/5"
                                             : "border-[#e2e8f0] dark:border-gray-700"
                                         } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
-                                        onClick={() => updateItemField(index, "condition", condition)}
+                                        onClick={() => handleConditionSelect(index, conditionOption)}
                                       >
                                         <div
                                           className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
-                                            item.condition === condition
+                                            item.condition === conditionOption
                                               ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
                                               : "bg-muted text-muted-foreground"
                                           }`}
                                         >
-                                          {condition === "like-new" && <Sparkles className="w-4 h-4" />}
-                                          {condition === "excellent" && <CheckCircle2 className="w-4 h-4" />}
-                                          {condition === "good" && <Check className="w-4 h-4" />}
-                                          {condition === "fair" && <Info className="w-4 h-4" />}
-                                          {condition === "poor" && <AlertCircle className="w-4 h-4" />}
+                                          {conditionOption === "like-new" && <Sparkles className="w-4 h-4" />}
+                                          {conditionOption === "excellent" && <CheckCircle2 className="w-4 h-4" />}
+                                          {conditionOption === "good" && <Check className="w-4 h-4" />}
+                                          {conditionOption === "fair" && <Info className="w-4 h-4" />}
+                                          {conditionOption === "poor" && <AlertCircle className="w-4 h-4" />}
                                         </div>
                                         <Label
-                                          htmlFor={`condition-${condition}-${index}`}
+                                          htmlFor={`condition-${conditionOption}-${index}`}
                                           className="text-xs font-medium cursor-pointer text-center"
                                         >
-                                          {condition
+                                          {conditionOption
                                             .split("-")
                                             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
                                             .join(" ")}
@@ -1041,7 +1079,7 @@ export default function SellMultipleItemsPage() {
                                 <div className="transition-all duration-300">
                                   <Label className="text-sm font-medium mb-2 block">
                                     Item Photos <span className="text-red-500">*</span>{" "}
-                                    <span className="text-sm font-normal text-muted-foreground">(at least 1)</span>
+                                    <span className="text-sm font-normal text-muted-foreground">(at least 3)</span>
                                   </Label>
 
                                   {/* File upload */}
@@ -1053,7 +1091,7 @@ export default function SellMultipleItemsPage() {
                                       <ImageIcon className="w-6 h-6 text-[#6366f1]/70" />
                                       <p className="font-medium text-sm text-[#6366f1]">Click to Upload Images</p>
                                       <p className="text-xs text-muted-foreground mt-1">
-                                        {item.photos.length} of 1 required (max 5)
+                                        {item.photos.length} of 3 required (max 10)
                                       </p>
                                     </div>
                                     <input
@@ -1117,11 +1155,11 @@ export default function SellMultipleItemsPage() {
                                     <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                                       <div
                                         className={`h-full ${
-                                          item.photos.length >= 1
+                                          item.photos.length >= 3
                                             ? "bg-green-500"
                                             : "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6]"
                                         }`}
-                                        style={{ width: `${Math.min(100, (item.photos.length / 1) * 100)}%` }}
+                                        style={{ width: `${Math.min(100, (item.photos.length / 3) * 100)}%` }}
                                       ></div>
                                     </div>
                                   </div>
@@ -1294,22 +1332,24 @@ export default function SellMultipleItemsPage() {
                         <div className="bg-[#f8fafc] dark:bg-gray-900 border border-[#e2e8f0] dark:border-gray-700 rounded-lg p-4 shadow-sm">
                           <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                             <DollarSign className="w-4 h-4 text-[#6366f1]" />
-                            <span>Items Summary ({items.length})</span>
+                            <span>Items Summary ({getItems().length})</span>
                           </h4>
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
                               <p className="text-sm text-muted-foreground">
-                                <span className="font-medium text-foreground">Items:</span> {items.length} items
+                                <span className="font-medium text-foreground">Items:</span> {getItems().length} items
                               </p>
                               <p className="text-sm text-muted-foreground mt-1">
                                 <span className="font-medium text-foreground">Names:</span>{" "}
-                                {items.map((item) => item.name).join(", ")}
+                                {getItems()
+                                  .map((item) => item.name)
+                                  .join(", ")}
                               </p>
                             </div>
                             <div>
                               <p className="text-sm font-medium text-foreground mb-2">Item Details:</p>
                               <Accordion type="single" collapsible className="w-full">
-                                {items.map((item, index) => (
+                                {getItems().map((item, index) => (
                                   <AccordionItem key={item.id} value={`item-${index}`}>
                                     <AccordionTrigger className="text-sm hover:no-underline py-2">
                                       <span className="flex items-center gap-2">
@@ -1326,7 +1366,7 @@ export default function SellMultipleItemsPage() {
                                                 .split("-")
                                                 .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
                                                 .join(" ")
-                                            : ""}
+                                            : "Not specified"}
                                         </p>
                                         <p className="text-sm text-muted-foreground mt-1">
                                           <span className="font-medium text-foreground">Description:</span>{" "}

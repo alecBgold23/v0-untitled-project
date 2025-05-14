@@ -27,6 +27,9 @@ export function AIItemDescriptionButton({
       return
     }
 
+    // Prevent multiple clicks
+    if (isGenerating) return
+
     setIsGenerating(true)
     try {
       const response = await fetch("/api/generate-item-description", {
@@ -45,12 +48,14 @@ export function AIItemDescriptionButton({
       if (response.ok && data.description) {
         onDescriptionGenerated(data.description)
       } else {
+        console.error("Error response:", data)
         alert(data.error || "Failed to generate description. Please try again.")
       }
     } catch (error) {
       console.error("Error generating description:", error)
       alert("An error occurred while generating the description. Please try again.")
     } finally {
+      // Ensure we always set isGenerating to false when done
       setIsGenerating(false)
     }
   }
