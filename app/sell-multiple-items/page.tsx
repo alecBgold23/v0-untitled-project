@@ -27,12 +27,13 @@ import {
   Wand2,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
-import { sendConfirmationEmail } from "../actions/send-confirmation-email"
 import { useToast } from "@/hooks/use-toast"
 import AddressAutocomplete from "@/components/address-autocomplete"
 import PhoneVerification from "@/components/phone-verification"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { submitMultipleItemsToSupabase } from "../actions/submit-multiple-items"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function SellMultipleItemsPage() {
   const { toast } = useToast()
@@ -454,11 +455,11 @@ export default function SellMultipleItemsPage() {
         const formattedPhone = formatPhoneForApi(phone)
         console.log("Phone number for verification:", formattedPhone)
 
-        // Check if we're in demo mode
-        if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
-          console.log("Demo mode enabled - skipping real verification")
+        // Check if we're in demo mode or should skip verification
+        if (process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.NEXT_PUBLIC_SKIP_SMS_VERIFICATION === "true") {
+          console.log("Demo mode or skip verification enabled - proceeding directly to submission")
           // Skip verification in demo mode
-          completeFormSubmission()
+          await completeFormSubmission()
         } else {
           // Start phone verification process
           setShowVerification(true)
@@ -495,53 +496,68 @@ export default function SellMultipleItemsPage() {
         pickupDate,
       })
 
-      // Send confirmation email with multiple items
-      const emailResult = await sendConfirmationEmail({
+      // Format items for submission
+      const formattedItems = getItems().map((item) => ({
+        name: item.name,
+        description: item.description,
+        condition: item.condition,
+        issues: item.issues,
+        photos: item.photos.map((photo) => ({
+          name: photo.name,
+          type: photo.type,
+          size: photo.size,
+        })),
+      }))
+
+      // Submit to Supabase
+      const result = await submitMultipleItemsToSupabase(formattedItems, {
         fullName,
         email,
-        itemName: `Multiple Items (${getItems().length})`,
-        itemCondition: "Multiple",
-        itemDescription: getItems()
-          .map((item) => `${item.name}: ${item.description}`)
-          .join(" | "),
-        itemIssues: getItems()
-          .map((item) => `${item.name}: ${item.issues}`)
-          .join(" | "),
         phone,
         address,
         pickupDate,
       })
 
-      console.log("Email result:", emailResult)
+      console.log("Submission result:", result)
 
-      if (!emailResult.success) {
-        toast({
-          title: "Email Notification",
-          description:
-            "Your form was submitted, but there was an issue sending the confirmation email. We'll contact you soon.",
-          variant: "default",
+      if (!result.success) {
+        setSubmitResult({
+          success: false,
+          message: result.message || "Failed to submit items. Please try again.",
         })
+        setIsSubmitting(false)
+
+        toast({
+          title: "Error",
+          description: result.message || "There was a problem submitting your form. Please try again.",
+          variant: "destructive",
+        })
+
+        return
       }
 
-      // In a real implementation, you would send this to your backend
-      // For now, we'll simulate a successful submission
-      setTimeout(() => {
-        setFormSubmitted(true)
-        // Scroll to top after submission is successful
-        setTimeout(scrollToTop, 50)
-        setIsSubmitting(false)
-      }, 1500)
+      // Set form as submitted
+      setFormSubmitted(true)
+      // Scroll to top after submission is successful
+      setTimeout(scrollToTop, 50)
+      setIsSubmitting(false)
+
+      toast({
+        title: "Success!",
+        description: "Your items have been submitted successfully. We'll contact you soon.",
+        variant: "default",
+      })
     } catch (error) {
       console.error("Error submitting form:", error)
       setSubmitResult({
         success: false,
-        message: "An unexpected error occurred. Please try again later.",
+        message: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}`,
       })
       setIsSubmitting(false)
 
       toast({
         title: "Error",
-        description: "There was a problem submitting your form. Please try again.",
+        description: `There was a problem submitting your form: ${error instanceof Error ? error.message : "Please try again."}`,
         variant: "destructive",
       })
     }
@@ -1303,7 +1319,11 @@ export default function SellMultipleItemsPage() {
                           name="pickup_date"
                           type="date"
                           value={pickupDate}
-                          onChange={(e) => setPickupDate(e.target.value)}
+                          onChange={(e) => {
+                            setPickupDate(e.target.value)
+                            // Blur the input to make the calendar disappear
+                            e.target.blur()
+                          }}
                           className="flex h-10 w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
                           required
                         />
@@ -1321,6 +1341,35 @@ export default function SellMultipleItemsPage() {
                           placeholder="Start typing your address..."
                         />
                       </div>
+
+                      {/* Terms and conditions checkbox */}
+                      <div className="flex items-start space-x-2 mt-4">
+                        <Checkbox
+                          id="terms"
+                          checked={termsAccepted}
+                          onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                        />
+                        <div className="grid gap-1.5 leading-none">
+                          <label
+                            htmlFor="terms"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            Accept terms and conditions <span className="text-red-500">*</span>
+                          </label>
+                          <p className="text-xs text-muted-foreground">
+                            By checking this box, you agree to our{" "}
+                            <Link href="/terms" className="text-[#6366f1] hover:underline">
+                              Terms of Service
+                            </Link>{" "}
+                            and{" "}
+                            <Link href="/privacy-policy" className="text-[#6366f1] hover:underline">
+                              Privacy Policy
+                            </Link>
+                            .
+                          </p>
+                        </div>
+                      </div>
+                      {formErrors.terms && <ErrorMessage message={formErrors.terms} />}
 
                       {/* Show items summary in step 2 */}
                       <div className="transition-all duration-300">
