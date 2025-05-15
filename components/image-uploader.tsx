@@ -1,136 +1,79 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
+
 import type React from "react"
 
 import { useState } from "react"
-import { uploadImage } from "@/app/actions/upload-image"
-import { Button } from "@/components/ui/button"
-import { Loader2, Upload, AlertCircle } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ImageIcon } from "lucide-react"
 
 interface ImageUploaderProps {
   onImageUploaded: (url: string, id?: string) => void
-  maxSizeMB?: number
+  maxImages?: number
   allowedTypes?: string[]
   className?: string
 }
 
 export default function ImageUploader({
   onImageUploaded,
-  maxSizeMB = 5,
+  maxImages = 5,
   allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"],
   className = "",
 }: ImageUploaderProps) {
-  const [isUploading, setIsUploading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [progress, setProgress] = useState(0)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
-  const maxSizeBytes = maxSizeMB * 1024 * 1024
-
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     if (!allowedTypes.includes(file.type)) {
-      setError(`Invalid file type. Allowed types: ${allowedTypes.join(", ")}`)
+      alert(`Invalid file type: ${file.name}. Only ${allowedTypes.join(", ")} are allowed.`)
       return
     }
 
-    // Validate file size
-    if (file.size > maxSizeBytes) {
-      setError(`File size exceeds the maximum allowed size of ${maxSizeMB}MB`)
+    setSelectedFile(file)
+  }
+
+  const handleUpload = () => {
+    if (!selectedFile) {
+      alert("Please select a file first")
       return
     }
 
-    setIsUploading(true)
-    setError(null)
-    setProgress(10) // Start progress
+    // Simulate upload and return a placeholder URL
+    const placeholderUrl = "/placeholder.svg"
+    onImageUploaded(placeholderUrl, "demo-id")
 
-    try {
-      // Simulate progress (since we don't have real progress from the server action)
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          const newProgress = prev + Math.random() * 10
-          return newProgress < 90 ? newProgress : prev
-        })
-      }, 300)
+    // Reset the file input
+    const fileInput = document.getElementById("file-input") as HTMLInputElement
+    if (fileInput) fileInput.value = ""
 
-      // Call the server action
-      const result = await uploadImage(file)
-
-      clearInterval(progressInterval)
-      setProgress(100)
-
-      if (result.error) {
-        setError(result.error)
-      } else if (result.url) {
-        onImageUploaded(result.url, result.id || undefined)
-      } else {
-        setError("Failed to upload image. Please try again.")
-      }
-    } catch (err) {
-      setError("An unexpected error occurred. Please try again.")
-      console.error(err)
-    } finally {
-      setIsUploading(false)
-      // Reset the input value to allow uploading the same file again
-      event.target.value = ""
-      // Reset progress after a delay
-      setTimeout(() => setProgress(0), 1000)
-    }
+    setSelectedFile(null)
   }
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="flex items-center gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => document.getElementById("file-upload")?.click()}
-          disabled={isUploading}
-          className="relative overflow-hidden"
-        >
-          {isUploading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Image
-            </>
-          )}
-        </Button>
-        <input
-          id="file-upload"
-          type="file"
-          accept={allowedTypes.join(",")}
-          onChange={handleFileChange}
-          className="hidden"
-        />
-
-        {isUploading && (
-          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-600 transition-all duration-300 ease-in-out"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-        )}
+      <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors duration-200 border-blue-300 hover:border-blue-500 bg-muted/50">
+        <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" id="file-input" />
+        <div className="flex flex-col items-center justify-center">
+          <ImageIcon className="w-6 h-6 text-blue-500" />
+          <p className="font-medium text-sm text-blue-500">Click to Upload Image</p>
+        </div>
       </div>
 
-      <p className="text-xs text-gray-500">
-        Max file size: {maxSizeMB}MB. Allowed types: {allowedTypes.map((type) => type.split("/")[1]).join(", ")}
-      </p>
+      {selectedFile && (
+        <div className="relative">
+          <img
+            src={URL.createObjectURL(selectedFile) || "/placeholder.svg"}
+            alt="Uploaded"
+            className="w-full h-32 object-cover rounded-md"
+          />
+        </div>
+      )}
+
+      <Button onClick={handleUpload} disabled={!selectedFile} className="w-full">
+        Upload Image
+      </Button>
     </div>
   )
 }

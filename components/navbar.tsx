@@ -130,6 +130,14 @@ export default function Navbar() {
                     <Link href="/profile">Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => logout()}>Sign out</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Tools</DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link href="/tools/item-identifier">Item Identifier</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/tools/description-generator">Description Generator</Link>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

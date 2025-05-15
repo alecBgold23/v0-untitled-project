@@ -23,7 +23,6 @@ import {
   Check,
   X,
   ImageIcon,
-  Wand2,
   DollarSign,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
@@ -32,6 +31,7 @@ import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
 import { EnvDebug } from "@/components/env-debug"
 import { submitSellItemToSupabase } from "../actions/submit-sell-item"
+import { AIDescriptionButton } from "@/components/ai-description-button"
 
 // Helper function to format phone number to E.164
 function formatToE164(phone: string): string {
@@ -59,23 +59,6 @@ function formatToE164(phone: string): string {
   return cleaned
 }
 
-// Generate a simple description based on item name
-function generateLocalDescription(itemName: string): string {
-  const itemNameLower = itemName.toLowerCase().trim()
-
-  // Check for common electronics
-  if (itemNameLower.includes("iphone") || itemNameLower.includes("phone")) {
-    return "This smartphone is in excellent condition with minimal signs of use. The screen is free from cracks or scratches, and all buttons and features work perfectly. Battery health is good, holding a charge throughout the day."
-  }
-
-  if (itemNameLower.includes("laptop") || itemNameLower.includes("macbook")) {
-    return "This laptop is in great working condition. The screen displays clear, vibrant images with no dead pixels. The keyboard and trackpad respond perfectly, and all ports are fully functional. Battery still holds a good charge."
-  }
-
-  // Generic suggestion for other items
-  return `This ${itemName} is in excellent condition and fully functional. It shows minimal signs of previous use and has been well-maintained. All features and functions work as intended.`
-}
-
 export default function SellItemPage() {
   const { toast } = useToast()
   const [formStep, setFormStep] = useState(1)
@@ -96,11 +79,6 @@ export default function SellItemPage() {
   const [address, setAddress] = useState("")
   const [pickupDate, setPickupDate] = useState("")
   const [termsAccepted, setTermsAccepted] = useState(false)
-
-  // Smart description states
-  const [nameSuggestion, setNameSuggestion] = useState("")
-  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false)
-  const [suggestionError, setSuggestionError] = useState(false)
 
   // Refs
   const fileInputRef = useRef(null)
@@ -138,51 +116,6 @@ export default function SellItemPage() {
   const [step1Valid, setStep1Valid] = useState(false)
   const [step2Valid, setStep2Valid] = useState(false)
   const [step3Valid, setStep3Valid] = useState(false)
-
-  // Fetch name suggestion when user types
-  useEffect(() => {
-    if (itemName.trim().length < 3) {
-      setNameSuggestion("")
-      setSuggestionError(false)
-      return
-    }
-
-    const timeout = setTimeout(() => {
-      fetchNameSuggestion(itemName)
-    }, 800) // wait for user to stop typing
-
-    return () => clearTimeout(timeout)
-  }, [itemName])
-
-  const fetchNameSuggestion = async (text: string) => {
-    setIsLoadingSuggestion(true)
-    setSuggestionError(false)
-
-    try {
-      // Generate a local suggestion without making an API call
-      const localSuggestion = generateLocalDescription(text)
-      setNameSuggestion(localSuggestion)
-    } catch (err) {
-      console.error("Error generating suggestion:", err)
-      setSuggestionError(true)
-      // Still provide a basic suggestion even if there's an error
-      setNameSuggestion(`This ${text} is in excellent condition and ready for a new home.`)
-    } finally {
-      setIsLoadingSuggestion(false)
-    }
-  }
-
-  const applySuggestion = () => {
-    if (nameSuggestion) {
-      setItemDescription(nameSuggestion)
-      setNameSuggestion("")
-      toast({
-        title: "Suggestion Applied",
-        description: "The enhanced description has been applied.",
-        variant: "default",
-      })
-    }
-  }
 
   const validateStep1 = () => {
     const errors = {}
@@ -612,30 +545,6 @@ export default function SellItemPage() {
                           required
                         />
                         {formErrors.itemName && <ErrorMessage message={formErrors.itemName} />}
-
-                        {/* Smart name suggestion */}
-                        {isLoadingSuggestion && (
-                          <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            <span>Generating suggestion...</span>
-                          </div>
-                        )}
-
-                        {nameSuggestion && (
-                          <div
-                            onClick={applySuggestion}
-                            className="mt-3 p-3 bg-[#6366f1]/5 border border-[#6366f1]/20 rounded-lg cursor-pointer hover:bg-[#6366f1]/10 transition-colors duration-200"
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              <Wand2 className="h-4 w-4 text-[#6366f1]" />
-                              <span className="text-sm font-medium text-[#6366f1]">Suggested Description</span>
-                              <span className="text-xs bg-[#6366f1]/10 text-[#6366f1] px-2 py-0.5 rounded-full">
-                                Click to Apply
-                              </span>
-                            </div>
-                            <p className="text-sm text-muted-foreground">{nameSuggestion}</p>
-                          </div>
-                        )}
                       </div>
 
                       <div className="transition-all duration-300">
@@ -645,18 +554,27 @@ export default function SellItemPage() {
                           </Label>
                           <div className="text-xs text-muted-foreground">{itemDescription.length} characters</div>
                         </div>
-                        <Textarea
-                          id="item-description"
-                          name="description"
-                          value={itemDescription}
-                          onChange={(e) => setItemDescription(e.target.value)}
-                          placeholder="Describe your item in detail including brand, model, size, color, etc."
-                          rows={3}
-                          className={`w-full border ${
-                            formErrors.itemDescription ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
-                          } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 relative z-10`}
-                          required
-                        />
+                        <div className="relative">
+                          <Textarea
+                            id="item-description"
+                            name="description"
+                            value={itemDescription}
+                            onChange={(e) => setItemDescription(e.target.value)}
+                            placeholder="Describe your item in detail including brand, model, size, color, etc."
+                            rows={3}
+                            className={`w-full border ${
+                              formErrors.itemDescription ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
+                            } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 relative z-10`}
+                            required
+                          />
+                          <div className="absolute right-2 bottom-2">
+                            <AIDescriptionButton
+                              itemName={itemName}
+                              condition={itemCondition || "used"}
+                              onDescriptionGenerated={(desc) => setItemDescription(desc)}
+                            />
+                          </div>
+                        </div>
                         {formErrors.itemDescription && <ErrorMessage message={formErrors.itemDescription} />}
                       </div>
 
@@ -847,14 +765,14 @@ export default function SellItemPage() {
                                           console.error(`Error loading image ${index}:`, e)
                                           e.currentTarget.style.display = "none"
                                           e.currentTarget.parentElement.innerHTML = `
-                          <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-gray-400">
-                              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                              <circle cx="9" cy="9" r="2"></circle>
-                              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
-                            </svg>
-                          </div>
-                        `
+                         <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-gray-400">
+                             <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
+                             <circle cx="9" cy="9" r="2"></circle>
+                             <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                           </svg>
+                         </div>
+                       `
                                         }}
                                       />
                                     ) : (

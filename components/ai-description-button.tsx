@@ -2,24 +2,28 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Wand2, Loader2 } from "lucide-react"
+import { Loader2, Wand2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface AIDescriptionButtonProps {
-  prompt: string
-  onDescriptionCreated: (description: string) => void
-  disabled?: boolean
+  itemName: string
+  condition?: string
+  onDescriptionGenerated: (description: string) => void
 }
 
-export function AIDescriptionButton({ prompt, onDescriptionCreated, disabled = false }: AIDescriptionButtonProps) {
-  const [isGenerating, setIsGenerating] = useState(false)
+export function AIDescriptionButton({
+  itemName,
+  condition = "used",
+  onDescriptionGenerated,
+}: AIDescriptionButtonProps) {
   const { toast } = useToast()
+  const [isGenerating, setIsGenerating] = useState(false)
 
-  const createDescription = async () => {
-    if (!prompt) {
+  const generateDescription = async () => {
+    if (!itemName.trim()) {
       toast({
-        title: "Missing information",
-        description: "Please provide a prompt first.",
+        title: "Error",
+        description: "Please enter an item name first",
         variant: "destructive",
       })
       return
@@ -28,36 +32,52 @@ export function AIDescriptionButton({ prompt, onDescriptionCreated, disabled = f
     setIsGenerating(true)
 
     try {
-      const response = await fetch("/api/generate-description", {
+      const response = await fetch("/api/generate-ebay-description", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt,
+          itemName: itemName.trim(),
+          condition,
         }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to generate description")
-      }
-
       const data = await response.json()
 
-      if (data.description) {
-        onDescriptionCreated(data.description)
-        toast({
-          title: "Description generated",
-          description: "AI-generated description has been applied.",
-        })
-      } else {
-        throw new Error("No description returned")
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to generate description")
       }
-    } catch (error) {
-      console.error("Error generating description:", error)
+
+      // Extract just the description part without the markdown formatting
+      let cleanDescription = data.description
+
+      // Remove markdown headers
+      cleanDescription = cleanDescription.replace(/^#+ .*$/gm, "")
+
+      // Remove markdown bullet points
+      cleanDescription = cleanDescription.replace(/^\* /gm, "- ")
+
+      // Remove section headers (##)
+      cleanDescription = cleanDescription.replace(/^## .*$/gm, "")
+
+      // Clean up extra newlines
+      cleanDescription = cleanDescription.replace(/\n{3,}/g, "\n\n")
+
+      // Trim whitespace
+      cleanDescription = cleanDescription.trim()
+
+      onDescriptionGenerated(cleanDescription)
+
       toast({
-        title: "Generation failed",
-        description: "Unable to generate a description. Please try again later.",
+        title: "Success",
+        description: "eBay-style description generated successfully",
+      })
+    } catch (err) {
+      console.error("Error generating description:", err)
+      toast({
+        title: "Error",
+        description: err.message || "Failed to generate description",
         variant: "destructive",
       })
     } finally {
@@ -68,23 +88,14 @@ export function AIDescriptionButton({ prompt, onDescriptionCreated, disabled = f
   return (
     <Button
       type="button"
-      variant="outline"
       size="sm"
-      onClick={createDescription}
-      disabled={disabled || isGenerating}
-      className="flex items-center gap-1 text-xs"
+      variant="outline"
+      className="flex items-center gap-1"
+      onClick={generateDescription}
+      disabled={isGenerating || !itemName.trim()}
     >
-      {isGenerating ? (
-        <>
-          <Loader2 className="h-3 w-3 animate-spin" />
-          <span>Creating...</span>
-        </>
-      ) : (
-        <>
-          <Wand2 className="h-3 w-3" />
-          <span>Generate Description</span>
-        </>
-      )}
+      {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+      <span className="text-xs">Generate eBay Description</span>
     </Button>
   )
 }

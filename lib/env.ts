@@ -15,11 +15,9 @@ export function getEnvVariable(name: string, fallback = ""): string {
   return hasEnvVariable(name) ? process.env[name]! : fallback
 }
 
-/**
- * Check if OpenAI API key is configured
- */
+// Check if OpenAI API key is available
 export function hasOpenAIKey(): boolean {
-  return hasEnvVariable("OPENAI_API_KEY")
+  return !!process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.length > 0
 }
 
 /**

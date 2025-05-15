@@ -1,42 +1,75 @@
+import { OpenAI } from "openai"
 import { NextResponse } from "next/server"
-import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
 
-export async function POST(request: Request) {
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
+
+export async function POST(req: Request) {
   try {
-    const { text } = await request.json()
+    const { title, condition, extraDetails } = await req.json()
 
-    if (!text || typeof text !== "string") {
-      return NextResponse.json({ error: "Invalid input. Please provide a text field." }, { status: 400 })
+    if (!title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 })
     }
 
     const prompt = `
-    You are a product identification and description expert specializing in marketplace listings.
-    
-    Your task is to:
-    1. Identify the EXACT model, make, and specifications of the item based on the basic information provided
-    2. Create a detailed, accurate description of the specific item with its exact features and specifications
-    3. Include technical details that would be relevant to a buyer
-    4. Maintain a professional, informative tone
-    
-    For example, if the input is "oculus", you should identify it as something like "Oculus Meta Quest 3S" and provide specific details about that exact model, including storage capacity, resolution, controllers, etc.
-    
-    Only include information that would be accurate for the specific model you've identified. Do not make up features that don't exist for that model.
-    
-    Basic item information: ${text}
-    
-    Detailed identification and description:
-    `
+Create a professional eBay-style description for the following item:
 
-    const { text: improvedText } = await generateText({
-      model: openai("gpt-4o"),
-      prompt,
-      maxTokens: 500,
+Item: ${title}
+Condition: ${condition || "Not specified"}
+Extra Details: ${extraDetails || "None provided"}
+
+The description should:
+1. Be detailed and professional
+2. Highlight key features and specifications
+3. Mention the condition accurately
+4. Include any relevant measurements or technical details
+5. Be formatted in a clean, easy-to-read style with bullet points where appropriate
+6. Include a section about shipping and returns policy
+7. Be optimized for eBay search
+
+Please provide ONLY the description text.
+`
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
     })
 
-    return NextResponse.json({ result: improvedText.trim() })
-  } catch (error) {
-    console.error("Error in description-helper API:", error)
-    return NextResponse.json({ error: "Failed to identify and describe item" }, { status: 500 })
+    const description = response.choices[0].message.content?.trim()
+    return NextResponse.json({ description })
+  } catch (error: any) {
+    console.error("OpenAI error:", error)
+
+    // Fallback description if API fails
+    const fallbackDescription = generateFallbackDescription()
+    return NextResponse.json({
+      description: fallbackDescription,
+      error: "Failed to generate description with AI. Using fallback description.",
+    })
   }
+}
+
+function generateFallbackDescription(): string {
+  return `Thank you for your interest in this item!
+
+ITEM DESCRIPTION:
+This is a quality item in good condition. Please refer to the photos for a detailed look at the actual item you will receive.
+
+FEATURES:
+• Quality construction
+• Reliable performance
+• Great value
+
+CONDITION:
+This item is in good used condition with normal signs of wear. All functions work as they should.
+
+SHIPPING & RETURNS:
+• Fast shipping within 1-2 business days
+• Carefully packaged to ensure safe delivery
+• Returns accepted within 30 days
+
+Please feel free to ask any questions before purchasing!`
 }
