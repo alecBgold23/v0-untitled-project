@@ -76,6 +76,11 @@ export const toolsNavItems = [
     href: "/tools/description-generator",
     description: "Create compelling descriptions with AI",
   },
+  {
+    title: "Item Identifier",
+    href: "/tools/item-identifier",
+    description: "Identify exact models and specifications from basic descriptions",
+  },
 ]
 
 export function useAppNavigation() {

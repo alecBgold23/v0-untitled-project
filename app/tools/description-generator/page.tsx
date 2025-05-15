@@ -1,162 +1,204 @@
 "use client"
 
 import { useState } from "react"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import { Loader2, Sparkles, Copy, Info } from "lucide-react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { AIItemDescriptionButton } from "@/components/ai-item-description-button"
+import { Copy, Check, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function DescriptionGeneratorPage() {
-  const [prompt, setPrompt] = useState("")
+  const [itemName, setItemName] = useState("")
+  const [itemCondition, setItemCondition] = useState("excellent")
   const [description, setDescription] = useState("")
-  const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const { toast } = useToast()
 
-  const createDescription = async () => {
-    if (!prompt.trim()) {
+  const handleCopy = () => {
+    if (!description) {
       toast({
-        title: "Input required",
-        description: "Please enter some basic item information to identify and describe it.",
+        title: "Nothing to copy",
+        description: "Generate a description first.",
         variant: "destructive",
       })
       return
     }
 
-    setLoading(true)
-    try {
-      const res = await fetch("/api/description-helper", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text: prompt }),
-      })
-
-      const data = await res.json()
-
-      if (res.ok) {
-        setDescription(data.result)
-        toast({
-          title: "Item identified and described",
-          description: "Your item has been identified and described with specific details.",
-        })
-      } else {
-        toast({
-          title: "Generation failed",
-          description: data.error || "Failed to identify and describe your item. Please try again with more details.",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      console.error("Error generating description:", error)
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again later.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const copyToClipboard = () => {
     navigator.clipboard.writeText(description)
     setCopied(true)
     toast({
-      title: "Copied to clipboard",
-      description: "The detailed description has been copied to your clipboard.",
+      title: "Copied!",
+      description: "Description copied to clipboard.",
     })
-    setTimeout(() => setCopied(false), 2000)
+
+    setTimeout(() => {
+      setCopied(false)
+    }, 2000)
+  }
+
+  const handleReset = () => {
+    setDescription("")
+    toast({
+      title: "Reset",
+      description: "Description has been cleared.",
+    })
   }
 
   return (
-    <div className="container mx-auto py-12 px-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">AI Item Identifier & Description Generator</h1>
+    <div className="container mx-auto py-10 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold tracking-tight mb-2">eBay Description Generator</h1>
           <p className="text-muted-foreground">
-            Enter basic information about your item, and our AI will identify the exact model and create a detailed,
-            accurate description.
+            Create professional eBay-style descriptions for your items with AI assistance
           </p>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6 flex items-start gap-3">
-          <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-sm text-blue-800 dark:text-blue-300">
-              <span className="font-medium">How it works:</span> If you enter "oculus" our AI will identify it as an
-              "Oculus Meta Quest 3S" and generate a detailed description with accurate specifications, features, and
-              condition information.
-            </p>
-          </div>
-        </div>
+        <Tabs defaultValue="generator" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="generator">Description Generator</TabsTrigger>
+            <TabsTrigger value="about">About This Tool</TabsTrigger>
+          </TabsList>
 
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Basic Item Information</CardTitle>
-            <CardDescription>Enter what you know about the item (brand, type, etc.)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Example: 'Samsung TV from 2020' or 'iPhone with cracked screen' or 'Oculus headset'"
-              rows={4}
-              className="mb-4 resize-none"
-            />
-            <div className="flex justify-between items-center">
-              <div className="text-xs text-muted-foreground">{prompt.length} characters</div>
-              <Button
-                onClick={createDescription}
-                disabled={loading || !prompt.trim()}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing & Describing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Analyze & Describe Item
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          <TabsContent value="generator">
+            <Card>
+              <CardHeader>
+                <CardTitle>Generate eBay Description</CardTitle>
+                <CardDescription>
+                  Enter your item details below and click "Create eBay Description" to generate a professional listing
+                  description.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="item-name">Item Name</Label>
+                  <Input
+                    id="item-name"
+                    placeholder="e.g., Sony PlayStation 5 Console"
+                    value={itemName}
+                    onChange={(e) => setItemName(e.target.value)}
+                  />
+                </div>
 
-        {description && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Detailed Item Description</CardTitle>
-              <CardDescription>Your item has been identified with specific details</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-muted/50 rounded-md p-4 whitespace-pre-line">{description}</div>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button variant="outline" onClick={copyToClipboard} className="gap-2">
-                {copied ? "Copied!" : "Copy to Clipboard"}
-                <Copy className="h-4 w-4" />
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
+                <div className="space-y-2">
+                  <Label htmlFor="condition">Item Condition</Label>
+                  <Select value={itemCondition} onValueChange={setItemCondition}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select condition" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="like-new">Like New</SelectItem>
+                      <SelectItem value="excellent">Excellent</SelectItem>
+                      <SelectItem value="good">Good</SelectItem>
+                      <SelectItem value="fair">Fair</SelectItem>
+                      <SelectItem value="poor">Poor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <div className="mt-8 bg-muted/30 rounded-lg p-6 border border-border">
-          <h2 className="text-xl font-semibold mb-4">Tips for Better Results</h2>
-          <ul className="space-y-2 list-disc pl-5">
-            <li>Include the brand name if you know it (e.g., "Sony", "Apple")</li>
-            <li>Mention the type of item (e.g., "TV", "laptop", "headphones")</li>
-            <li>Include any visible model numbers or identifying features</li>
-            <li>Mention the condition (e.g., "like new", "scratched", "missing parts")</li>
-            <li>Include the year of purchase if known</li>
-          </ul>
-        </div>
+                <div className="flex justify-end">
+                  <AIItemDescriptionButton
+                    itemName={itemName}
+                    itemCondition={itemCondition}
+                    onDescriptionCreated={setDescription}
+                    disabled={!itemName}
+                  />
+                </div>
+
+                <div className="space-y-2 pt-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="description">Generated Description</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopy}
+                        disabled={!description}
+                        className="flex items-center gap-1 text-xs"
+                      >
+                        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        <span>{copied ? "Copied" : "Copy"}</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleReset}
+                        disabled={!description}
+                        className="flex items-center gap-1 text-xs"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                        <span>Reset</span>
+                      </Button>
+                    </div>
+                  </div>
+                  <Textarea
+                    id="description"
+                    placeholder="Your generated description will appear here..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={12}
+                    className="font-mono text-sm"
+                  />
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {process.env.OPENAI_API_KEY
+                    ? "Using OpenAI for generation"
+                    : "Using demo mode (OpenAI API key not configured)"}
+                </p>
+                <Button variant="default" onClick={handleCopy} disabled={!description}>
+                  Copy to Clipboard
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="about">
+            <Card>
+              <CardHeader>
+                <CardTitle>About the eBay Description Generator</CardTitle>
+                <CardDescription>How this tool works and tips for getting the best results</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium mb-2">How It Works</h3>
+                  <p className="text-muted-foreground mb-4">
+                    This tool uses AI to generate professional eBay-style descriptions for your items. Simply enter the
+                    item name and select its condition, and the AI will create a detailed, well-formatted description
+                    ready to use in your eBay listings.
+                  </p>
+
+                  <h3 className="text-lg font-medium mb-2">Tips for Best Results</h3>
+                  <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                    <li>
+                      Be specific with your item name (e.g., "Sony WH-1000XM4 Wireless Headphones" instead of just
+                      "Headphones")
+                    </li>
+                    <li>Select the most accurate condition category for your item</li>
+                    <li>Edit the generated description to add specific details about your particular item</li>
+                    <li>Add your own photos and specific measurements that the AI can't know about</li>
+                    <li>Review the description for accuracy before posting to eBay</li>
+                  </ul>
+                </div>
+
+                <div className="bg-muted p-4 rounded-lg">
+                  <h3 className="text-lg font-medium mb-2">Demo Mode</h3>
+                  <p className="text-muted-foreground">
+                    If you haven't configured an OpenAI API key, the tool will operate in demo mode, providing
+                    pre-written templates based on your inputs. For more customized and dynamic descriptions, add your
+                    OpenAI API key to the environment variables.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

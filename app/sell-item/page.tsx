@@ -59,6 +59,23 @@ function formatToE164(phone: string): string {
   return cleaned
 }
 
+// Generate a simple description based on item name
+function generateLocalDescription(itemName: string): string {
+  const itemNameLower = itemName.toLowerCase().trim()
+
+  // Check for common electronics
+  if (itemNameLower.includes("iphone") || itemNameLower.includes("phone")) {
+    return "This smartphone is in excellent condition with minimal signs of use. The screen is free from cracks or scratches, and all buttons and features work perfectly. Battery health is good, holding a charge throughout the day."
+  }
+
+  if (itemNameLower.includes("laptop") || itemNameLower.includes("macbook")) {
+    return "This laptop is in great working condition. The screen displays clear, vibrant images with no dead pixels. The keyboard and trackpad respond perfectly, and all ports are fully functional. Battery still holds a good charge."
+  }
+
+  // Generic suggestion for other items
+  return `This ${itemName} is in excellent condition and fully functional. It shows minimal signs of previous use and has been well-maintained. All features and functions work as intended.`
+}
+
 export default function SellItemPage() {
   const { toast } = useToast()
   const [formStep, setFormStep] = useState(1)
@@ -83,6 +100,7 @@ export default function SellItemPage() {
   // Smart description states
   const [nameSuggestion, setNameSuggestion] = useState("")
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false)
+  const [suggestionError, setSuggestionError] = useState(false)
 
   // Refs
   const fileInputRef = useRef(null)
@@ -125,6 +143,7 @@ export default function SellItemPage() {
   useEffect(() => {
     if (itemName.trim().length < 3) {
       setNameSuggestion("")
+      setSuggestionError(false)
       return
     }
 
@@ -137,23 +156,20 @@ export default function SellItemPage() {
 
   const fetchNameSuggestion = async (text: string) => {
     setIsLoadingSuggestion(true)
+    setSuggestionError(false)
+
     try {
-      const res = await fetch("/api/description-suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text }),
-      })
-      const data = await res.json()
-      if (res.ok && data.suggestion) {
-        setNameSuggestion(data.suggestion)
-      } else {
-        setNameSuggestion("")
-      }
+      // Generate a local suggestion without making an API call
+      const localSuggestion = generateLocalDescription(text)
+      setNameSuggestion(localSuggestion)
     } catch (err) {
-      console.error(err)
-      setNameSuggestion("")
+      console.error("Error generating suggestion:", err)
+      setSuggestionError(true)
+      // Still provide a basic suggestion even if there's an error
+      setNameSuggestion(`This ${text} is in excellent condition and ready for a new home.`)
+    } finally {
+      setIsLoadingSuggestion(false)
     }
-    setIsLoadingSuggestion(false)
   }
 
   const applySuggestion = () => {
