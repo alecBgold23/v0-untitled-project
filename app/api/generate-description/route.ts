@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model: "text-davinci-003",
-        prompt: `Write a compelling product description for: ${prompt}`,
+        prompt: `Create a compelling product description for: ${prompt}`,
         max_tokens: 100,
         temperature: 0.7,
       }),
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No description generated" }, { status: 500 })
     }
   } catch (error) {
-    console.error("Error generating description:", error)
-    return NextResponse.json({ error: "Failed to generate description. Please try again." }, { status: 500 })
+    console.error("Error creating description:", error)
+    return NextResponse.json({ error: "Failed to create description. Please try again." }, { status: 500 })
   }
 }

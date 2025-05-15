@@ -14,7 +14,7 @@ export default function DescriptionGeneratorPage() {
   const [copied, setCopied] = useState(false)
   const { toast } = useToast()
 
-  const generateDescription = async () => {
+  const createDescription = async () => {
     if (!prompt.trim()) {
       toast({
         title: "Input required",
@@ -109,19 +109,19 @@ export default function DescriptionGeneratorPage() {
             <div className="flex justify-between items-center">
               <div className="text-xs text-muted-foreground">{prompt.length} characters</div>
               <Button
-                onClick={generateDescription}
+                onClick={createDescription}
                 disabled={loading || !prompt.trim()}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
               >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Identifying & Describing...
+                    Analyzing & Describing...
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Identify & Describe Item
+                    Analyze & Describe Item
                   </>
                 )}
               </Button>

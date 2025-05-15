@@ -19,7 +19,7 @@ export function AIDescriptionButton({
 }: AIDescriptionButtonProps) {
   const [isGenerating, setIsGenerating] = useState(false)
 
-  const generateDescription = async () => {
+  const createDescription = async () => {
     if (!inputText.trim()) {
       alert("Please enter some basic details about your item before generating a description.")
       return
@@ -53,13 +53,13 @@ export function AIDescriptionButton({
   return (
     <Button
       type="button"
-      onClick={generateDescription}
+      onClick={createDescription}
       disabled={disabled || isGenerating || !inputText.trim()}
       className={`flex items-center gap-2 ${className}`}
       variant="outline"
     >
       <Sparkles className="h-4 w-4" />
-      {isGenerating ? "Generating..." : "Enhance with AI"}
+      {isGenerating ? "Improving..." : "Improve with AI"}
     </Button>
   )
 }

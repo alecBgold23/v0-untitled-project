@@ -49,17 +49,23 @@ export default function SMSVerificationPage() {
   }
 
   const formatPhoneNumber = (phone) => {
-    // Basic formatting - ensure it has country code
-    if (phone.startsWith("+")) {
-      return phone
+    // Remove all non-digit characters except the leading +
+    const cleaned = phone.replace(/[^\d+]/g, "")
+
+    // Ensure it has country code
+    if (!cleaned.startsWith("+")) {
+      // US number formatting
+      if (cleaned.length === 10) {
+        return `+1${cleaned}`
+      } else if (cleaned.length === 11 && cleaned.startsWith("1")) {
+        return `+${cleaned}`
+      } else {
+        // Default to adding + for international format
+        return `+${cleaned}`
+      }
     }
 
-    // US number formatting
-    if (phone.length === 10) {
-      return `+1${phone}`
-    }
-
-    return phone
+    return cleaned
   }
 
   const handleVerificationComplete = () => {

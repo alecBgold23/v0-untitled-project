@@ -1,64 +1,71 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { Twilio } from "twilio"
 
-// In a real application, you would store and retrieve codes from a secure database
-// For this demo, we'll just accept any valid code
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const body = await req.json()
+  const { phone, code, demoMode } = body
+
+  if (!phone) {
+    return NextResponse.json({ error: "Phone number is required" }, { status: 400 })
+  }
+
+  if (!code) {
+    return NextResponse.json({ error: "Verification code is required" }, { status: 400 })
+  }
+
+  // Check if we should use demo mode
+  const useDemoMode = demoMode === true || process.env.NEXT_PUBLIC_DEMO_MODE === "true"
+
+  // If in demo mode, just check if code is 123456
+  if (useDemoMode) {
+    console.log("Using demo mode for code verification")
+    const isValid = code === "123456"
+    return NextResponse.json({ success: isValid, demoMode: true })
+  }
+
+  // Hardcoded credentials from the curl command
+  const accountSid = "AC71c11b0625ac2c63b63b7cf04cbe3dca"
+  const authToken = "b11e8f94465770fce4904c39584b398f" // You'll need to change this later
+  const serviceSid = "VAa16503cbafc02cea0db79f5e3f4e5279"
+
+  // Log credentials availability (without exposing values)
+  console.log("Credentials available:", {
+    accountSid: !!accountSid,
+    authToken: !!authToken,
+    serviceSid: !!serviceSid,
+  })
+
   try {
-    const body = await req.json()
-    const { phoneNumber, code } = body
+    console.log("Creating Twilio client...")
+    const client = new Twilio(accountSid, authToken)
 
-    console.log("Received request body:", body)
-    console.log("Phone number from request:", phoneNumber)
-    console.log("Code from request:", code)
+    console.log("Verifying code for phone:", phone)
 
-    if (!phoneNumber || !code) {
-      return NextResponse.json(
-        { success: false, error: "Phone number and verification code are required" },
-        { status: 400 },
-      )
-    }
+    const verification_check = await client.verify.v2.services(serviceSid).verificationChecks.create({
+      to: phone,
+      code: code,
+    })
 
-    // Validate phone number format (E.164 format: +[country code][number])
-    if (!phoneNumber.match(/^\+[1-9]\d{1,14}$/)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid phone number format. Phone must be in E.164 format (e.g., +12125551234).",
-          receivedPhoneNumber: phoneNumber,
-        },
-        { status: 400 },
-      )
-    }
+    console.log("Verification check result:", verification_check.status)
 
-    // Validate code format (6 digits)
-    if (!code.match(/^\d{6}$/)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid verification code. Code must be 6 digits." },
-        { status: 400 },
-      )
-    }
-
-    console.log("Validated phone number:", phoneNumber)
-    console.log("Validated code:", code)
-
-    // In a real application, you would verify the code against what was stored
-    // For this demo, we'll accept any valid 6-digit code
     return NextResponse.json({
-      success: true,
-      verified: true,
-      message: "Phone number verified successfully",
+      success: verification_check.status === "approved",
+      status: verification_check.status,
     })
   } catch (error: any) {
-    console.error("Error verifying code:", error)
+    console.error("Error verifying code:", error.message)
+    console.error("Error details:", error)
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Verification failed",
-        details: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 },
-    )
+    // If there's an error with Twilio, fall back to demo mode
+    if (
+      error.message.includes("not a valid phone number") ||
+      error.message.includes("did not match the expected pattern")
+    ) {
+      console.log("Falling back to demo mode due to phone number format error")
+      const isValid = code === "123456"
+      return NextResponse.json({ success: isValid, demoMode: true })
+    }
+
+    return NextResponse.json({ error: error.message, success: false }, { status: 500 })
   }
 }

@@ -22,30 +22,29 @@ const formatPhoneNumber = (input: string): string => {
   if (!input) return ""
 
   // Remove all non-digit characters except the leading +
-  const digits = input.replace(/[^\d+]/g, "")
+  const cleaned = input.replace(/[^\d+]/g, "")
 
   // If it doesn't start with +, assume it's a US number
-  if (!digits.startsWith("+")) {
+  if (!cleaned.startsWith("+")) {
     // If it's a 10-digit US number
-    if (digits.length === 10) {
-      return `+1${digits}`
+    if (cleaned.length === 10) {
+      return `+1${cleaned}`
     }
     // If it's an 11-digit number starting with 1 (US with country code)
-    else if (digits.length === 11 && digits.startsWith("1")) {
-      return `+${digits}`
+    else if (cleaned.length === 11 && cleaned.startsWith("1")) {
+      return `+${cleaned}`
     }
-    // For any other case, just add + prefix
+    // For any other case, add + prefix if missing
     else {
-      return `+${digits}`
+      return `+${cleaned}`
     }
   }
 
-  // If it already starts with +, ensure it's followed by digits only
-  return `+${digits.substring(1).replace(/\D/g, "")}`
+  return cleaned
 }
 
-// Simulation mode for testing when Twilio isn't set up
-const SIMULATION_MODE = true
+// Use real Twilio verification instead of simulation mode
+const SIMULATION_MODE = false
 
 export function SMSVerificationFlow({
   phoneNumber = "",
@@ -117,8 +116,15 @@ export function SMSVerificationFlow({
   }, [codeSent, timeLeft])
 
   const sendVerificationCode = async () => {
-    if (!phoneNumber) {
+    if (!formattedPhoneNumber) {
       setError("Phone number is required")
+      return
+    }
+
+    // Validate phone number format (E.164 format: +[country code][number])
+    if (!formattedPhoneNumber.match(/^\+[1-9]\d{1,14}$/)) {
+      console.error("Invalid phone format:", formattedPhoneNumber)
+      setError("Invalid phone number format. Please enter a valid phone number.")
       return
     }
 
@@ -126,51 +132,33 @@ export function SMSVerificationFlow({
     setError("")
 
     try {
-      console.log("Original phone number:", phoneNumber)
-      console.log("Formatted phone number for API:", formattedPhoneNumber)
+      console.log("Sending verification to formatted number:", formattedPhoneNumber)
 
-      if (SIMULATION_MODE) {
-        // Simulate sending a code
-        await new Promise((resolve) => setTimeout(resolve, 1500))
-        const code = "123456"
-        setSimulatedCode(code)
-        console.log("SIMULATION MODE: Verification code is", code)
+      // Real API call with better error handling
+      const response = await fetch("/api/send-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ phone: formattedPhoneNumber }),
+      })
 
-        setCodeSent(true)
-        setTimeLeft(60)
-        setProgress(100)
-        setResendDisabled(true)
+      const data = await response.json()
 
-        toast({
-          title: "Verification code sent (SIMULATION)",
-          description: `We've sent a verification code to ${displayPhone}. Use code: 123456`,
-        })
-      } else {
-        // Real API call
-        const response = await fetch("/api/send-code", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ phoneNumber: formattedPhoneNumber }),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok || data.success === false) {
-          throw new Error(data.error || "Failed to send verification code")
-        }
-
-        setCodeSent(true)
-        setTimeLeft(60)
-        setProgress(100)
-        setResendDisabled(true)
-
-        toast({
-          title: "Verification code sent",
-          description: `We've sent a verification code to ${displayPhone}`,
-        })
+      if (!response.ok) {
+        console.error("API error response:", data)
+        throw new Error(data.error || "Failed to send verification code")
       }
+
+      setCodeSent(true)
+      setTimeLeft(60)
+      setProgress(100)
+      setResendDisabled(true)
+
+      toast({
+        title: "Verification code sent",
+        description: `We've sent a verification code to ${displayPhone}`,
+      })
     } catch (err: any) {
       console.error("Error sending code:", err)
       setError(err.message || "Failed to send verification code")
@@ -181,6 +169,67 @@ export function SMSVerificationFlow({
       })
     } finally {
       setIsSending(false)
+    }
+  }
+
+  const handleCodeInputChange = (index: number, value: string) => {
+    // Only allow numbers
+    if (!/^\d*$/.test(value)) return
+
+    const newCodeInputs = [...codeInputs]
+
+    // Handle pasting a full code
+    if (value.length > 1) {
+      // User might be pasting the entire code
+      const pastedCode = value.slice(0, 6)
+      const codeArray = pastedCode.split("").slice(0, 6)
+
+      // Fill as many inputs as we have digits
+      for (let i = 0; i < codeArray.length && i < 6; i++) {
+        if (/^\d$/.test(codeArray[i])) {
+          newCodeInputs[i] = codeArray[i]
+        }
+      }
+
+      setCodeInputs(newCodeInputs)
+      setVerificationCode(newCodeInputs.join(""))
+
+      // Focus the next empty input or the last one
+      const nextEmptyIndex = newCodeInputs.findIndex((val) => val === "")
+      setFocusedInput(nextEmptyIndex !== -1 ? nextEmptyIndex : 5)
+
+      return
+    }
+
+    // Normal single digit input
+    newCodeInputs[index] = value
+    setCodeInputs(newCodeInputs)
+
+    // Auto-focus next input if this one is filled
+    if (value && index < 5) {
+      setFocusedInput(index + 1)
+    }
+
+    // Combine all inputs for the verification code
+    setVerificationCode(newCodeInputs.join(""))
+
+    // Clear error when typing
+    if (error) setError("")
+  }
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (!codeInputs[index] && index > 0) {
+        // If current input is empty and backspace is pressed, focus previous input
+        const newCodeInputs = [...codeInputs]
+        newCodeInputs[index - 1] = ""
+        setCodeInputs(newCodeInputs)
+        setFocusedInput(index - 1)
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      setFocusedInput(index - 1)
+    } else if (e.key === "ArrowRight" && index < 5) {
+      setFocusedInput(index + 1)
     }
   }
 
@@ -198,60 +247,43 @@ export function SMSVerificationFlow({
 
     try {
       console.log("Verifying code for phone:", formattedPhoneNumber)
-      console.log("Code being verified:", combinedCode)
 
-      if (SIMULATION_MODE) {
-        // Simulate verification
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Real API call with better error handling
+      const response = await fetch("/api/verify-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone: formattedPhoneNumber,
+          code: combinedCode,
+        }),
+      })
 
-        // In simulation mode, accept any code or the simulated code
-        if (combinedCode === simulatedCode || combinedCode === "123456") {
-          setIsVerified(true)
-          toast({
-            title: "Phone verified (SIMULATION)",
-            description: "Your phone number has been successfully verified",
-          })
+      const data = await response.json()
 
-          // Call the onVerified callback after a short delay
-          setTimeout(() => {
-            onVerified()
-          }, 1500)
-        } else {
-          throw new Error("Invalid verification code. Please try again.")
-        }
-      } else {
-        // Real API call
-        const response = await fetch("/api/verify-code", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            phoneNumber: formattedPhoneNumber,
-            code: combinedCode,
-          }),
+      if (!response.ok) {
+        console.error("API error response:", data)
+        throw new Error(data.error || "Verification failed")
+      }
+
+      if (data.success === false) {
+        throw new Error("Invalid verification code. Please try again.")
+      }
+
+      if (data.success) {
+        setIsVerified(true)
+        toast({
+          title: "Phone verified",
+          description: "Your phone number has been successfully verified",
         })
 
-        const data = await response.json()
-
-        if (!response.ok || data.success === false) {
-          throw new Error(data.error || "Verification failed")
-        }
-
-        if (data.verified) {
-          setIsVerified(true)
-          toast({
-            title: "Phone verified",
-            description: "Your phone number has been successfully verified",
-          })
-
-          // Call the onVerified callback after a short delay
-          setTimeout(() => {
-            onVerified()
-          }, 1500)
-        } else {
-          throw new Error("Invalid verification code. Please try again.")
-        }
+        // Call the onVerified callback after a short delay
+        setTimeout(() => {
+          onVerified()
+        }, 1000)
+      } else {
+        throw new Error("Invalid verification code. Please try again.")
       }
     } catch (err: any) {
       console.error("Error verifying code:", err)
@@ -271,50 +303,22 @@ export function SMSVerificationFlow({
     }
   }
 
-  // Handle input change for code inputs
-  const handleCodeInputChange = (index: number, value: string) => {
-    // Only allow numbers
-    if (!/^\d*$/.test(value)) return
-
-    const newCodeInputs = [...codeInputs]
-    newCodeInputs[index] = value
-    setCodeInputs(newCodeInputs)
-
-    // Auto-focus next input if this one is filled
-    if (value && index < 5) {
-      setFocusedInput(index + 1)
-    }
-
-    // Combine all inputs for the verification code
-    setVerificationCode(newCodeInputs.join(""))
-
-    // Clear error when typing
-    if (error) setError("")
-  }
-
-  // Handle backspace in code inputs
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace") {
-      if (!codeInputs[index] && index > 0) {
-        // If current input is empty and backspace is pressed, focus previous input
-        setFocusedInput(index - 1)
-      }
-    }
-  }
-
   // Focus the input when focusedInput changes
   useEffect(() => {
     if (focusedInput !== null) {
-      const inputElement = document.getElementById(`code-input-${focusedInput}`)
+      const inputElement = document.getElementById(`code-input-${focusedInput}`) as HTMLInputElement
       if (inputElement) {
         inputElement.focus()
+        // Place cursor at the end
+        const length = inputElement.value.length
+        inputElement.setSelectionRange(length, length)
       }
     }
   }, [focusedInput])
 
   // Send code automatically when component mounts
   useEffect(() => {
-    if (!codeSent && phoneNumber) {
+    if (!codeSent && formattedPhoneNumber) {
       sendVerificationCode()
     }
   }, [])
@@ -367,12 +371,14 @@ export function SMSVerificationFlow({
                 id={`code-input-${index}`}
                 type="text"
                 inputMode="numeric"
-                maxLength={1}
+                pattern="[0-9]*"
+                maxLength={6} // Allow pasting full code
                 value={digit}
                 onChange={(e) => handleCodeInputChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onFocus={() => setFocusedInput(index)}
                 className="w-10 h-12 text-center text-lg font-medium p-0"
+                autoComplete="one-time-code"
               />
             ))}
           </div>
@@ -381,12 +387,6 @@ export function SMSVerificationFlow({
             <div className="flex items-center justify-center text-red-500 text-sm mt-2">
               <AlertCircle className="h-4 w-4 mr-1" />
               <span>{error}</span>
-            </div>
-          )}
-
-          {SIMULATION_MODE && (
-            <div className="text-center text-xs text-muted-foreground">
-              <p>SIMULATION MODE: Use code: 123456</p>
             </div>
           )}
 

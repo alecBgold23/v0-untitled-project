@@ -5,7 +5,6 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Phone } from "lucide-react"
 
 interface PhoneInputProps {
   value: string
@@ -95,21 +94,26 @@ export function PhoneInput({
   const formatToE164 = (phone: string) => {
     if (!phone) return ""
 
-    // Remove all non-digit characters
-    const digits = phone.replace(/\D/g, "")
+    // Remove all non-digit characters except the leading +
+    const cleaned = phone.replace(/[^\d+]/g, "")
 
-    // For US numbers, add +1 prefix if not already there
-    if (digits.length === 10) {
-      return `+1${digits}`
+    // If it doesn't start with +, assume it's a US number
+    if (!cleaned.startsWith("+")) {
+      // If it's a 10-digit US number
+      if (cleaned.length === 10) {
+        return `+1${cleaned}`
+      }
+      // If it's an 11-digit number starting with 1 (US with country code)
+      else if (cleaned.length === 11 && cleaned.startsWith("1")) {
+        return `+${cleaned}`
+      }
+      // For any other case, add + prefix
+      else {
+        return `+${cleaned}`
+      }
     }
 
-    // If it's already 11 digits and starts with 1, add + prefix
-    if (digits.length === 11 && digits.startsWith("1")) {
-      return `+${digits}`
-    }
-
-    // For other cases, just add + prefix
-    return `+${digits}`
+    return cleaned
   }
 
   return (
@@ -123,7 +127,6 @@ export function PhoneInput({
       <div className="relative">
         {showCountryCode && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            <Phone className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">+1</span>
           </div>
         )}
@@ -134,7 +137,7 @@ export function PhoneInput({
           value={displayValue}
           onChange={handleChange}
           placeholder={placeholder}
-          className={`${showCountryCode ? "pl-14" : ""} ${error ? "border-red-300" : ""}`}
+          className={`${showCountryCode ? "pl-10" : ""} ${error ? "border-red-300" : ""}`}
           required={required}
         />
       </div>

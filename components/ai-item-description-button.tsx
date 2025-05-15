@@ -2,35 +2,37 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Sparkles, Loader2 } from "lucide-react"
+import { Wand2, Loader2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface AIItemDescriptionButtonProps {
   itemName: string
   itemCondition: string
-  onDescriptionGenerated: (description: string) => void
+  onDescriptionCreated: (description: string) => void
   disabled?: boolean
-  className?: string
 }
 
 export function AIItemDescriptionButton({
   itemName,
   itemCondition,
-  onDescriptionGenerated,
+  onDescriptionCreated,
   disabled = false,
-  className = "",
 }: AIItemDescriptionButtonProps) {
   const [isGenerating, setIsGenerating] = useState(false)
+  const { toast } = useToast()
 
-  const generateDescription = async () => {
-    if (!itemName.trim()) {
-      alert("Please enter an item name before generating a description.")
+  const createDescription = async () => {
+    if (!itemName || !itemCondition) {
+      toast({
+        title: "Missing information",
+        description: "Please provide an item name and condition first.",
+        variant: "destructive",
+      })
       return
     }
 
-    // Prevent multiple clicks
-    if (isGenerating) return
-
     setIsGenerating(true)
+
     try {
       const response = await fetch("/api/generate-item-description", {
         method: "POST",
@@ -43,19 +45,30 @@ export function AIItemDescriptionButton({
         }),
       })
 
+      if (!response.ok) {
+        // Handle error but don't mention API key issues
+        throw new Error("Failed to generate description")
+      }
+
       const data = await response.json()
 
-      if (response.ok && data.description) {
-        onDescriptionGenerated(data.description)
+      if (data.description) {
+        onDescriptionCreated(data.description)
+        toast({
+          title: "Description generated",
+          description: "AI-generated description has been applied.",
+        })
       } else {
-        console.error("Error response:", data)
-        alert(data.error || "Failed to generate description. Please try again.")
+        throw new Error("No description returned")
       }
     } catch (error) {
       console.error("Error generating description:", error)
-      alert("An error occurred while generating the description. Please try again.")
+      toast({
+        title: "Generation failed",
+        description: "Unable to generate a description. Please try again later.",
+        variant: "destructive",
+      })
     } finally {
-      // Ensure we always set isGenerating to false when done
       setIsGenerating(false)
     }
   }
@@ -63,21 +76,21 @@ export function AIItemDescriptionButton({
   return (
     <Button
       type="button"
-      onClick={generateDescription}
-      disabled={disabled || isGenerating || !itemName.trim()}
-      className={`flex items-center gap-2 ${className}`}
       variant="outline"
       size="sm"
+      onClick={createDescription}
+      disabled={disabled || isGenerating}
+      className="flex items-center gap-1 text-xs"
     >
       {isGenerating ? (
         <>
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          <span>Generating...</span>
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>Creating...</span>
         </>
       ) : (
         <>
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>AI Description</span>
+          <Wand2 className="h-3 w-3" />
+          <span>Create</span>
         </>
       )}
     </Button>

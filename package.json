@@ -39,6 +39,7 @@
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
+    "@supabase/supabase-js": "latest",
     "ai": "latest",
     "autoprefixer": "^10.4.20",
     "canvas-confetti": "latest",
@@ -66,6 +67,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "twilio": "latest",
+    "uuid": "latest",
     "vaul": "latest",
     "ws": "latest",
     "zod": "^3.24.1"

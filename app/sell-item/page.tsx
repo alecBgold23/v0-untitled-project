@@ -31,8 +31,33 @@ import { sendConfirmationEmail } from "../actions/send-confirmation-email"
 import { useToast } from "@/hooks/use-toast"
 import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
-import PhoneVerification from "@/components/phone-verification"
-import { OpenAIApiStatus } from "@/components/openai-api-status"
+import { EnvDebug } from "@/components/env-debug"
+
+// Helper function to format phone number to E.164
+function formatToE164(phone: string): string {
+  if (!phone) return ""
+
+  // Remove all non-digit characters except the leading +
+  let cleaned = phone.replace(/[^\d+]/g, "")
+
+  // If it doesn't start with +, assume it's a US number
+  if (!cleaned.startsWith("+")) {
+    // If it's a 10-digit US number
+    if (cleaned.length === 10) {
+      cleaned = `+1${cleaned}`
+    }
+    // If it's an 11-digit number starting with 1 (US with country code)
+    else if (cleaned.length === 11 && cleaned.startsWith("1")) {
+      cleaned = `+${cleaned}`
+    }
+    // For any other case, add + prefix
+    else {
+      cleaned = `+${cleaned}`
+    }
+  }
+
+  return cleaned
+}
 
 export default function SellItemPage() {
   const { toast } = useToast()
@@ -41,10 +66,6 @@ export default function SellItemPage() {
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState(null)
-
-  // Phone verification states
-  const [showVerification, setShowVerification] = useState(false)
-  const [isVerified, setIsVerified] = useState(false)
 
   // Form field states
   const [itemName, setItemName] = useState("")
@@ -70,32 +91,6 @@ export default function SellItemPage() {
   const section1Ref = useRef(null)
   const section2Ref = useRef(null)
   const section3Ref = useRef(null)
-
-  // Format phone number to E.164 format for API
-  const formatPhoneForApi = (phone: string) => {
-    if (!phone) return ""
-
-    // Remove all spaces, parentheses, and dashes
-    let cleaned = phone.replace(/\s+/g, "").replace(/[()-]/g, "").trim()
-
-    // Make sure it starts with a plus sign
-    if (!cleaned.startsWith("+")) {
-      // If it's a 10-digit US number
-      if (/^\d{10}$/.test(cleaned)) {
-        cleaned = `+1${cleaned}`
-      }
-      // If it's an 11-digit number starting with 1 (US with country code)
-      else if (/^1\d{10}$/.test(cleaned)) {
-        cleaned = `+${cleaned}`
-      }
-      // For any other case, just add + prefix
-      else {
-        cleaned = `+${cleaned}`
-      }
-    }
-
-    return cleaned
-  }
 
   // Validate step 1 (combined item details and condition)
   useEffect(() => {
@@ -312,19 +307,8 @@ export default function SellItemPage() {
       setIsSubmitting(true)
 
       try {
-        // Format the phone number for verification
-        const formattedPhone = formatPhoneForApi(phone)
-        console.log("Phone number for verification:", formattedPhone)
-
-        // Check if we're in demo mode
-        if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
-          console.log("Demo mode enabled - skipping real verification")
-          // Skip verification in demo mode
-          completeFormSubmission()
-        } else {
-          // Start phone verification process
-          setShowVerification(true)
-        }
+        // Skip phone verification and proceed directly to form submission
+        await completeFormSubmission()
       } catch (error) {
         console.error("Error submitting form:", error)
         setSubmitResult({
@@ -488,26 +472,6 @@ export default function SellItemPage() {
               </div>
             )}
 
-            {/* Phone Verification Modal */}
-            {showVerification && !isVerified && (
-              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 border border-[#e2e8f0] dark:border-gray-700">
-                  <PhoneVerification
-                    phoneNumber={formatPhoneForApi(phone)}
-                    onVerified={() => {
-                      setIsVerified(true)
-                      setShowVerification(false)
-                      completeFormSubmission()
-                    }}
-                    onCancel={() => {
-                      setShowVerification(false)
-                      setIsSubmitting(false)
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Progress Steps */}
             <ContentAnimation delay={0.2}>
               <div className="mb-8 relative">
@@ -615,7 +579,7 @@ export default function SellItemPage() {
                 </div>
 
                 <div className="p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-[2px]">
-                  <OpenAIApiStatus />
+                  {process.env.NODE_ENV === "development" && <EnvDebug />}
                   {formStep === 1 && (
                     <div className="space-y-6" id="section1" ref={section1Ref}>
                       <div className="transition-all duration-300">
@@ -1009,7 +973,17 @@ export default function SellItemPage() {
                           name="pickup_date"
                           type="date"
                           value={pickupDate}
-                          onChange={(e) => setPickupDate(e.target.value)}
+                          onChange={(e) => {
+                            setPickupDate(e.target.value)
+                            // Attempt to blur the input to close any popup
+                            setTimeout(() => {
+                              try {
+                                e.target.blur()
+                              } catch (err) {
+                                console.log("Could not blur date input")
+                              }
+                            }, 100)
+                          }}
                           className={`w-full border ${
                             formErrors.pickupDate ? "border-red-300" : "border-[#e2e8f0] dark:border-gray-700"
                           } rounded-lg focus-visible:ring-[#6366f1] bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 focus-within:border-[#6366f1] hover:border-[#6366f1]/50 relative z-10`}
@@ -1056,8 +1030,8 @@ export default function SellItemPage() {
                                   <p className="text-sm font-medium text-foreground mb-2">Photos:</p>
                                   <div className="flex flex-wrap gap-2">
                                     {itemPhotos.slice(0, 4).map((photo, index) => (
-                                      <div key={photo.id} className="w-16 h-16 relative">
-                                        <div className="w-full h-full rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
+                                      <div key={photo.id} className="relative">
+                                        <div className="w-12 h-12 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
                                           {photo.previewUrl && (
                                             <img
                                               src={photo.previewUrl || "/placeholder.svg"}
@@ -1070,7 +1044,7 @@ export default function SellItemPage() {
                                       </div>
                                     ))}
                                     {itemPhotos.length > 4 && (
-                                      <div className="w-16 h-16 bg-muted flex items-center justify-center rounded-md border border-[#e2e8f0] dark:border-gray-700">
+                                      <div className="w-12 h-12 bg-muted flex items-center justify-center rounded-md border border-[#e2e8f0] dark:border-gray-700">
                                         <span className="text-xs font-medium">+{itemPhotos.length - 4}</span>
                                       </div>
                                     )}

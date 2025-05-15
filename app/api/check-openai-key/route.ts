@@ -1,41 +1,44 @@
 import { NextResponse } from "next/server"
+import OpenAI from "openai"
 
 export async function GET() {
   try {
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+    const apiKey = process.env.OPENAI_API_KEY
 
-    if (!OPENAI_API_KEY) {
+    if (!apiKey) {
       return NextResponse.json({
         valid: false,
-        message: "OpenAI API key is not configured. Please add it to your environment variables.",
+        message: "OpenAI API key is not configured. Please add your API key in settings.",
       })
     }
 
-    // Make a simple request to the OpenAI API to verify the key
-    const response = await fetch("https://api.openai.com/v1/models", {
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
+    // Initialize the OpenAI client
+    const openai = new OpenAI({
+      apiKey,
     })
 
-    if (response.ok) {
-      return NextResponse.json({
-        valid: true,
-        message: "OpenAI API key is valid.",
-      })
-    } else {
-      const error = await response.json().catch(() => ({}))
+    // Make a simple API call to verify the key works
+    await openai.models.list()
+
+    // If we get here, the key is valid
+    return NextResponse.json({
+      valid: true,
+      message: "OpenAI API key is valid",
+    })
+  } catch (error: any) {
+    console.error("Error checking OpenAI API key:", error)
+
+    // Check for specific error messages
+    if (error.message?.includes("API key")) {
       return NextResponse.json({
         valid: false,
-        message: `OpenAI API key is invalid: ${error.error?.message || "Unknown error"}`,
-        details: error,
+        message: "Invalid OpenAI API key. Please check your API key in settings.",
       })
     }
-  } catch (error) {
-    console.error("Error checking OpenAI API key:", error)
+
     return NextResponse.json({
       valid: false,
-      message: "Error checking OpenAI API key. See server logs for details.",
+      message: "Error validating OpenAI API key. Please check your connection and try again.",
     })
   }
 }
