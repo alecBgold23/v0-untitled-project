@@ -5,5 +5,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+// Re-export createClient as a named export
+export { createClient } from "@supabase/supabase-js"
+
 export default supabase
-export { createClient }
