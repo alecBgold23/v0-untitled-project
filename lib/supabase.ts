@@ -1,15 +1,13 @@
 import { createClient as supabaseCreateClient } from "@supabase/supabase-js"
 
-// Re-export createClient for use in other files
-export { createClient } from "@supabase/supabase-js"
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error("Missing Supabase environment variables")
 }
 
-const supabase = supabaseCreateClient(supabaseUrl, supabaseAnonKey)
+const supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 export default supabase
+export const createClient = supabaseCreateClient

@@ -1,14 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { AlertCircle, CheckCircle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { AlertCircle, CheckCircle, Loader2, Settings } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-export function OpenAIApiStatus() {
-  const [status, setStatus] = useState<"loading" | "valid" | "invalid">("loading")
-  const [message, setMessage] = useState<string>("")
+export function OpenAIAPIStatus() {
+  const [status, setStatus] = useState<"loading" | "valid" | "invalid" | "unknown">("loading")
+  const [message, setMessage] = useState("")
 
   useEffect(() => {
     const checkApiKey = async () => {
@@ -16,16 +16,20 @@ export function OpenAIApiStatus() {
         const response = await fetch("/api/check-openai-key")
         const data = await response.json()
 
-        if (data.valid) {
+        if (data.success) {
           setStatus("valid")
-          setMessage("OpenAI API key is configured correctly.")
-        } else {
+          setMessage("OpenAI API key is valid and working")
+        } else if (data.hasKey) {
           setStatus("invalid")
-          setMessage(data.message || "OpenAI API key is not configured correctly.")
+          setMessage(data.message || "OpenAI API key is invalid or has expired")
+        } else {
+          setStatus("unknown")
+          setMessage(data.message || "OpenAI API key is not configured")
         }
       } catch (error) {
-        setStatus("invalid")
-        setMessage("Could not verify OpenAI API key status.")
+        console.error("Error checking API key:", error)
+        setStatus("unknown")
+        setMessage("Could not check OpenAI API key status")
       }
     }
 
@@ -34,11 +38,11 @@ export function OpenAIApiStatus() {
 
   if (status === "loading") {
     return (
-      <Alert className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-        <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertTitle className="text-blue-600 dark:text-blue-400">Checking API Key</AlertTitle>
-        <AlertDescription className="text-blue-600/80 dark:text-blue-400/80">
-          Verifying OpenAI API key configuration...
+      <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900">
+        <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
+        <AlertTitle className="text-blue-800 dark:text-blue-300">Checking API Status</AlertTitle>
+        <AlertDescription className="text-blue-700 dark:text-blue-400">
+          Checking OpenAI API key status...
         </AlertDescription>
       </Alert>
     )
@@ -46,24 +50,25 @@ export function OpenAIApiStatus() {
 
   if (status === "valid") {
     return (
-      <Alert className="mb-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+      <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900">
         <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-        <AlertTitle className="text-green-600 dark:text-green-400">AI Features Ready</AlertTitle>
-        <AlertDescription className="text-green-600/80 dark:text-green-400/80">
-          {message} You can use AI-powered description generation.
+        <AlertTitle className="text-green-800 dark:text-green-300">API Connected</AlertTitle>
+        <AlertDescription className="text-green-700 dark:text-green-400">
+          {message}. AI-powered features are available.
         </AlertDescription>
       </Alert>
     )
   }
 
   return (
-    <Alert variant="destructive" className="mb-4">
-      <AlertCircle className="h-4 w-4" />
-      <AlertTitle>API Key Issue</AlertTitle>
+    <Alert className="bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900">
+      <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+      <AlertTitle className="text-red-800 dark:text-red-300">API Not Configured</AlertTitle>
       <AlertDescription className="flex flex-col gap-2">
-        <span>{message}</span>
-        <Link href="/settings/api-key" className="inline-block">
-          <Button variant="outline" size="sm" className="mt-2">
+        <span className="text-red-700 dark:text-red-400">{message}</span>
+        <Link href="/settings/api-key" passHref>
+          <Button variant="outline" size="sm" className="w-fit mt-1">
+            <Settings className="mr-2 h-4 w-4" />
             Configure API Key
           </Button>
         </Link>

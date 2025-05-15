@@ -2,7 +2,6 @@
 
 import { createClient } from "@supabase/supabase-js"
 import { sendConfirmationEmail } from "./send-confirmation-email"
-import supabase from "@/lib/supabase"
 
 // Simple in-memory storage as a fallback
 const temporarySubmissions: any[] = []
@@ -58,27 +57,33 @@ export async function submitSellItemToSupabase(formData: {
     temporarySubmissions.push(itemData)
     console.log(`Stored in temporary memory. Total submissions: ${temporarySubmissions.length}`)
 
-    // Try to insert into Supabase using the imported client
+    // Try to insert into Supabase using the service role key
     console.log("Attempting to insert into Supabase...")
 
-    // Get Supabase URL and key for debugging
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-    const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      ""
+    // Get Supabase URL and service role key
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      console.error("Missing Supabase environment variables")
+      return {
+        success: true,
+        message: "Your submission was received and stored temporarily. We'll process it as soon as possible.",
+        databaseSuccess: false,
+        emailSuccess: false,
+        error: "Missing Supabase environment variables",
+      }
+    }
 
     console.log("Supabase URL available:", !!supabaseUrl)
-    console.log("Supabase Key available:", !!supabaseKey)
+    console.log("Supabase Service Role Key available:", !!supabaseServiceRoleKey)
 
-    // Create a new client with explicit options
-    const newSupabase = createClient(supabaseUrl, supabaseKey, {
+    // Create a new client with the service role key to bypass RLS
+    const adminSupabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
       auth: { persistSession: false },
       global: {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${supabaseKey}`,
         },
       },
     })
@@ -87,25 +92,14 @@ export async function submitSellItemToSupabase(formData: {
     let supabaseError = null
 
     try {
-      // First try with the imported client
-      const { data, error } = await supabase.from("sell_items").insert([itemData])
+      // Insert data using the admin client with service role key
+      const { data, error } = await adminSupabase.from("sell_items").insert([itemData]).select()
 
       if (error) {
-        console.error("Error with imported client:", error)
-
-        // Try with the new client as fallback
-        console.log("Trying with new client...")
-        const { data: newData, error: newError } = await newSupabase.from("sell_items").insert([itemData])
-
-        if (newError) {
-          console.error("Error with new client:", newError)
-          supabaseError = newError
-        } else {
-          console.log("Success with new client!")
-          supabaseSuccess = true
-        }
+        console.error("Error inserting data with service role key:", error)
+        supabaseError = error
       } else {
-        console.log("Success with imported client!")
+        console.log("Success with service role key client!", data)
         supabaseSuccess = true
       }
     } catch (dbError) {

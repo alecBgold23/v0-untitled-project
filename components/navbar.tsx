@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { Menu, X, SearchIcon } from "lucide-react"
+import { Menu, X, SearchIcon, Settings } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { BluberryLogoSVG } from "@/components/blueberry-logo-svg"
 import SearchModal from "@/components/search"
@@ -28,6 +28,11 @@ const mainNavItems = [
   { href: "/reviews", label: "Reviews" },
   { href: "/contact", label: "Contact" },
   { href: "/sell-item", label: "Sell Your Item" },
+  {
+    title: "Settings",
+    href: "/settings",
+    icon: <Settings className="h-4 w-4" />,
+  },
 ]
 
 export default function Navbar() {

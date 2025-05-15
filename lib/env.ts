@@ -1,40 +1,55 @@
+// Environment variable helper functions
+
 /**
- * Environment variable utility functions
+ * Check if an environment variable exists and is not empty
  */
-
-// Validate required environment variables
-export function validateEnv() {
-  const requiredEnvVars = ["EMAIL_PASSWORD"]
-
-  const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar])
-
-  if (missingEnvVars.length > 0) {
-    console.warn(`Warning: The following required environment variables are missing: ${missingEnvVars.join(", ")}`)
-    return false
-  }
-
-  return true
+export function hasEnvVariable(name: string): boolean {
+  const value = process.env[name]
+  return value !== undefined && value !== null && value !== ""
 }
 
-// Get a server-side environment variable with type safety
-export function getServerEnv(key: string, defaultValue = ""): string {
-  return process.env[key] || defaultValue
+/**
+ * Get an environment variable with a fallback value
+ */
+export function getEnvVariable(name: string, fallback = ""): string {
+  return hasEnvVariable(name) ? process.env[name]! : fallback
 }
 
-// Get a client-side environment variable with type safety
-export function getClientEnv(key: string, defaultValue = ""): string {
-  // Only NEXT_PUBLIC_ variables are available on the client
-  if (!key.startsWith("NEXT_PUBLIC_")) {
-    console.warn(`Warning: Attempted to access non-public env var '${key}' on the client`)
-    return defaultValue
-  }
-
-  return typeof window !== "undefined"
-    ? (window as any).__ENV?.[key] || process.env[key] || defaultValue
-    : process.env[key] || defaultValue
+/**
+ * Check if OpenAI API key is configured
+ */
+export function hasOpenAIKey(): boolean {
+  return hasEnvVariable("OPENAI_API_KEY")
 }
 
-export const ENV = {
-  // SMS verification settings
-  NEXT_PUBLIC_SKIP_SMS_VERIFICATION: process.env.NEXT_PUBLIC_SKIP_SMS_VERIFICATION === "true",
+/**
+ * Check if Twilio is configured
+ */
+export function hasTwilioConfig(): boolean {
+  return (
+    hasEnvVariable("TWILIO_ACCOUNT_SID") &&
+    hasEnvVariable("TWILIO_AUTH_TOKEN") &&
+    hasEnvVariable("TWILIO_VERIFY_SERVICE_SID")
+  )
+}
+
+/**
+ * Check if email is configured
+ */
+export function hasEmailConfig(): boolean {
+  return hasEnvVariable("CONTACT_EMAIL") && hasEnvVariable("EMAIL_PASSWORD")
+}
+
+/**
+ * Check if demo mode is enabled
+ */
+export function isDemoMode(): boolean {
+  return process.env.NEXT_PUBLIC_DEMO_MODE === "true"
+}
+
+/**
+ * Check if SMS verification should be skipped
+ */
+export function shouldSkipSMSVerification(): boolean {
+  return process.env.NEXT_PUBLIC_SKIP_SMS_VERIFICATION === "true"
 }

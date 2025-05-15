@@ -1,41 +1,61 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const { apiKey } = await request.json()
 
-    if (!apiKey || typeof apiKey !== "string") {
-      return NextResponse.json({ error: "Invalid API key format" }, { status: 400 })
-    }
-
-    // Validate the API key format (basic check)
-    if (!apiKey.startsWith("sk-") || apiKey.length < 20) {
+    if (!apiKey) {
       return NextResponse.json(
-        { error: 'Invalid API key format. OpenAI keys should start with "sk-"' },
+        {
+          success: false,
+          message: "API key is required",
+        },
         { status: 400 },
       )
     }
 
-    // In a real implementation, you would store this securely
-    // For example, in a database or a secure environment variable service
-    // This is a simplified example
+    try {
+      // Validate the API key with a simple request to OpenAI
+      const response = await fetch("https://api.openai.com/v1/models", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      })
 
-    // For demonstration purposes, we'll just return success
-    // In a real app, you would:
-    // 1. Store the key securely (e.g., in a database with encryption)
-    // 2. Set up proper authentication to ensure only authorized users can set the key
-    // 3. Implement proper error handling for storage failures
+      if (!response.ok) {
+        throw new Error(`OpenAI API returned status: ${response.status}`)
+      }
 
-    // Mock successful storage
-    const success = true
+      // In a real application, you would save this key to a secure storage
+      // For this demo, we'll just return success
+      // Note: In a production app, you would store this in a secure database or environment variable
 
-    if (success) {
-      return NextResponse.json({ message: "API key saved successfully" }, { status: 200 })
-    } else {
-      return NextResponse.json({ error: "Failed to save API key" }, { status: 500 })
+      return NextResponse.json({
+        success: true,
+        message: "API key is valid",
+      })
+    } catch (error) {
+      console.error("Error validating OpenAI API key:", error)
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid API key",
+          error: error.message,
+        },
+        { status: 400 },
+      )
     }
   } catch (error) {
-    console.error("Error setting API key:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error setting OpenAI API key:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Error setting API key",
+        error: error.message,
+      },
+      { status: 500 },
+    )
   }
 }
