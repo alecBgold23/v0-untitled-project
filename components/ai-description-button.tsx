@@ -6,13 +6,15 @@ import { Loader2, Wand2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface AIDescriptionButtonProps {
-  itemName: string
+  itemName?: string
+  inputText?: string
   condition?: string
   onDescriptionGenerated: (description: string) => void
 }
 
 export function AIDescriptionButton({
-  itemName,
+  itemName = "",
+  inputText = "",
   condition = "used",
   onDescriptionGenerated,
 }: AIDescriptionButtonProps) {
@@ -20,10 +22,13 @@ export function AIDescriptionButton({
   const [isGenerating, setIsGenerating] = useState(false)
 
   const generateDescription = async () => {
-    if (!itemName.trim()) {
+    // Use inputText if provided, otherwise use itemName
+    const promptText = inputText.trim() || itemName.trim()
+
+    if (!promptText) {
       toast({
         title: "Error",
-        description: "Please enter an item name first",
+        description: "Please enter item details first",
         variant: "destructive",
       })
       return
@@ -32,16 +37,30 @@ export function AIDescriptionButton({
     setIsGenerating(true)
 
     try {
-      const response = await fetch("/api/generate-ebay-description", {
+      // First try the eBay description endpoint
+      let response = await fetch("/api/generate-ebay-description", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          itemName: itemName.trim(),
+          itemName: promptText,
           condition,
         }),
       })
+
+      // If that fails, try the general description endpoint
+      if (!response.ok) {
+        response = await fetch("/api/generate-description", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            prompt: promptText,
+          }),
+        })
+      }
 
       const data = await response.json()
 
@@ -50,7 +69,7 @@ export function AIDescriptionButton({
       }
 
       // Extract just the description part without the markdown formatting
-      let cleanDescription = data.description
+      let cleanDescription = data.description || ""
 
       // Remove markdown headers
       cleanDescription = cleanDescription.replace(/^#+ .*$/gm, "")
@@ -71,7 +90,7 @@ export function AIDescriptionButton({
 
       toast({
         title: "Success",
-        description: "eBay-style description generated successfully",
+        description: "Description generated successfully",
       })
     } catch (err) {
       console.error("Error generating description:", err)
@@ -92,10 +111,10 @@ export function AIDescriptionButton({
       variant="outline"
       className="flex items-center gap-1"
       onClick={generateDescription}
-      disabled={isGenerating || !itemName.trim()}
+      disabled={isGenerating || !(inputText.trim() || itemName.trim())}
     >
       {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
-      <span className="text-xs">Generate eBay Description</span>
+      <span className="text-xs">Generate Description</span>
     </Button>
   )
 }

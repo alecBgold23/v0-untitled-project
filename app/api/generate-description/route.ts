@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { Configuration, OpenAIApi } from "openai"
+import OpenAI from "openai"
 
 export async function POST(request: Request) {
   try {
@@ -18,13 +18,12 @@ export async function POST(request: Request) {
     }
 
     try {
-      // Use the older OpenAI API client which doesn't have the browser detection issue
-      const configuration = new Configuration({
+      // Use the newer OpenAI SDK
+      const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       })
-      const openai = new OpenAIApi(configuration)
 
-      const completion = await openai.createChatCompletion({
+      const completion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
         messages: [
           {
@@ -39,7 +38,7 @@ export async function POST(request: Request) {
         max_tokens: 150,
       })
 
-      const description = completion.data.choices[0]?.message?.content?.trim()
+      const description = completion.choices[0]?.message?.content?.trim() || ""
 
       if (!description) {
         throw new Error("No description created")
