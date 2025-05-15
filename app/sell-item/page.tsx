@@ -27,11 +27,11 @@ import {
   DollarSign,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
-import { sendConfirmationEmail } from "../actions/send-confirmation-email"
 import { useToast } from "@/hooks/use-toast"
 import ConfettiEffect from "@/components/confetti-effect"
 import AddressAutocomplete from "@/components/address-autocomplete"
 import { EnvDebug } from "@/components/env-debug"
+import { submitSellItemToSupabase } from "../actions/submit-sell-item"
 
 // Helper function to format phone number to E.164
 function formatToE164(phone: string): string {
@@ -356,51 +356,49 @@ export default function SellItemPage() {
     setIsSubmitting(true)
 
     try {
-      // Log form data for debugging
-      console.log("Form submission data:", {
+      // Format the form data
+      const formData = {
         itemName,
         itemDescription,
         itemCondition,
         itemIssues,
         fullName,
         email,
-        phone,
+        phone: formatToE164(phone),
         address,
         pickupDate,
-      })
-
-      // Send confirmation email
-      const emailResult = await sendConfirmationEmail({
-        fullName,
-        email,
-        itemName,
-        itemCondition,
-        itemDescription,
-        itemIssues,
-        phone,
-        address,
-        pickupDate,
-      })
-
-      console.log("Email result:", emailResult)
-
-      if (!emailResult.success) {
-        toast({
-          title: "Email Notification",
-          description:
-            "Your form was submitted, but there was an issue sending the confirmation email. We'll contact you soon.",
-          variant: "default",
-        })
+        photoCount: itemPhotos.length,
       }
 
-      // In a real implementation, you would send this to your backend
-      // For now, we'll simulate a successful submission
-      setTimeout(() => {
-        setFormSubmitted(true)
-        // Scroll to top after submission is successful
-        setTimeout(scrollToTop, 50)
+      console.log("Submitting form data:", formData)
+
+      // Submit to Supabase
+      const result = await submitSellItemToSupabase(formData)
+
+      console.log("Supabase submission result:", result)
+
+      if (!result.success) {
+        toast({
+          title: "Submission Error",
+          description: result.message || "There was a problem submitting your form. Please try again.",
+          variant: "destructive",
+        })
         setIsSubmitting(false)
-      }, 1500)
+        return
+      }
+
+      // Show success and update UI
+      setFormSubmitted(true)
+
+      // Scroll to top after submission is successful
+      setTimeout(scrollToTop, 50)
+      setIsSubmitting(false)
+
+      toast({
+        title: "Success!",
+        description: "Your item has been submitted successfully!",
+        variant: "default",
+      })
     } catch (error) {
       console.error("Error submitting form:", error)
       setSubmitResult({
