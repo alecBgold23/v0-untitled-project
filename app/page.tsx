@@ -28,10 +28,8 @@ export default function Home() {
 
   return (
     <div className="bg-background">
-      {/* Hero Section - White Background */}
-      <section
-        className={`${isMobile ? "bg-gradient-to-b from-background to-secondary" : "bg-background"} pt-6 pb-12 md:pt-8 md:pb-16`}
-      >
+      {/* Hero Section - Gradient Background for both mobile and desktop */}
+      <section className="bg-gradient-to-b from-background to-secondary pt-6 pb-12 md:pt-8 md:pb-16">
         <div className="container mx-auto px-4">
           {/* Clickable hero content */}
           <ContentAnimation duration={0.3} delay={0} animation="fadeIn">
@@ -83,7 +81,7 @@ export default function Home() {
       <section
         className={`py-16 ${
           isMobile ? "bg-black text-white" : "bg-gradient-to-b from-secondary to-background"
-        } relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] transform translate-y-[-1px] border-t border-border z-10 mb-8`}
+        } relative rounded-t-[30px] transform translate-y-[-30px] border-t border-border z-10 mb-8 shadow-section`}
       >
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
@@ -445,6 +443,12 @@ export default function Home() {
 
         .content-animation-wrapper {
           will-change: transform, opacity;
+        }
+        
+        .shadow-section {
+          box-shadow: 
+            0 -20px 25px -5px rgba(0, 0, 0, 0.2),
+            0 -10px 10px -5px rgba(0, 0, 0, 0.1);
         }
       `}</style>
     </div>

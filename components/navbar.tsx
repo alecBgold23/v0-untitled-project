@@ -78,19 +78,11 @@ export default function Navbar() {
     >
       <div className="container mx-auto px-4">
         <nav className="flex items-center justify-between h-16 relative">
-          {/* Logo and left controls */}
-          <div className="flex items-center space-x-4">
+          {/* Logo */}
+          <div className="flex items-center">
             <Link href="/" className="flex items-center">
               <BluberryLogoSVG />
             </Link>
-            <button
-              className="text-foreground/80 transition-all duration-200 hover:text-primary"
-              onClick={toggleSearch}
-              aria-label="Search"
-            >
-              <SearchIcon size={20} />
-            </button>
-            <ThemeToggle />
           </div>
 
           {/* Desktop navigation - centered in the middle */}
@@ -110,6 +102,18 @@ export default function Navbar() {
 
           {/* Right side controls */}
           <div className="flex items-center space-x-4">
+            {/* Search button */}
+            <button
+              className="text-foreground/80 transition-all duration-200 hover:text-primary"
+              onClick={toggleSearch}
+              aria-label="Search"
+            >
+              <SearchIcon size={20} />
+            </button>
+
+            {/* Theme toggle */}
+            <ThemeToggle />
+
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -142,7 +146,7 @@ export default function Navbar() {
               </DropdownMenu>
             )}
 
-            {/* Mobile menu button - moved here */}
+            {/* Mobile menu button */}
             <button
               className="md:hidden text-foreground/80 transition-all duration-200 hover:text-primary"
               onClick={toggleMenu}

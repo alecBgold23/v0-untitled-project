@@ -17,6 +17,8 @@ export async function submitSellItemToSupabase(formData: {
   address: string
   pickupDate: string
   photoCount: number
+  imageUrl?: string
+  imagePath?: string
 }) {
   try {
     console.log("Starting submission process...")
@@ -40,7 +42,7 @@ export async function submitSellItemToSupabase(formData: {
     // Prepare data for submission
     const itemData = {
       item_name: formData.itemName,
-      item_description: formData.itemDescription,
+      item_description: formData.itemDescription + (formData.imageUrl ? `\n\nImage: ${formData.imageUrl}` : ""),
       item_condition: formData.itemCondition,
       item_issues: formData.itemIssues || "None",
       full_name: formData.fullName,
@@ -121,6 +123,7 @@ export async function submitSellItemToSupabase(formData: {
         phone: formData.phone,
         address: formData.address,
         pickupDate: formData.pickupDate,
+        imageUrl: formData.imageUrl || "",
       })
 
       if (!emailResult.success) {
