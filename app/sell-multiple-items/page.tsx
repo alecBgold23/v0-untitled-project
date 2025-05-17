@@ -34,6 +34,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { submitMultipleItemsToSupabase } from "../actions/submit-multiple-items"
 import { Checkbox } from "@/components/ui/checkbox"
 import { uploadImagePrivate } from "@/app/actions/upload-image-private"
+import { uploadImageFallback } from "@/app/actions/upload-image-fallback"
+import { PriceEstimatorDialog } from "@/components/price-estimator-dialog"
 
 export default function SellMultipleItemsPage() {
   const { toast } = useToast()
@@ -42,6 +44,9 @@ export default function SellMultipleItemsPage() {
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState(null)
+
+  // Store estimated prices for each item
+  const [estimatedPrices, setEstimatedPrices] = useState<{ [key: string]: string }>({})
 
   // Contact information
   const [fullName, setFullName] = useState("")
@@ -305,6 +310,23 @@ export default function SellMultipleItemsPage() {
       }
     },
     [getItems, setItems, toast],
+  )
+
+  // Handle when a price is estimated for an item
+  const handlePriceEstimated = useCallback(
+    (itemId: string, price: string) => {
+      setEstimatedPrices((prev) => ({
+        ...prev,
+        [itemId]: price,
+      }))
+
+      toast({
+        title: "Price Estimated",
+        description: `The estimated value is ${price}`,
+        variant: "default",
+      })
+    },
+    [toast],
   )
 
   // Update item field - memoized to prevent recreation on renders
@@ -609,13 +631,19 @@ export default function SellMultipleItemsPage() {
             // Log upload attempt
             console.log(`Attempting to upload image ${j + 1} for item ${i + 1}: ${photo.file.name}`)
 
-            // Upload the image to Supabase
-            const uploadResult = await uploadImagePrivate(photo.file, email)
+            // Try primary upload method first
+            let uploadResult = await uploadImagePrivate(photo.file, email || "anonymous")
+
+            // If primary method fails, try fallback method
+            if (!uploadResult.success) {
+              console.log(`Primary upload method failed, trying fallback for image ${j + 1} for item ${i + 1}`)
+              uploadResult = await uploadImageFallback(photo.file, email || "anonymous")
+            }
 
             if (uploadResult.success) {
               // Add path and URL to arrays
               imagePaths.push(uploadResult.path || "")
-              imageUrls.push(uploadResult.signedUrl || "")
+              imageUrls.push(uploadResult.url || uploadResult.signedUrl || "")
               console.log(`Successfully uploaded image ${j + 1} for item ${i + 1}`)
             } else {
               console.error(`Failed to upload image ${j + 1} for item ${i + 1}:`, uploadResult.error)
@@ -1502,6 +1530,39 @@ export default function SellMultipleItemsPage() {
                                     </div>
                                   </div>
                                 </div>
+
+                                {/* Price Estimator */}
+                                <div className="transition-all duration-300 mt-4">
+                                  <div className="flex justify-between items-center">
+                                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                      Estimated Value
+                                    </Label>
+                                    <PriceEstimatorDialog
+                                      description={`${item.name || ""} ${item.description || ""} Condition: ${item.condition || "unknown"} Issues: ${item.issues || "none"}`}
+                                      onPriceEstimated={(price) => handlePriceEstimated(item.id, price)}
+                                      buttonClassName="text-[#6a5acd] border-[#6a5acd]/30 hover:bg-[#6a5acd]/10"
+                                    />
+                                  </div>
+
+                                  {estimatedPrices[item.id] ? (
+                                    <div className="mt-2 p-3 bg-[#6a5acd]/5 border border-[#6a5acd]/20 rounded-lg">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <DollarSign className="h-4 w-4 text-[#6a5acd]" />
+                                        <span className="text-sm font-medium text-[#6a5acd]">Estimated Value</span>
+                                      </div>
+                                      <p className="text-lg font-semibold">{estimatedPrices[item.id]}</p>
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        This is an AI-generated estimate based on your item description.
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        Click "Estimate Price" to get an AI-powered value estimate for this item.
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
                               </CardContent>
                             )}
 
@@ -1531,6 +1592,12 @@ export default function SellMultipleItemsPage() {
                                     <div className="flex items-center gap-2">
                                       <span className="font-medium">Photos:</span>
                                       <span className="text-muted-foreground">{item.photos.length}</span>
+                                    </div>
+                                  )}
+                                  {estimatedPrices[item.id] && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">Estimated Value:</span>
+                                      <span className="text-muted-foreground">{estimatedPrices[item.id]}</span>
                                     </div>
                                   )}
                                 </div>
