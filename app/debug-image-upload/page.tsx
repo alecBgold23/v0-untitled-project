@@ -1,3 +1,5 @@
+"use client"
+
 import { ReliableImageUpload } from "@/components/reliable-image-upload"
 
 export default function DebugImageUploadPage() {
