@@ -11,7 +11,7 @@ export async function uploadFile(file: File, userId: string) {
   const filePath = `${fileName}`
 
   const { data, error } = await supabase.storage
-    .from("images") // your bucket name here
+    .from("images2") // your bucket name here
     .upload(filePath, file)
 
   if (error) {
@@ -54,7 +54,7 @@ export async function uploadImageFromUrl(imageUrl: string, userId: string) {
     const fileName = `${userId}/${Date.now()}.${fileExt}`
 
     // Upload the blob to Supabase storage
-    const { data, error } = await supabase.storage.from("images").upload(fileName, imageBlob, {
+    const { data, error } = await supabase.storage.from("images2").upload(fileName, imageBlob, {
       contentType: contentType || `image/${fileExt}`,
     })
 
@@ -70,21 +70,23 @@ export async function uploadImageFromUrl(imageUrl: string, userId: string) {
   }
 }
 
-// Update the getFileUrl function to create signed URLs with expiration instead of public URLs
-export async function getFileUrl(path: string) {
-  // Create a signed URL that expires in 1 hour (3600 seconds)
-  const { data, error } = await supabase.storage.from("images").createSignedUrl(path, 3600)
+// Replace the current getFileUrl function with this more concise version:
 
-  if (error) {
-    console.error("Error creating signed URL:", error)
+export async function getFileUrl(path: string) {
+  try {
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("images2").getPublicUrl(path)
+
+    return publicUrl
+  } catch (error) {
+    console.error("Error getting public URL:", error)
     return null
   }
-
-  return data?.signedUrl
 }
 
 export async function deleteFile(path: string) {
-  const { error } = await supabase.storage.from("images").remove([path])
+  const { error } = await supabase.storage.from("images2").remove([path])
 
   if (error) {
     console.error("Error deleting file:", error)
@@ -95,7 +97,7 @@ export async function deleteFile(path: string) {
 }
 
 export async function listFiles(userId: string) {
-  const { data, error } = await supabase.storage.from("images").list(userId)
+  const { data, error } = await supabase.storage.from("images2").list(userId)
 
   if (error) {
     console.error("Error listing files:", error)

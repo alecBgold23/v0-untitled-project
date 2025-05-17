@@ -14,6 +14,8 @@ type ItemData = {
   condition: string
   issues: string
   photos: any[] // In a real implementation, you'd handle photo uploads separately
+  imagePath?: string // Add image path field
+  imageUrl?: string // Add image URL field
 }
 
 export async function submitMultipleItemsToSupabase(
@@ -63,6 +65,8 @@ export async function submitMultipleItemsToSupabase(
       status: "pending",
       submission_date: new Date().toISOString(),
       photo_count: item.photos ? item.photos.length : 0,
+      image_path: item.imagePath || null, // Include image_path field
+      image_url: item.imageUrl || null, // Include image_url field
     }))
 
     console.log("Prepared items for insertion:", itemsToInsert)

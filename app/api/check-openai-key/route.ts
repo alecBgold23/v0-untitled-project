@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { hasOpenAIKey } from "@/lib/env"
+import { hasOpenAIKey, getOpenAIKey } from "@/lib/env"
+import OpenAI from "openai"
 
 export async function GET() {
   try {
@@ -13,33 +14,29 @@ export async function GET() {
       })
     }
 
-    // Get the API key from environment variables
-    const apiKey = process.env.OPENAI_API_KEY
+    // Get the API key using our helper
+    const apiKey = getOpenAIKey()
 
     try {
-      // Make a simple fetch request to OpenAI API to validate the key
-      const response = await fetch("https://api.openai.com/v1/models", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
+      // Initialize the OpenAI client
+      const openai = new OpenAI({
+        apiKey: apiKey!,
       })
 
-      if (!response.ok) {
-        throw new Error(`OpenAI API returned status: ${response.status}`)
-      }
+      // Make a simple request to validate the key
+      const response = await openai.models.list()
 
       return NextResponse.json({
         success: true,
         message: "OpenAI API key is valid",
         hasKey: true,
+        models: response.data.length, // Just returning count for security
       })
     } catch (error) {
       console.error("Error validating OpenAI API key:", error)
       return NextResponse.json({
         success: false,
-        message: "OpenAI API key is invalid",
+        message: error.message || "OpenAI API key is invalid",
         hasKey: true,
         error: error.message,
       })

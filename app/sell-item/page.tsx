@@ -379,7 +379,7 @@ export default function SellItemPage() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-[#f8fafc] to-[#f1f5f9] dark:from-gray-900 dark:to-gray-950"
+      className="min-h-screen bg-gradient-to-b from-background to-secondary dark:from-gray-900 dark:to-gray-950"
       ref={formContainerRef}
     >
       {/* Add a ref at the top of the form for scrolling */}

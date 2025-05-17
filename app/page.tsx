@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import ContentAnimation from "@/components/content-animation"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { uploadItemImageAndSave } from "@/app/actions/upload-item-image-and-save"
 
 export default function Home() {
   const router = useRouter()
@@ -396,6 +397,41 @@ export default function Home() {
                   </Link>
                 </div>
               </div>
+            </div>
+          </ContentAnimation>
+          <ContentAnimation delay={0.5}>
+            <div
+              className={`bg-gradient-to-br from-black via-gray-900 to-gray-800 p-6 rounded-xl shadow-lg mt-8 border border-gray-700 text-white`}
+            >
+              <h3 className="text-xl font-medium mb-4 text-center">
+                <span className="text-white">Quick Upload</span>
+              </h3>
+              <form action={uploadItemImageAndSave} className="space-y-4">
+                <div>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Item name"
+                    required
+                    className="w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-gray-800 text-white placeholder-gray-400"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    name="file"
+                    accept="image/*"
+                    required
+                    className="w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-gray-800 text-white placeholder-gray-400"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-4 py-2 rounded-md font-medium hover:shadow-md hover:translate-y-[-1px] transition-all"
+                >
+                  Upload Item
+                </button>
+              </form>
             </div>
           </ContentAnimation>
         </div>

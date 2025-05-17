@@ -44,11 +44,26 @@ export default function ApiKeyPage() {
     checkApiKey()
   }, [])
 
+  const validateApiKey = (key: string): boolean => {
+    // Simple validation: Key should start with 'sk-' and be at least 20 chars
+    return key.startsWith("sk-") && key.length >= 20
+  }
+
   const handleSaveApiKey = async () => {
     if (!apiKey.trim()) {
       toast({
         title: "Error",
         description: "Please enter an API key",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate key format before sending to server
+    if (!validateApiKey(apiKey.trim())) {
+      toast({
+        title: "Invalid Key Format",
+        description: "OpenAI keys should start with 'sk-' and be at least 20 characters",
         variant: "destructive",
       })
       return

@@ -10,16 +10,16 @@ export async function uploadImage(
       return { url: null, id: null, error: "No file provided" }
     }
 
-    // Create file path
+    // Create file path inside bucket
     const filePath = `uploads/${file.name}`
 
     // Convert File to ArrayBuffer for upload
     const arrayBuffer = await file.arrayBuffer()
     const fileBuffer = new Uint8Array(arrayBuffer)
 
-    // Upload to Supabase Storage
+    // Upload file to Supabase Storage bucket "images2"
     const { data, error } = await supabase.storage
-      .from("images") // your bucket name
+      .from("images2") // your bucket name
       .upload(filePath, fileBuffer, {
         contentType: file.type,
         upsert: false,
@@ -30,12 +30,12 @@ export async function uploadImage(
       return { url: null, id: null, error: `Upload failed: ${error.message}` }
     }
 
-    // Get the public URL
-    const { data: publicUrlData } = supabase.storage.from("images").getPublicUrl(filePath)
+    // Get public URL of the uploaded file
+    const { data: publicUrlData } = supabase.storage.from("images2").getPublicUrl(filePath)
 
-    // Now insert the metadata into the 'images' table
+    // Insert image metadata into your "sell_item" table
     const { data: imageRecord, error: dbError } = await supabase
-      .from("images")
+      .from("sell_item") // your actual table
       .insert({
         file_name: file.name,
         file_path: filePath,
@@ -47,11 +47,11 @@ export async function uploadImage(
 
     if (dbError) {
       console.error("Error inserting image record:", dbError.message)
-      // We still return the URL even if the database insert fails
+      // Return URL but mention DB insert failed
       return {
         url: publicUrlData.publicUrl,
         id: null,
-        error: `Image uploaded but database record failed: ${dbError.message}`,
+        error: `Image uploaded but DB record failed: ${dbError.message}`,
       }
     }
 
@@ -66,10 +66,13 @@ export async function uploadImage(
   }
 }
 
-// Function to get all images from the database
+// Fetch all images metadata from "sell_item" table
 export async function getImages() {
   try {
-    const { data, error } = await supabase.from("images").select("*").order("created_at", { ascending: false })
+    const { data, error } = await supabase
+      .from("sell_item")
+      .select("*")
+      .order("created_at", { ascending: false })
 
     if (error) {
       console.error("Error fetching images:", error.message)
@@ -83,31 +86,40 @@ export async function getImages() {
   }
 }
 
-// Function to delete an image
+// Delete image file from storage and record from "sell_item" table
 export async function deleteImage(id: string) {
   try {
-    // First get the image record to get the file path
-    const { data: image, error: fetchError } = await supabase.from("images").select("file_path").eq("id", id).single()
+    // Fetch image record from DB to get file path
+    const { data: image, error: fetchError } = await supabase
+      .from("sell_item")
+      .select("file_path")
+      .eq("id", id)
+      .single()
 
     if (fetchError) {
-      console.error("Error fetching image:", fetchError.message)
+      console.error("Error fetching image record:", fetchError.message)
       return { success: false, error: fetchError.message }
     }
 
     if (!image) {
-      return { success: false, error: "Image not found" }
+      return { success: false, error: "Image record not found" }
     }
 
-    // Delete the file from storage
-    const { error: storageError } = await supabase.storage.from("images").remove([image.file_path])
+    // Delete file from storage bucket "images2"
+    const { error: storageError } = await supabase.storage
+      .from("images2")
+      .remove([image.file_path])
 
     if (storageError) {
       console.error("Error deleting file from storage:", storageError.message)
-      // Continue to delete the database record even if storage delete fails
+      // Continue to delete DB record even if file deletion fails
     }
 
-    // Delete the record from the database
-    const { error: dbError } = await supabase.from("images").delete().eq("id", id)
+    // Delete record from database table
+    const { error: dbError } = await supabase
+      .from("sell_item")
+      .delete()
+      .eq("id", id)
 
     if (dbError) {
       console.error("Error deleting image record:", dbError.message)

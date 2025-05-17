@@ -34,6 +34,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { submitMultipleItemsToSupabase } from "../actions/submit-multiple-items"
 import { Checkbox } from "@/components/ui/checkbox"
+import { uploadImagePrivate } from "@/app/actions/upload-image-private"
 
 export default function SellMultipleItemsPage() {
   const { toast } = useToast()
@@ -55,6 +56,10 @@ export default function SellMultipleItemsPage() {
   const [pickupDate, setPickupDate] = useState("")
   const [termsAccepted, setTermsAccepted] = useState(false)
 
+  // Validation states
+  const [step1Valid, setStep1Valid] = useState(false)
+  const [step2Valid, setStep2Valid] = useState(false)
+
   // Multiple items state - using a stable reference with useRef
   const itemsRef = useRef([
     {
@@ -68,21 +73,14 @@ export default function SellMultipleItemsPage() {
       isValid: false,
       nameSuggestion: "",
       isLoadingSuggestion: false,
-      lastProcessedName: "", // Add this to track the last processed name
+      lastProcessedName: "",
+      imagePath: "",
+      imageUrl: "",
     },
   ])
 
   // State to trigger re-renders when items change
   const [itemsVersion, setItemsVersion] = useState(0)
-
-  // Getter for items that uses the ref
-  const getItems = () => itemsRef.current
-
-  // Setter for items that updates the ref and triggers a re-render
-  const setItems = useCallback((newItems) => {
-    itemsRef.current = newItems
-    setItemsVersion((prev) => prev + 1) // Increment version to trigger re-render
-  }, [])
 
   // Refs
   const formContainerRef = useRef(null)
@@ -90,8 +88,19 @@ export default function SellMultipleItemsPage() {
   const fileInputRefs = useRef({})
   const suggestionTimeoutsRef = useRef({})
 
+  // Getter for items that uses the ref
+  const getItems = useCallback(() => {
+    return itemsRef.current || []
+  }, [])
+
+  // Setter for items that updates the ref and triggers a re-render
+  const setItems = useCallback((newItems) => {
+    itemsRef.current = newItems
+    setItemsVersion((prev) => prev + 1) // Increment version to trigger re-render
+  }, [])
+
   // Format phone number to E.164 format for API
-  const formatPhoneForApi = (phone) => {
+  const formatPhoneForApi = useCallback((phone) => {
     if (!phone) return ""
 
     // Remove all spaces, parentheses, and dashes
@@ -114,375 +123,483 @@ export default function SellMultipleItemsPage() {
     }
 
     return cleaned
-  }
+  }, [])
+
+  // Validate individual item
+  const validateItem = useCallback(
+    (item, index) => {
+      if (!item) return false
+
+      const isValid =
+        item.name?.trim() !== "" &&
+        item.description?.trim() !== "" &&
+        item.photos?.length >= 3 &&
+        item.condition !== "" &&
+        item.issues?.trim() !== ""
+
+      // Update the item's validity
+      const updatedItems = [...getItems()]
+      if (updatedItems[index]) {
+        updatedItems[index] = {
+          ...updatedItems[index],
+          isValid,
+        }
+        setItems(updatedItems)
+      }
+
+      return isValid
+    },
+    [getItems, setItems],
+  )
 
   // Validate step 1 (all items)
   useEffect(() => {
-    const allItemsValid = getItems().every((item) => item.isValid)
-    setStep1Valid(allItemsValid && getItems().length > 0)
-  }, [itemsVersion]) // Use itemsVersion as dependency
+    try {
+      const items = getItems()
+      const allItemsValid = items.length > 0 && items.every((item) => item.isValid)
+      setStep1Valid(allItemsValid)
+    } catch (error) {
+      console.error("Error validating step 1:", error)
+      setStep1Valid(false)
+    }
+  }, [itemsVersion, getItems])
 
   // Validate step 2 (contact info)
   useEffect(() => {
-    setStep2Valid(
-      fullName.trim() !== "" &&
-        email.trim() !== "" &&
-        email.includes("@") &&
-        phone.trim() !== "" &&
-        address.trim() !== "" &&
-        pickupDate !== "" &&
-        termsAccepted,
-    )
+    try {
+      setStep2Valid(
+        fullName?.trim() !== "" &&
+          email?.trim() !== "" &&
+          email?.includes("@") &&
+          phone?.trim() !== "" &&
+          address?.trim() !== "" &&
+          pickupDate !== "" &&
+          termsAccepted,
+      )
+    } catch (error) {
+      console.error("Error validating step 2:", error)
+      setStep2Valid(false)
+    }
   }, [fullName, email, phone, address, pickupDate, termsAccepted])
 
-  // Validation states
-  const [step1Valid, setStep1Valid] = useState(false)
-  const [step2Valid, setStep2Valid] = useState(false)
-
-  // Validate individual item
-  const validateItem = (item, index) => {
-    const isValid =
-      item.name.trim() !== "" &&
-      item.description.trim() !== "" &&
-      item.photos.length >= 3 &&
-      item.condition !== "" &&
-      item.issues.trim() !== ""
-
-    // Update the item's validity
-    const updatedItems = [...getItems()]
-    updatedItems[index] = {
-      ...updatedItems[index],
-      isValid,
-    }
-    setItems(updatedItems)
-
-    return isValid
-  }
-
   // Add a new item
-  const addItem = () => {
-    const newItem = {
-      id: "item-" + Date.now(),
-      name: "",
-      description: "",
-      photos: [],
-      condition: "",
-      issues: "",
-      isExpanded: true,
-      isValid: false,
-      nameSuggestion: "",
-      isLoadingSuggestion: false,
-      lastProcessedName: "", // Add this to track the last processed name
-    }
-
-    setItems([...getItems(), newItem])
-
-    // Scroll to the new item after it's added
-    setTimeout(() => {
-      const element = document.getElementById(newItem.id)
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "start" })
+  const addItem = useCallback(() => {
+    try {
+      const newItem = {
+        id: "item-" + Date.now(),
+        name: "",
+        description: "",
+        photos: [],
+        condition: "",
+        issues: "",
+        isExpanded: true,
+        isValid: false,
+        nameSuggestion: "",
+        isLoadingSuggestion: false,
+        lastProcessedName: "",
+        imagePath: "",
+        imageUrl: "",
       }
-    }, 100)
 
-    toast({
-      title: "Item Added",
-      description: "A new item has been added to your submission.",
-      variant: "default",
-    })
-  }
+      setItems([...getItems(), newItem])
 
-  // Remove an item
-  const removeItem = (index) => {
-    if (getItems().length <= 1) {
+      // Scroll to the new item after it's added
+      setTimeout(() => {
+        const element = document.getElementById(newItem.id)
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+      }, 100)
+
       toast({
-        title: "Cannot Remove",
-        description: "You must have at least one item in your submission.",
+        title: "Item Added",
+        description: "A new item has been added to your submission.",
+        variant: "default",
+      })
+    } catch (error) {
+      console.error("Error adding item:", error)
+      toast({
+        title: "Error",
+        description: "There was a problem adding a new item. Please try again.",
         variant: "destructive",
       })
-      return
     }
+  }, [getItems, setItems, toast])
 
-    const updatedItems = [...getItems()]
-    updatedItems.splice(index, 1)
-    setItems(updatedItems)
-
-    toast({
-      title: "Item Removed",
-      description: "The item has been removed from your submission.",
-      variant: "default",
-    })
-  }
-
-  // Duplicate an item
-  const duplicateItem = (index) => {
-    const itemToDuplicate = getItems()[index]
-    const newItem = {
-      ...itemToDuplicate,
-      id: "item-" + Date.now(),
-      isExpanded: true,
-      photos: [...itemToDuplicate.photos], // Create a new array with the same photos
-      nameSuggestion: "", // Reset suggestion for the duplicated item
-      isLoadingSuggestion: false, // Reset loading state for the duplicated item
-      lastProcessedName: "", // Reset the last processed name
-    }
-
-    const updatedItems = [...getItems()]
-    updatedItems.splice(index + 1, 0, newItem)
-    setItems(updatedItems)
-
-    // Scroll to the new item after it's added
-    setTimeout(() => {
-      const element = document.getElementById(newItem.id)
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "start" })
-      }
-    }, 100)
-
-    toast({
-      title: "Item Duplicated",
-      description: "The item has been duplicated.",
-      variant: "default",
-    })
-  }
-
-  // Update item field - memoized to prevent recreation on renders
-  const updateItemField = useCallback((index, field, value) => {
-    const updatedItems = [...getItems()]
-    updatedItems[index] = {
-      ...updatedItems[index],
-      [field]: value,
-    }
-
-    setItems(updatedItems)
-
-    // Validate the item after update
-    setTimeout(() => validateItem(updatedItems[index], index), 100)
-  }, [])
-
-  // Toggle item accordion
-  const toggleItemAccordion = (index) => {
-    const updatedItems = [...getItems()]
-    updatedItems[index] = {
-      ...updatedItems[index],
-      isExpanded: !updatedItems[index].isExpanded,
-    }
-    setItems(updatedItems)
-  }
-
-  // Handle file upload for a specific item
-  const handleFileUpload = (e, index) => {
-    try {
-      const files = Array.from(e.target.files || [])
-      if (files.length > 0) {
-        // Check if adding these files would exceed the maximum
-        const currentCount = getItems()[index].photos.length
-        const newCount = currentCount + files.length
-
-        if (newCount > 10) {
+  // Remove an item
+  const removeItem = useCallback(
+    (index) => {
+      try {
+        const items = getItems()
+        if (items.length <= 1) {
           toast({
-            title: "Too Many Files",
-            description: `You can only upload a maximum of 10 photos per item. You already have ${currentCount} photos.`,
+            title: "Cannot Remove",
+            description: "You must have at least one item in your submission.",
             variant: "destructive",
           })
           return
         }
 
-        // Create file objects with preview URLs
-        const newPhotos = files.map((file) => {
-          // Create a safe URL for preview
-          const previewUrl = URL.createObjectURL(file)
-
-          return {
-            file,
-            name: file.name,
-            id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            size: file.size,
-            type: file.type,
-            previewUrl,
-          }
-        })
-
-        // Add to item photos
-        const updatedItems = [...getItems()]
-        updatedItems[index] = {
-          ...updatedItems[index],
-          photos: [...updatedItems[index].photos, ...newPhotos],
-        }
+        const updatedItems = [...items]
+        updatedItems.splice(index, 1)
         setItems(updatedItems)
 
-        // Reset the input value to prevent duplicate uploads
-        if (e.target) {
-          e.target.value = null
-        }
-
-        // Validate the item after adding photos
-        setTimeout(() => validateItem(updatedItems[index], index), 100)
-
-        // Show success toast
         toast({
-          title: "Files Added",
-          description: `Successfully added ${newPhotos.length} file${newPhotos.length > 1 ? "s" : ""} to item ${index + 1}`,
+          title: "Item Removed",
+          description: "The item has been removed from your submission.",
           variant: "default",
         })
+      } catch (error) {
+        console.error("Error removing item:", error)
+        toast({
+          title: "Error",
+          description: "There was a problem removing the item. Please try again.",
+          variant: "destructive",
+        })
       }
-    } catch (error) {
-      console.error("Error adding files:", error)
-      toast({
-        title: "Error",
-        description: "There was a problem adding your files. Please try again.",
-        variant: "destructive",
-      })
-    }
-  }
+    },
+    [getItems, setItems, toast],
+  )
+
+  // Duplicate an item
+  const duplicateItem = useCallback(
+    (index) => {
+      try {
+        const items = getItems()
+        const itemToDuplicate = items[index]
+        if (!itemToDuplicate) return
+
+        const newItem = {
+          ...itemToDuplicate,
+          id: "item-" + Date.now(),
+          isExpanded: true,
+          photos: [...(itemToDuplicate.photos || [])],
+          nameSuggestion: "",
+          isLoadingSuggestion: false,
+          lastProcessedName: "",
+          imagePath: "",
+          imageUrl: "",
+        }
+
+        const updatedItems = [...items]
+        updatedItems.splice(index + 1, 0, newItem)
+        setItems(updatedItems)
+
+        // Scroll to the new item after it's added
+        setTimeout(() => {
+          const element = document.getElementById(newItem.id)
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "start" })
+          }
+        }, 100)
+
+        toast({
+          title: "Item Duplicated",
+          description: "The item has been duplicated.",
+          variant: "default",
+        })
+      } catch (error) {
+        console.error("Error duplicating item:", error)
+        toast({
+          title: "Error",
+          description: "There was a problem duplicating the item. Please try again.",
+          variant: "destructive",
+        })
+      }
+    },
+    [getItems, setItems, toast],
+  )
+
+  // Update item field - memoized to prevent recreation on renders
+  const updateItemField = useCallback(
+    (index, field, value) => {
+      try {
+        const updatedItems = [...getItems()]
+        if (!updatedItems[index]) return
+
+        updatedItems[index] = {
+          ...updatedItems[index],
+          [field]: value,
+        }
+
+        setItems(updatedItems)
+
+        // Validate the item after update
+        setTimeout(() => validateItem(updatedItems[index], index), 100)
+      } catch (error) {
+        console.error(`Error updating item field ${field}:`, error)
+      }
+    },
+    [getItems, setItems, validateItem],
+  )
+
+  // Toggle item accordion
+  const toggleItemAccordion = useCallback(
+    (index) => {
+      try {
+        const updatedItems = [...getItems()]
+        if (!updatedItems[index]) return
+
+        updatedItems[index] = {
+          ...updatedItems[index],
+          isExpanded: !updatedItems[index].isExpanded,
+        }
+        setItems(updatedItems)
+      } catch (error) {
+        console.error("Error toggling item accordion:", error)
+      }
+    },
+    [getItems, setItems],
+  )
+
+  // Handle file upload for a specific item
+  const handleFileUpload = useCallback(
+    (e, index) => {
+      try {
+        const files = Array.from(e.target.files || [])
+        if (files.length > 0) {
+          const items = getItems()
+          if (!items[index]) return
+
+          // Check if adding these files would exceed the maximum
+          const currentCount = items[index].photos?.length || 0
+          const newCount = currentCount + files.length
+
+          if (newCount > 10) {
+            toast({
+              title: "Too Many Files",
+              description: `You can only upload a maximum of 10 photos per item. You already have ${currentCount} photos.`,
+              variant: "destructive",
+            })
+            return
+          }
+
+          // Create file objects with preview URLs
+          const newPhotos = files.map((file) => {
+            // Create a safe URL for preview
+            const previewUrl = URL.createObjectURL(file)
+
+            return {
+              file,
+              name: file.name,
+              id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              size: file.size,
+              type: file.type,
+              previewUrl,
+            }
+          })
+
+          // Add to item photos
+          const updatedItems = [...items]
+          updatedItems[index] = {
+            ...updatedItems[index],
+            photos: [...(updatedItems[index].photos || []), ...newPhotos],
+          }
+          setItems(updatedItems)
+
+          // Reset the input value to prevent duplicate uploads
+          if (e.target) {
+            e.target.value = null
+          }
+
+          // Validate the item after adding photos
+          setTimeout(() => validateItem(updatedItems[index], index), 100)
+
+          // Show success toast
+          toast({
+            title: "Files Added",
+            description: `Successfully added ${newPhotos.length} file${newPhotos.length > 1 ? "s" : ""} to item ${index + 1}`,
+            variant: "default",
+          })
+        }
+      } catch (error) {
+        console.error("Error adding files:", error)
+        toast({
+          title: "Error",
+          description: "There was a problem adding your files. Please try again.",
+          variant: "destructive",
+        })
+      }
+    },
+    [getItems, setItems, toast, validateItem],
+  )
 
   // Remove photo from an item
-  const removePhoto = (itemIndex, photoIndex) => {
-    try {
-      const updatedItems = [...getItems()]
-      const item = updatedItems[itemIndex]
-      const newPhotos = [...item.photos]
+  const removePhoto = useCallback(
+    (itemIndex, photoIndex) => {
+      try {
+        const updatedItems = [...getItems()]
+        if (!updatedItems[itemIndex]) return
 
-      // Revoke the URL before removing the photo
-      if (newPhotos[photoIndex].previewUrl) {
-        URL.revokeObjectURL(newPhotos[photoIndex].previewUrl)
+        const item = updatedItems[itemIndex]
+        if (!item.photos || !item.photos[photoIndex]) return
+
+        const newPhotos = [...item.photos]
+
+        // Revoke the URL before removing the photo
+        if (newPhotos[photoIndex].previewUrl) {
+          URL.revokeObjectURL(newPhotos[photoIndex].previewUrl)
+        }
+
+        newPhotos.splice(photoIndex, 1)
+
+        updatedItems[itemIndex] = {
+          ...item,
+          photos: newPhotos,
+        }
+
+        setItems(updatedItems)
+
+        // Validate the item after removing photo
+        setTimeout(() => validateItem(updatedItems[itemIndex], itemIndex), 100)
+      } catch (error) {
+        console.error("Error removing photo:", error)
       }
-
-      newPhotos.splice(photoIndex, 1)
-
-      updatedItems[itemIndex] = {
-        ...item,
-        photos: newPhotos,
-      }
-
-      setItems(updatedItems)
-
-      // Validate the item after removing photo
-      setTimeout(() => validateItem(updatedItems[itemIndex], itemIndex), 100)
-    } catch (error) {
-      console.error("Error removing photo:", error)
-    }
-  }
+    },
+    [getItems, setItems, validateItem],
+  )
 
   // Scroll to the top of the page with smooth animation
-  const scrollToTop = () => {
+  const scrollToTop = useCallback(() => {
     window.scrollTo({
       top: 0,
       behavior: "smooth",
     })
-  }
+  }, [])
 
   // Validate all items in step 1
-  const validateStep1 = () => {
-    let allValid = true
-    const updatedItems = [...getItems()]
+  const validateStep1 = useCallback(() => {
+    try {
+      let allValid = true
+      const updatedItems = [...getItems()]
 
-    updatedItems.forEach((item, index) => {
-      const isValid = validateItem(item, index)
-      if (!isValid) {
-        allValid = false
-        // Expand invalid items
-        updatedItems[index] = {
-          ...updatedItems[index],
-          isExpanded: true,
+      updatedItems.forEach((item, index) => {
+        const isValid = validateItem(item, index)
+        if (!isValid) {
+          allValid = false
+          // Expand invalid items
+          if (updatedItems[index]) {
+            updatedItems[index] = {
+              ...updatedItems[index],
+              isExpanded: true,
+            }
+          }
         }
-      }
-    })
-
-    setItems(updatedItems)
-
-    if (!allValid) {
-      toast({
-        title: "Validation Error",
-        description: "Please complete all required fields for each item.",
-        variant: "destructive",
       })
-    }
 
-    return allValid
-  }
+      setItems(updatedItems)
 
-  // Validate step 2 (contact info)
-  const validateStep2 = () => {
-    const errors = {}
-    if (!fullName.trim()) {
-      errors.fullName = "Full name is required"
-    }
-    if (!email.trim()) {
-      errors.email = "Email is required"
-    } else if (!email.includes("@")) {
-      errors.email = "Please enter a valid email address"
-    }
-    if (!phone.trim()) {
-      errors.phone = "Phone number is required"
-    }
-    if (!address.trim()) {
-      errors.address = "Pickup address is required"
-    }
-    if (!pickupDate) {
-      errors.pickupDate = "Pickup date is required"
-    }
-    if (!termsAccepted) {
-      errors.terms = "You must accept the terms to continue"
-    }
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  // Handle continue to step 2
-  const handleContinueToStep2 = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    if (validateStep1()) {
-      setFormStep(2)
-      setFormErrors({})
-      // Scroll to the top of the page after changing step
-      setTimeout(scrollToTop, 50)
-    }
-  }
-
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    if (validateStep2()) {
-      setIsSubmitting(true)
-
-      try {
-        // Format the phone number for verification
-        const formattedPhone = formatPhoneForApi(phone)
-        console.log("Phone number for verification:", formattedPhone)
-
-        // Check if we're in demo mode or should skip verification
-        if (process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.NEXT_PUBLIC_SKIP_SMS_VERIFICATION === "true") {
-          console.log("Demo mode or skip verification enabled - proceeding directly to submission")
-          // Skip verification in demo mode
-          await completeFormSubmission()
-        } else {
-          // Start phone verification process
-          setShowVerification(true)
-        }
-      } catch (error) {
-        console.error("Error submitting form:", error)
-        setSubmitResult({
-          success: false,
-          message: "An unexpected error occurred. Please try again later.",
-        })
-        setIsSubmitting(false)
-
+      if (!allValid) {
         toast({
-          title: "Error",
-          description: "There was a problem submitting your form. Please try again.",
+          title: "Validation Error",
+          description: "Please complete all required fields for each item.",
           variant: "destructive",
         })
       }
+
+      return allValid
+    } catch (error) {
+      console.error("Error validating step 1:", error)
+      return false
     }
-  }
+  }, [getItems, setItems, toast, validateItem])
+
+  // Validate step 2 (contact info)
+  const validateStep2 = useCallback(() => {
+    try {
+      const errors = {}
+      if (!fullName?.trim()) {
+        errors.fullName = "Full name is required"
+      }
+      if (!email?.trim()) {
+        errors.email = "Email is required"
+      } else if (!email.includes("@")) {
+        errors.email = "Please enter a valid email address"
+      }
+      if (!phone?.trim()) {
+        errors.phone = "Phone number is required"
+      }
+      if (!address?.trim()) {
+        errors.address = "Pickup address is required"
+      }
+      if (!pickupDate) {
+        errors.pickupDate = "Pickup date is required"
+      }
+      if (!termsAccepted) {
+        errors.terms = "You must accept the terms to continue"
+      }
+      setFormErrors(errors)
+      return Object.keys(errors).length === 0
+    } catch (error) {
+      console.error("Error validating step 2:", error)
+      return false
+    }
+  }, [fullName, email, phone, address, pickupDate, termsAccepted])
+
+  // Handle continue to step 2
+  const handleContinueToStep2 = useCallback(
+    (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      if (validateStep1()) {
+        setFormStep(2)
+        setFormErrors({})
+        // Scroll to the top of the page after changing step
+        setTimeout(scrollToTop, 50)
+      }
+    },
+    [scrollToTop, validateStep1],
+  )
+
+  // Upload images for all items
+  const uploadItemImages = useCallback(async () => {
+    try {
+      const items = getItems()
+      const updatedItems = [...items]
+
+      // Process each item
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        if (!item) continue
+
+        // Skip if no photos
+        if (!item.photos || item.photos.length === 0) continue
+
+        // Use the first photo as the main image
+        const mainPhoto = item.photos[0]
+        if (!mainPhoto || !mainPhoto.file) continue
+
+        try {
+          // Upload the image to Supabase
+          const uploadResult = await uploadImagePrivate(mainPhoto.file, email)
+
+          if (uploadResult.success) {
+            // Update the item with image path and URL
+            updatedItems[i] = {
+              ...updatedItems[i],
+              imagePath: uploadResult.path || "",
+              imageUrl: uploadResult.signedUrl || "",
+            }
+          } else {
+            console.error(`Failed to upload image for item ${i + 1}:`, uploadResult.error)
+          }
+        } catch (error) {
+          console.error(`Error uploading image for item ${i + 1}:`, error)
+        }
+      }
+
+      // Update items with image paths and URLs
+      setItems(updatedItems)
+      return updatedItems
+    } catch (error) {
+      console.error("Error uploading item images:", error)
+      return getItems()
+    }
+  }, [email, getItems, setItems])
 
   // Complete form submission after verification
-  const completeFormSubmission = async () => {
+  const completeFormSubmission = useCallback(async () => {
     setIsSubmitting(true)
 
     try {
@@ -496,17 +613,22 @@ export default function SellMultipleItemsPage() {
         pickupDate,
       })
 
+      // First, upload images for all items
+      const itemsWithImages = await uploadItemImages()
+
       // Format items for submission
-      const formattedItems = getItems().map((item) => ({
-        name: item.name,
-        description: item.description,
-        condition: item.condition,
-        issues: item.issues,
-        photos: item.photos.map((photo) => ({
-          name: photo.name,
-          type: photo.type,
-          size: photo.size,
+      const formattedItems = itemsWithImages.map((item) => ({
+        name: item.name || "",
+        description: item.description || "",
+        condition: item.condition || "",
+        issues: item.issues || "",
+        photos: (item.photos || []).map((photo) => ({
+          name: photo.name || "",
+          type: photo.type || "",
+          size: photo.size || 0,
         })),
+        imagePath: item.imagePath || "",
+        imageUrl: item.imageUrl || "",
       }))
 
       // Submit to Supabase
@@ -561,26 +683,240 @@ export default function SellMultipleItemsPage() {
         variant: "destructive",
       })
     }
-  }
+  }, [address, email, fullName, getItems, phone, pickupDate, scrollToTop, toast, uploadItemImages])
+
+  // Handle form submission
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      if (validateStep2()) {
+        setIsSubmitting(true)
+
+        try {
+          // Format the phone number for verification
+          const formattedPhone = formatPhoneForApi(phone)
+          console.log("Phone number for verification:", formattedPhone)
+
+          // Check if we're in demo mode or should skip verification
+          if (
+            process.env.NEXT_PUBLIC_DEMO_MODE === "true" ||
+            process.env.NEXT_PUBLIC_SKIP_SMS_VERIFICATION === "true"
+          ) {
+            console.log("Demo mode or skip verification enabled - proceeding directly to submission")
+            // Skip verification in demo mode
+            await completeFormSubmission()
+          } else {
+            // Start phone verification process
+            setShowVerification(true)
+          }
+        } catch (error) {
+          console.error("Error submitting form:", error)
+          setSubmitResult({
+            success: false,
+            message: "An unexpected error occurred. Please try again later.",
+          })
+          setIsSubmitting(false)
+
+          toast({
+            title: "Error",
+            description: "There was a problem submitting your form. Please try again.",
+            variant: "destructive",
+          })
+        }
+      }
+    },
+    [completeFormSubmission, formatPhoneForApi, phone, toast, validateStep2],
+  )
+
+  // Handle name input change
+  const handleNameChange = useCallback(
+    (e, index) => {
+      const value = e.target.value
+      updateItemField(index, "name", value)
+
+      // Schedule suggestion generation with debounce
+      if (value.trim().length >= 3) {
+        // Clear any existing timeout for this item
+        if (suggestionTimeoutsRef.current[index]) {
+          clearTimeout(suggestionTimeoutsRef.current[index])
+        }
+
+        // Set a new timeout
+        suggestionTimeoutsRef.current[index] = setTimeout(() => {
+          const currentItems = getItems()
+          // Only fetch if the name is still the same and different from last processed
+          if (
+            currentItems[index] &&
+            currentItems[index].name === value &&
+            currentItems[index].name !== currentItems[index].lastProcessedName
+          ) {
+            fetchNameSuggestion(value, index)
+          }
+        }, 800)
+      }
+    },
+    [getItems, updateItemField],
+  )
+
+  // Handle description input change
+  const handleDescriptionChange = useCallback(
+    (e, index) => {
+      const value = e.target.value
+      updateItemField(index, "description", value)
+    },
+    [updateItemField],
+  )
+
+  // Handle issues input change
+  const handleIssuesChange = useCallback(
+    (e, index) => {
+      const value = e.target.value
+      updateItemField(index, "issues", value)
+    },
+    [updateItemField],
+  )
+
+  // Handle condition selection
+  const handleConditionSelect = useCallback(
+    (index, conditionValue) => {
+      updateItemField(index, "condition", conditionValue)
+    },
+    [updateItemField],
+  )
+
+  // Fetch suggestion for a specific item
+  const fetchNameSuggestion = useCallback(
+    async (text, index) => {
+      try {
+        // Get current items
+        const currentItems = [...getItems()]
+
+        // Skip if this item no longer exists or already has a suggestion loading
+        if (!currentItems[index] || currentItems[index].isLoadingSuggestion) {
+          return
+        }
+
+        // Update loading state and mark this name as processed
+        currentItems[index] = {
+          ...currentItems[index],
+          isLoadingSuggestion: true,
+          lastProcessedName: text,
+        }
+        setItems(currentItems)
+
+        try {
+          const res = await fetch("/api/description-suggest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: text }),
+          })
+          const data = await res.json()
+
+          // Get fresh copy of items (they might have changed during the fetch)
+          const updatedItems = [...getItems()]
+
+          // Make sure the item still exists
+          if (updatedItems[index]) {
+            if (res.ok && data.suggestion) {
+              updatedItems[index] = {
+                ...updatedItems[index],
+                nameSuggestion: data.suggestion,
+                isLoadingSuggestion: false,
+              }
+            } else {
+              updatedItems[index] = {
+                ...updatedItems[index],
+                nameSuggestion: "",
+                isLoadingSuggestion: false,
+              }
+            }
+            setItems(updatedItems)
+          }
+        } catch (err) {
+          console.error(err)
+          // Update the items array to clear loading state on error
+          const updatedItems = [...getItems()]
+          if (updatedItems[index]) {
+            updatedItems[index] = {
+              ...updatedItems[index],
+              nameSuggestion: "",
+              isLoadingSuggestion: false,
+            }
+            setItems(updatedItems)
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching name suggestion:", error)
+      }
+    },
+    [getItems, setItems],
+  )
+
+  // Apply suggestion for a specific item
+  const applySuggestion = useCallback(
+    (index) => {
+      try {
+        const items = getItems()
+        const item = items[index]
+        if (!item || !item.nameSuggestion) return
+
+        const updatedItems = [...items]
+        updatedItems[index] = {
+          ...updatedItems[index],
+          description: item.nameSuggestion,
+          nameSuggestion: "", // Clear the suggestion after applying
+        }
+        setItems(updatedItems)
+
+        toast({
+          title: "Suggestion Applied",
+          description: "The enhanced description has been applied.",
+          variant: "default",
+        })
+      } catch (error) {
+        console.error("Error applying suggestion:", error)
+      }
+    },
+    [getItems, setItems, toast],
+  )
+
+  // Get step completion status
+  const getStepStatus = useCallback(
+    (step) => {
+      if (formStep > step) return "complete"
+      if (formStep === step) return "current"
+      return "incomplete"
+    },
+    [formStep],
+  )
 
   // Clean up object URLs when component unmounts
   useEffect(() => {
     return () => {
-      // Revoke all created object URLs to prevent memory leaks
-      getItems().forEach((item) => {
-        item.photos.forEach((photo) => {
-          if (photo.previewUrl) {
-            URL.revokeObjectURL(photo.previewUrl)
+      try {
+        // Revoke all created object URLs to prevent memory leaks
+        const items = getItems()
+        items.forEach((item) => {
+          if (item && item.photos) {
+            item.photos.forEach((photo) => {
+              if (photo && photo.previewUrl) {
+                URL.revokeObjectURL(photo.previewUrl)
+              }
+            })
           }
         })
-      })
 
-      // Clear any pending suggestion timeouts
-      Object.values(suggestionTimeoutsRef.current).forEach((timeout) => {
-        clearTimeout(timeout)
-      })
+        // Clear any pending suggestion timeouts
+        Object.values(suggestionTimeoutsRef.current).forEach((timeout) => {
+          if (timeout) clearTimeout(timeout)
+        })
+      } catch (error) {
+        console.error("Error in cleanup function:", error)
+      }
     }
-  }, [])
+  }, [getItems])
 
   // Error message component
   const ErrorMessage = ({ message }) => (
@@ -590,151 +926,11 @@ export default function SellMultipleItemsPage() {
     </div>
   )
 
-  // Get step completion status
-  const getStepStatus = (step) => {
-    if (formStep > step) return "complete"
-    if (formStep === step) return "current"
-    return "incomplete"
-  }
-
-  // Format condition for display and AI
-  const formatCondition = (condition) => {
-    if (!condition) return "Not specified"
-    return condition
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ")
-  }
-
-  // Handle name input change
-  const handleNameChange = (e, index) => {
-    const value = e.target.value
-    updateItemField(index, "name", value)
-
-    // Schedule suggestion generation with debounce
-    if (value.trim().length >= 3) {
-      // Clear any existing timeout for this item
-      if (suggestionTimeoutsRef.current[index]) {
-        clearTimeout(suggestionTimeoutsRef.current[index])
-      }
-
-      // Set a new timeout
-      suggestionTimeoutsRef.current[index] = setTimeout(() => {
-        const currentItems = getItems()
-        // Only fetch if the name is still the same and different from last processed
-        if (
-          currentItems[index] &&
-          currentItems[index].name === value &&
-          currentItems[index].name !== currentItems[index].lastProcessedName
-        ) {
-          fetchNameSuggestion(value, index)
-        }
-      }, 800)
-    }
-  }
-
-  // Handle description input change
-  const handleDescriptionChange = (e, index) => {
-    const value = e.target.value
-    updateItemField(index, "description", value)
-  }
-
-  // Handle issues input change
-  const handleIssuesChange = (e, index) => {
-    const value = e.target.value
-    updateItemField(index, "issues", value)
-  }
-
-  // Handle condition selection
-  const handleConditionSelect = (index, conditionValue) => {
-    console.log(`Setting condition for item ${index} to ${conditionValue}`)
-    updateItemField(index, "condition", conditionValue)
-  }
-
-  // Fetch suggestion for a specific item
-  const fetchNameSuggestion = async (text, index) => {
-    // Get current items
-    const currentItems = [...getItems()]
-
-    // Skip if this item no longer exists or already has a suggestion loading
-    if (!currentItems[index] || currentItems[index].isLoadingSuggestion) {
-      return
-    }
-
-    // Update loading state and mark this name as processed
-    currentItems[index] = {
-      ...currentItems[index],
-      isLoadingSuggestion: true,
-      lastProcessedName: text,
-    }
-    setItems(currentItems)
-
-    try {
-      const res = await fetch("/api/description-suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text }),
-      })
-      const data = await res.json()
-
-      // Get fresh copy of items (they might have changed during the fetch)
-      const updatedItems = [...getItems()]
-
-      // Make sure the item still exists
-      if (updatedItems[index]) {
-        if (res.ok && data.suggestion) {
-          updatedItems[index] = {
-            ...updatedItems[index],
-            nameSuggestion: data.suggestion,
-            isLoadingSuggestion: false,
-          }
-        } else {
-          updatedItems[index] = {
-            ...updatedItems[index],
-            nameSuggestion: "",
-            isLoadingSuggestion: false,
-          }
-        }
-        setItems(updatedItems)
-      }
-    } catch (err) {
-      console.error(err)
-      // Update the items array to clear loading state on error
-      const updatedItems = [...getItems()]
-      if (updatedItems[index]) {
-        updatedItems[index] = {
-          ...updatedItems[index],
-          nameSuggestion: "",
-          isLoadingSuggestion: false,
-        }
-        setItems(updatedItems)
-      }
-    }
-  }
-
-  // Apply suggestion for a specific item
-  const applySuggestion = (index) => {
-    const item = getItems()[index]
-    if (item.nameSuggestion) {
-      const updatedItems = [...getItems()]
-      updatedItems[index] = {
-        ...updatedItems[index],
-        description: item.nameSuggestion,
-        nameSuggestion: "", // Clear the suggestion after applying
-      }
-      setItems(updatedItems)
-
-      toast({
-        title: "Suggestion Applied",
-        description: "The enhanced description has been applied.",
-        variant: "default",
-      })
-    }
-  }
+  const [step, setStep] = useState(1)
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-[#f8fafc] to-[#f1f5f9] dark:from-gray-900 dark:to-gray-950"
+      className="min-h-screen bg-gradient-to-b from-background to-secondary dark:from-gray-900 dark:to-gray-950"
       ref={formContainerRef}
     >
       {/* Add a ref at the top of the form for scrolling */}
@@ -977,7 +1173,7 @@ export default function SellMultipleItemsPage() {
                                   </Label>
                                   <input
                                     id={`item-name-${index}`}
-                                    value={item.name}
+                                    value={item.name || ""}
                                     onChange={(e) => handleNameChange(e, index)}
                                     placeholder="e.g., Leather Sofa, Samsung TV"
                                     className="flex h-10 w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
@@ -1017,12 +1213,12 @@ export default function SellMultipleItemsPage() {
                                       Brief Description <span className="text-red-500">*</span>
                                     </Label>
                                     <div className="text-xs text-muted-foreground">
-                                      {item.description.length} characters
+                                      {(item.description || "").length} characters
                                     </div>
                                   </div>
                                   <textarea
                                     id={`item-description-${index}`}
-                                    value={item.description}
+                                    value={item.description || ""}
                                     onChange={(e) => handleDescriptionChange(e, index)}
                                     placeholder="Describe your item in detail including brand, model, size, color, etc."
                                     rows={3}
@@ -1079,11 +1275,13 @@ export default function SellMultipleItemsPage() {
                                     <Label htmlFor={`item-issues-${index}`} className="text-sm font-medium">
                                       Any issues or defects? <span className="text-red-500">*</span>
                                     </Label>
-                                    <div className="text-xs text-muted-foreground">{item.issues.length} characters</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {(item.issues || "").length} characters
+                                    </div>
                                   </div>
                                   <textarea
                                     id={`item-issues-${index}`}
-                                    value={item.issues}
+                                    value={item.issues || ""}
                                     onChange={(e) => handleIssuesChange(e, index)}
                                     placeholder="Please describe any scratches, dents, missing parts, or functional issues. If none, please write 'None'."
                                     rows={3}
@@ -1107,7 +1305,7 @@ export default function SellMultipleItemsPage() {
                                       <ImageIcon className="w-6 h-6 text-[#6366f1]/70" />
                                       <p className="font-medium text-sm text-[#6366f1]">Click to Upload Images</p>
                                       <p className="text-xs text-muted-foreground mt-1">
-                                        {item.photos.length} of 3 required (max 10)
+                                        {(item.photos || []).length} of 3 required (max 10)
                                       </p>
                                     </div>
                                     <input
@@ -1121,11 +1319,11 @@ export default function SellMultipleItemsPage() {
                                   </div>
 
                                   {/* Photo previews */}
-                                  {item.photos.length > 0 && (
+                                  {item.photos && item.photos.length > 0 && (
                                     <div className="mt-4">
                                       <div className="flex flex-wrap gap-3">
                                         {item.photos.map((photo, photoIndex) => (
-                                          <div key={photo.id} className="relative group">
+                                          <div key={photo.id || photoIndex} className="relative group">
                                             <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
                                               {photo.previewUrl ? (
                                                 <img
@@ -1171,11 +1369,11 @@ export default function SellMultipleItemsPage() {
                                     <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                                       <div
                                         className={`h-full ${
-                                          item.photos.length >= 3
+                                          (item.photos || []).length >= 3
                                             ? "bg-green-500"
                                             : "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6]"
                                         }`}
-                                        style={{ width: `${Math.min(100, (item.photos.length / 3) * 100)}%` }}
+                                        style={{ width: `${Math.min(100, ((item.photos || []).length / 3) * 100)}%` }}
                                       ></div>
                                     </div>
                                   </div>
@@ -1205,7 +1403,7 @@ export default function SellMultipleItemsPage() {
                                     </div>
                                   )}
 
-                                  {item.photos.length > 0 && (
+                                  {item.photos && item.photos.length > 0 && (
                                     <div className="flex items-center gap-2">
                                       <span className="font-medium">Photos:</span>
                                       <span className="text-muted-foreground">{item.photos.length}</span>
@@ -1386,7 +1584,7 @@ export default function SellMultipleItemsPage() {
                               <p className="text-sm text-muted-foreground mt-1">
                                 <span className="font-medium text-foreground">Names:</span>{" "}
                                 {getItems()
-                                  .map((item) => item.name)
+                                  .map((item) => item.name || "Unnamed Item")
                                   .join(", ")}
                               </p>
                             </div>
@@ -1414,14 +1612,15 @@ export default function SellMultipleItemsPage() {
                                         </p>
                                         <p className="text-sm text-muted-foreground mt-1">
                                           <span className="font-medium text-foreground">Description:</span>{" "}
-                                          {item.description}
+                                          {item.description || "No description provided"}
                                         </p>
                                         <p className="text-sm text-muted-foreground mt-1">
-                                          <span className="font-medium text-foreground">Issues:</span> {item.issues}
+                                          <span className="font-medium text-foreground">Issues:</span>{" "}
+                                          {item.issues || "None specified"}
                                         </p>
                                         <p className="text-sm text-muted-foreground mt-1">
                                           <span className="font-medium text-foreground">Photos:</span>{" "}
-                                          {item.photos.length}
+                                          {(item.photos || []).length}
                                         </p>
                                       </div>
                                     </AccordionContent>

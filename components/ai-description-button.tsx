@@ -37,44 +37,30 @@ export function AIDescriptionButton({
     setIsGenerating(true)
 
     try {
-      // First try the eBay description endpoint
-      let response = await fetch("/api/generate-ebay-description", {
+      // First try the enhanced eBay description endpoint
+      const response = await fetch("/api/generate-description", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          itemName: promptText,
-          condition,
+          prompt: `${promptText} - ${condition} condition`,
         }),
       })
 
-      // If that fails, try the general description endpoint
       if (!response.ok) {
-        response = await fetch("/api/generate-description", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            prompt: promptText,
-          }),
-        })
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
 
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to generate description")
-      }
-
-      // Extract just the description part without the markdown formatting
+      // Extract description and clean up
       let cleanDescription = data.description || ""
 
       // Remove markdown headers
       cleanDescription = cleanDescription.replace(/^#+ .*$/gm, "")
 
-      // Remove markdown bullet points
+      // Remove markdown bullet points but keep the dash
       cleanDescription = cleanDescription.replace(/^\* /gm, "- ")
 
       // Remove section headers (##)
@@ -88,10 +74,19 @@ export function AIDescriptionButton({
 
       onDescriptionGenerated(cleanDescription)
 
-      toast({
-        title: "Success",
-        description: "Description generated successfully",
-      })
+      // Show different toast based on if we used the API or fallback
+      if (data.fromApi) {
+        toast({
+          title: "AI Description Generated",
+          description: "Used OpenAI to create a custom description",
+        })
+      } else if (data.fromFallback) {
+        toast({
+          title: "Description Generated",
+          description: "Used built-in template (OpenAI key not configured)",
+          variant: "default",
+        })
+      }
     } catch (err) {
       console.error("Error generating description:", err)
       toast({
@@ -99,6 +94,15 @@ export function AIDescriptionButton({
         description: err.message || "Failed to generate description",
         variant: "destructive",
       })
+
+      // Try to generate a basic fallback description client-side if everything fails
+      try {
+        const fallback = `This ${promptText} is in ${condition} condition and functions as expected. It shows typical signs of ${condition === "new" ? "being brand new" : "normal use"} and represents great value.`
+        onDescriptionGenerated(fallback)
+      } catch (e) {
+        // If even this fails, just inform the user
+        console.error("Fallback description failed:", e)
+      }
     } finally {
       setIsGenerating(false)
     }

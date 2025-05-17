@@ -15,9 +15,19 @@ export function getEnvVariable(name: string, fallback = ""): string {
   return hasEnvVariable(name) ? process.env[name]! : fallback
 }
 
-// Check if OpenAI API key is available
+// Check if OpenAI API key is available and appears valid
 export function hasOpenAIKey(): boolean {
-  return !!process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.length > 0
+  const key = process.env.OPENAI_API_KEY
+  // Check if key exists, has length, and starts with the expected prefix
+  return !!key && key.length > 20 && (key.startsWith("sk-") || key.startsWith("org-"))
+}
+
+// Get OpenAI API key if available
+export function getOpenAIKey(): string | null {
+  if (hasOpenAIKey()) {
+    return process.env.OPENAI_API_KEY!
+  }
+  return null
 }
 
 /**
