@@ -372,3 +372,16 @@ body {
 .dark .apple-footer {
   @apply text-gray-400 border-gray-800;
 }
+
+/* Add at the end of the file */
+button,
+.button,
+[role="button"] {
+  transition-duration: 0ms !important;
+}
+
+button *,
+.button *,
+[role="button"] * {
+  transition-duration: 0ms !important;
+}

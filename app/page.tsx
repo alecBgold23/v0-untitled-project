@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import ContentAnimation from "@/components/content-animation"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { uploadItemImageAndSave } from "@/app/actions/upload-item-image-and-save"
 
 export default function Home() {
   const router = useRouter()
@@ -16,7 +15,7 @@ export default function Home() {
 
   // Function to navigate to sell item page
   const navigateToSellItem = () => {
-    router.push("/sell-item")
+    router.push("/sell-multiple-items")
   }
 
   // Effect to show and hide the line on initial load
@@ -68,7 +67,7 @@ export default function Home() {
                 <span className="hidden sm:block">Learn How It Works</span>
               </Link>
               <Link
-                href="/sell-item"
+                href="/sell-multiple-items"
                 className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-4 py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all w-[160px] sm:w-auto text-center text-sm"
               >
                 Sell Your Item
@@ -389,7 +388,7 @@ export default function Home() {
               <div className="flex justify-center">
                 <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
                   <Link
-                    href="/sell-item"
+                    href="/sell-multiple-items"
                     className={`inline-flex items-center ${isMobile ? "bg-gray-900 hover:bg-gray-800" : "bg-card hover:bg-secondary"} transition-colors px-4 py-2 rounded-lg font-medium ${isMobile ? "text-white" : "text-foreground"} group text-sm`}
                   >
                     Sell Your Item Now
@@ -397,41 +396,6 @@ export default function Home() {
                   </Link>
                 </div>
               </div>
-            </div>
-          </ContentAnimation>
-          <ContentAnimation delay={0.5}>
-            <div
-              className={`bg-gradient-to-br from-black via-gray-900 to-gray-800 p-6 rounded-xl shadow-lg mt-8 border border-gray-700 text-white`}
-            >
-              <h3 className="text-xl font-medium mb-4 text-center">
-                <span className="text-white">Quick Upload</span>
-              </h3>
-              <form action={uploadItemImageAndSave} className="space-y-4">
-                <div>
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="Item name"
-                    required
-                    className="w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-gray-800 text-white placeholder-gray-400"
-                  />
-                </div>
-                <div>
-                  <input
-                    type="file"
-                    name="file"
-                    accept="image/*"
-                    required
-                    className="w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-gray-800 text-white placeholder-gray-400"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-4 py-2 rounded-md font-medium hover:shadow-md hover:translate-y-[-1px] transition-all"
-                >
-                  Upload Item
-                </button>
-              </form>
             </div>
           </ContentAnimation>
         </div>

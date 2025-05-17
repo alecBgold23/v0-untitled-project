@@ -19,14 +19,16 @@ export default function NewsletterForm() {
 
     setIsSubmitting(true)
 
-    // Form will be submitted to Formspree
-    // This is just to show loading state
-    setTimeout(() => {
+    try {
+      // Form will be submitted to Formspree
       setIsSubmitting(false)
       setIsSubmitted(true)
       setEmail("")
       setMessage("")
-    }, 1000)
+    } catch (error) {
+      console.error("Error submitting form:", error)
+      setIsSubmitting(false)
+    }
   }
 
   return (

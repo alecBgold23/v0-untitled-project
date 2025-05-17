@@ -6,29 +6,26 @@ import { Loader2, Wand2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface AIDescriptionButtonProps {
-  itemName?: string
-  inputText?: string
-  condition?: string
+  title: string
+  condition: string
+  extraDetails?: string
   onDescriptionGenerated: (description: string) => void
 }
 
 export function AIDescriptionButton({
-  itemName = "",
-  inputText = "",
-  condition = "used",
+  title,
+  condition,
+  extraDetails = "",
   onDescriptionGenerated,
 }: AIDescriptionButtonProps) {
-  const { toast } = useToast()
   const [isGenerating, setIsGenerating] = useState(false)
+  const { toast } = useToast()
 
   const generateDescription = async () => {
-    // Use inputText if provided, otherwise use itemName
-    const promptText = inputText.trim() || itemName.trim()
-
-    if (!promptText) {
+    if (!title) {
       toast({
         title: "Error",
-        description: "Please enter item details first",
+        description: "Please enter an item title first",
         variant: "destructive",
       })
       return
@@ -37,72 +34,40 @@ export function AIDescriptionButton({
     setIsGenerating(true)
 
     try {
-      // First try the enhanced eBay description endpoint
       const response = await fetch("/api/generate-description", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: `${promptText} - ${condition} condition`,
+          title,
+          condition,
+          extraDetails,
         }),
       })
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-
       const data = await response.json()
 
-      // Extract description and clean up
-      let cleanDescription = data.description || ""
-
-      // Remove markdown headers
-      cleanDescription = cleanDescription.replace(/^#+ .*$/gm, "")
-
-      // Remove markdown bullet points but keep the dash
-      cleanDescription = cleanDescription.replace(/^\* /gm, "- ")
-
-      // Remove section headers (##)
-      cleanDescription = cleanDescription.replace(/^## .*$/gm, "")
-
-      // Clean up extra newlines
-      cleanDescription = cleanDescription.replace(/\n{3,}/g, "\n\n")
-
-      // Trim whitespace
-      cleanDescription = cleanDescription.trim()
-
-      onDescriptionGenerated(cleanDescription)
-
-      // Show different toast based on if we used the API or fallback
-      if (data.fromApi) {
-        toast({
-          title: "AI Description Generated",
-          description: "Used OpenAI to create a custom description",
-        })
-      } else if (data.fromFallback) {
-        toast({
-          title: "Description Generated",
-          description: "Used built-in template (OpenAI key not configured)",
-          variant: "default",
-        })
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate description")
       }
-    } catch (err) {
-      console.error("Error generating description:", err)
+
+      if (data.description) {
+        onDescriptionGenerated(data.description)
+        toast({
+          title: "Success",
+          description: "AI-generated description added",
+        })
+      } else {
+        throw new Error("No description was generated")
+      }
+    } catch (error) {
+      console.error("Error generating description:", error)
       toast({
         title: "Error",
-        description: err.message || "Failed to generate description",
+        description: error.message || "Failed to generate description",
         variant: "destructive",
       })
-
-      // Try to generate a basic fallback description client-side if everything fails
-      try {
-        const fallback = `This ${promptText} is in ${condition} condition and functions as expected. It shows typical signs of ${condition === "new" ? "being brand new" : "normal use"} and represents great value.`
-        onDescriptionGenerated(fallback)
-      } catch (e) {
-        // If even this fails, just inform the user
-        console.error("Fallback description failed:", e)
-      }
     } finally {
       setIsGenerating(false)
     }
@@ -111,14 +76,23 @@ export function AIDescriptionButton({
   return (
     <Button
       type="button"
-      size="sm"
       variant="outline"
-      className="flex items-center gap-1"
+      size="sm"
       onClick={generateDescription}
-      disabled={isGenerating || !(inputText.trim() || itemName.trim())}
+      disabled={isGenerating || !title}
+      className="gap-1.5"
     >
-      {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
-      <span className="text-xs">Generate Description</span>
+      {isGenerating ? (
+        <>
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <span>Generating...</span>
+        </>
+      ) : (
+        <>
+          <Wand2 className="h-3.5 w-3.5" />
+          <span>Generate AI Description</span>
+        </>
+      )}
     </Button>
   )
 }

@@ -48,7 +48,7 @@ export default function AnimatedSection({
         type: "spring",
         stiffness: 100,
         damping: 15,
-        delay: delay,
+        delay: 0,
       }}
       className={className}
     >

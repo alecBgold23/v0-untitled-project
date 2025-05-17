@@ -1,112 +1,95 @@
 import { NextResponse } from "next/server"
-import OpenAI from "openai"
-import { getOpenAIKey } from "@/lib/env"
+import { OpenAI } from "openai"
 
-export const runtime = "nodejs"
-
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { prompt } = await request.json()
+    const { title, condition, extraDetails } = await req.json()
 
-    if (!prompt) {
-      return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
+    if (!title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 })
     }
 
-    // Get validated OpenAI API key
-    const apiKey = getOpenAIKey()
-
-    if (!apiKey) {
-      console.log("OpenAI API key not found or invalid, using fallback description generation")
-      return NextResponse.json({
-        description: generateFallbackDescription(prompt),
-        fromFallback: true,
-      })
+    // Check if OpenAI API key is configured
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        {
+          error: "OpenAI API key is not configured",
+          description: generateFallbackDescription(title, condition, extraDetails),
+        },
+        { status: 400 },
+      )
     }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+
+    const prompt = `
+Create a professional, detailed eBay-style product description for the following item:
+
+Item: "${title}"
+Condition: "${condition || "Used - Good"}"
+Additional Details: "${extraDetails || "N/A"}"
+
+The description should:
+1. Be professional and appealing to buyers
+2. Highlight key features and specifications
+3. Mention the condition clearly
+4. Include any relevant details from the "Additional Details" section
+5. Be formatted with proper spacing and bullet points where appropriate
+6. Be between 100-200 words
+
+Return ONLY the description text without any additional commentary.
+`
 
     try {
-      // Initialize the OpenAI client
-      const openai = new OpenAI({
-        apiKey: apiKey,
-      })
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a helpful assistant that writes concise, detailed product descriptions for online marketplace listings.",
-          },
-          {
-            role: "user",
-            content: `Write a brief, enhanced description for this item: ${prompt}. Focus on features, condition, and what makes it valuable. Keep it under 100 words.`,
-          },
-        ],
-        max_tokens: 200,
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
+        max_tokens: 500,
       })
 
-      const description = completion.choices[0]?.message?.content?.trim() || ""
-
-      if (!description) {
-        throw new Error("No description generated")
-      }
-
-      return NextResponse.json({
-        description,
-        fromApi: true,
-      })
-    } catch (error) {
-      console.error("OpenAI API error:", error)
-      // Fallback to a generic description
-      return NextResponse.json({
-        description: generateFallbackDescription(prompt),
-        fromFallback: true,
-        error: error.message,
-      })
+      const description = response.choices[0].message.content?.trim()
+      return NextResponse.json({ description })
+    } catch (error: any) {
+      console.error("OpenAI error:", error)
+      return NextResponse.json(
+        {
+          error: "Failed to generate description",
+          description: generateFallbackDescription(title, condition, extraDetails),
+        },
+        { status: 500 },
+      )
     }
-  } catch (error) {
-    console.error("Error in generate-description route:", error)
+  } catch (error: any) {
+    console.error("Server error:", error)
     return NextResponse.json(
       {
-        error: "Failed to create description",
-        message: error.message,
+        error: "Server error",
+        description: generateFallbackDescription("Unknown Item", "Used", ""),
       },
       { status: 500 },
     )
   }
 }
 
-function generateFallbackDescription(prompt: string): string {
-  const adjectives = [
-    "excellent",
-    "good",
-    "great",
-    "fantastic",
-    "well-maintained",
-    "reliable",
-    "quality",
-    "impressive",
-    "wonderful",
-    "solid",
-  ]
+// Fallback function to generate a description without OpenAI
+function generateFallbackDescription(title: string, condition?: string, extraDetails?: string): string {
+  const conditionText = condition || "Used - Good condition"
+  const details = extraDetails ? `Additional details: ${extraDetails}` : ""
 
-  const features = [
-    "performs flawlessly",
-    "works perfectly",
-    "functions as expected",
-    "is in great condition",
-    "shows minimal wear",
-    "offers great value",
-    "meets all expectations",
-    "is ready to use",
-    "has been tested thoroughly",
-    "will satisfy any buyer",
-  ]
+  return `
+${title} - ${conditionText}
 
-  // Get random elements from arrays
-  const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)]
-  const randomFeature = features[Math.floor(Math.random() * features.length)]
+This listing is for a ${title} in ${conditionText.toLowerCase()}. ${details}
 
-  return `This ${prompt} is in ${randomAdjective} condition and ${randomFeature}. It includes all essential components and has been well-maintained. Perfect for anyone looking for a reliable ${prompt.split(" ").slice(-1)[0] || "item"} at a great value.`
+Features:
+• Standard features for this type of item
+• Quality construction
+• Reliable performance
+
+Please review all photos carefully and ask any questions before purchasing. 
+Shipping will be handled promptly after payment is received.
+`
 }

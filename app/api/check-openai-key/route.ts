@@ -1,52 +1,55 @@
 import { NextResponse } from "next/server"
-import { hasOpenAIKey, getOpenAIKey } from "@/lib/env"
-import OpenAI from "openai"
+import { OpenAI } from "openai"
 
 export async function GET() {
   try {
-    const hasKey = hasOpenAIKey()
+    const apiKey = process.env.OPENAI_API_KEY
 
-    if (!hasKey) {
+    if (!apiKey) {
       return NextResponse.json({
         success: false,
-        message: "OpenAI API key is not configured",
         hasKey: false,
+        message: "OpenAI API key is not configured",
       })
     }
 
-    // Get the API key using our helper
-    const apiKey = getOpenAIKey()
+    // Initialize the OpenAI client with the API key
+    const openai = new OpenAI({
+      apiKey,
+    })
 
+    // Make a simple API call to verify the key works
     try {
-      // Initialize the OpenAI client
-      const openai = new OpenAI({
-        apiKey: apiKey!,
-      })
-
-      // Make a simple request to validate the key
-      const response = await openai.models.list()
+      // Use a simple models list call to verify the key
+      await openai.models.list()
 
       return NextResponse.json({
         success: true,
         message: "OpenAI API key is valid",
-        hasKey: true,
-        models: response.data.length, // Just returning count for security
       })
-    } catch (error) {
-      console.error("Error validating OpenAI API key:", error)
-      return NextResponse.json({
-        success: false,
-        message: error.message || "OpenAI API key is invalid",
-        hasKey: true,
-        error: error.message,
-      })
+    } catch (error: any) {
+      console.error("OpenAI API error:", error)
+
+      // Check for specific error types
+      if (error.status === 401) {
+        return NextResponse.json({
+          success: false,
+          hasKey: true,
+          message: "Invalid API key or unauthorized access",
+        })
+      } else {
+        return NextResponse.json({
+          success: false,
+          hasKey: true,
+          message: error.message || "Error validating OpenAI API key",
+        })
+      }
     }
-  } catch (error) {
-    console.error("Error checking OpenAI API key:", error)
+  } catch (error: any) {
+    console.error("Server error:", error)
     return NextResponse.json({
       success: false,
-      message: "Error checking OpenAI API key",
-      error: error.message,
+      message: "Server error checking API key",
     })
   }
 }

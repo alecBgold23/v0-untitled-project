@@ -27,7 +27,7 @@ const mainNavItems = [
   { href: "/how-it-works", label: "How It Works" },
   { href: "/reviews", label: "Reviews" },
   { href: "/contact", label: "Contact" },
-  { href: "/sell-item", label: "Sell Your Item" },
+  { href: "/sell-multiple-items", label: "Sell Your Item" },
   {
     title: "Settings",
     href: "/settings",

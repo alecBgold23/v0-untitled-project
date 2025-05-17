@@ -52,7 +52,7 @@ export default function ContentAnimation({
         type: "spring",
         stiffness: 100,
         damping: 15,
-        delay: delay || 0,
+        delay: 0,
       }}
       className={`content-animation-wrapper ${className}`}
     >

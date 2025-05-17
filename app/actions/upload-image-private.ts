@@ -2,23 +2,54 @@
 
 import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+const supabaseUrl = process.env.SUPABASE_URL || ""
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "" // Use service role key for server-side
 
-export async function uploadImagePrivate(file: File, email: string) {
-  const fileName = `${email}-${Date.now()}-${file.name}`
-  const { data, error } = await supabase.storage.from("images2").upload(fileName, file)
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
-  if (error) {
-    console.error("Upload error:", error)
-    return { success: false }
+export async function uploadImagePrivate(file: File, userId: string) {
+  if (!file) {
+    return { success: false, error: "No file provided" }
   }
 
-  // Optionally generate a signed URL
-  const { data: signedUrlData } = await supabase.storage.from("images2").createSignedUrl(fileName, 60 * 60) // 1 hour
+  try {
+    // Create a unique filename to avoid collisions
+    const fileName = `${userId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`
 
-  return {
-    success: true,
-    path: fileName,
-    signedUrl: signedUrlData?.signedUrl,
+    // Convert file to buffer for upload (Node environment)
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    // Log upload attempt
+    console.log(`Attempting to upload file: ${fileName}, size: ${buffer.length} bytes, type: ${file.type}`)
+
+    // Upload file to 'images2' bucket (correct bucket name)
+    const { data, error } = await supabase.storage.from("images2").upload(fileName, buffer, {
+      contentType: file.type,
+      upsert: false,
+    })
+
+    if (error) {
+      console.error(`Supabase storage upload error: ${error.message}`)
+      return { success: false, error: error.message }
+    }
+
+    // Get public URL of the uploaded file
+    const { data: publicUrlData } = supabase.storage.from("images2").getPublicUrl(data.path)
+
+    console.log(`Successfully uploaded file: ${fileName}, path: ${data.path}`)
+
+    return {
+      success: true,
+      path: data.path,
+      url: publicUrlData.publicUrl,
+      signedUrl: publicUrlData.publicUrl, // For backward compatibility
+    }
+  } catch (error) {
+    console.error(`Unexpected error in uploadImagePrivate: ${error instanceof Error ? error.message : String(error)}`)
+    return {
+      success: false,
+      error: `Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    }
   }
 }

@@ -34,8 +34,8 @@ export default function SellMultipleItemsEnding({
               <div className="space-y-8">
                 {formStep === 2 && (
                   <div className="space-y-6">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#e2e8f0] dark:border-gray-700 overflow-hidden">
-                      <div className="bg-gradient-to-r from-[#0ea5e9]/30 via-[#6366f1]/30 to-[#8b5cf6]/30 p-6 border-b border-[#e2e8f0] dark:border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                      <div className="bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 p-6 border-b border-gray-200 dark:border-gray-700">
                         <h2 className="text-xl font-medium text-gray-800 dark:text-gray-100">Review Your Items</h2>
                         <p className="text-muted-foreground text-sm mt-1">
                           Please review your items before submitting.
@@ -44,7 +44,7 @@ export default function SellMultipleItemsEnding({
 
                       <div className="p-6">
                         <div className="space-y-4">
-                          <div className="bg-[#f8fafc] dark:bg-gray-900 rounded-lg p-4 border border-[#e2e8f0] dark:border-gray-700">
+                          <div className="bg-[#f8fafc] dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                             <div className="space-y-4">
                               <Accordion type="single" collapsible className="w-full">
                                 {items.map((item, index) => (
@@ -52,8 +52,8 @@ export default function SellMultipleItemsEnding({
                                     <AccordionTrigger className="hover:bg-[#f8fafc] dark:hover:bg-gray-800 px-4 py-3 rounded-lg">
                                       <div className="flex items-center justify-between w-full">
                                         <div className="flex items-center space-x-3">
-                                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10 flex items-center justify-center">
-                                            <span className="text-sm font-medium text-[#6366f1]">{index + 1}</span>
+                                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 flex items-center justify-center">
+                                            <span className="text-sm font-medium text-[#6a5acd]">{index + 1}</span>
                                           </div>
                                           <div className="text-left">
                                             <h3 className="font-medium">{item.name || `Item ${index + 1}`}</h3>
@@ -68,7 +68,7 @@ export default function SellMultipleItemsEnding({
                                           </div>
                                         </div>
                                         <div className="flex items-center space-x-2">
-                                          <div className="text-xs bg-[#6366f1]/10 text-[#6366f1] px-2 py-0.5 rounded-full">
+                                          <div className="text-xs bg-[#6a5acd]/10 text-[#6a5acd] px-2 py-0.5 rounded-full">
                                             {item.photos.length} photo{item.photos.length !== 1 ? "s" : ""}
                                           </div>
                                         </div>
@@ -90,7 +90,7 @@ export default function SellMultipleItemsEnding({
                                               {item.photos.map((photo, photoIndex) => (
                                                 <div
                                                   key={photo.id}
-                                                  className="relative aspect-square rounded-md overflow-hidden border border-[#e2e8f0] dark:border-gray-700"
+                                                  className="relative aspect-square rounded-md overflow-hidden border border-gray-200 dark:border-gray-700"
                                                 >
                                                   {photo.previewUrl && (
                                                     <img
@@ -115,14 +115,14 @@ export default function SellMultipleItemsEnding({
                       </div>
 
                       <div className="mt-6 transition-all duration-300">
-                        <div className="p-6 rounded-lg bg-[#f8fafc] dark:bg-gray-900 border border-[#e2e8f0] dark:border-gray-700 shadow-sm">
+                        <div className="p-6 rounded-lg bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-sm">
                           <div className="flex items-start space-x-3">
                             <Checkbox
                               id="consent"
                               name="consent"
                               checked={termsAccepted}
                               onCheckedChange={setTermsAccepted}
-                              className={`mt-1 border-[#6366f1] text-[#6366f1] focus-visible:ring-[#6366f1] ${
+                              className={`mt-1 border-[#6a5acd] text-[#6a5acd] focus-visible:ring-[#6a5acd] ${
                                 formErrors.terms ? "border-red-300" : ""
                               }`}
                               required
@@ -135,7 +135,7 @@ export default function SellMultipleItemsEnding({
                                 By submitting this form, you agree to our{" "}
                                 <Link
                                   href="/privacy-policy"
-                                  className="text-[#6366f1] underline hover:text-[#4f46e5] transition-colors"
+                                  className="text-[#0066ff] underline hover:text-[#6a5acd] transition-colors"
                                 >
                                   Privacy Policy
                                 </Link>
@@ -147,7 +147,7 @@ export default function SellMultipleItemsEnding({
                         </div>
                       </div>
 
-                      <div className="flex justify-between mt-8">
+                      <div className="flex justify-between mt-8 p-6">
                         <button
                           type="button"
                           onClick={(e) => {
@@ -159,7 +159,7 @@ export default function SellMultipleItemsEnding({
                               setFormStep(1)
                             }, 100)
                           }}
-                          className="px-6 py-2 rounded-lg border border-[#e2e8f0] dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground shadow-sm hover:bg-muted/50 transition-all duration-300 flex items-center gap-2 font-medium"
+                          className="px-6 py-2.5 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 font-medium text-sm"
                         >
                           <ChevronLeft className="w-4 h-4" />
                           <span>Back</span>
@@ -168,9 +168,8 @@ export default function SellMultipleItemsEnding({
                         <Button
                           type="submit"
                           disabled={!step2Valid || isSubmitting}
-                          className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] hover:from-[#0ea5e9]/90 hover:via-[#6366f1]/90 hover:to-[#8b5cf6]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
+                          className="bg-gradient-to-r from-[#6a5acd] to-[#8c52ff] hover:from-[#6a5acd]/90 hover:to-[#8c52ff]/90 text-white px-6 py-2.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow relative overflow-hidden"
                         >
-                          <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:opacity-0 transition-opacity duration-300"></span>
                           <span className="relative flex items-center justify-center gap-2">
                             {isSubmitting ? (
                               <>
@@ -194,18 +193,24 @@ export default function SellMultipleItemsEnding({
         </>
       ) : (
         <ContentAnimation>
-          <div className="min-h-screen bg-gradient-to-b from-background to-secondary dark:from-gray-900 dark:to-gray-950">
+          <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] to-[#f0f5ff] dark:from-gray-950 dark:to-[#0c1445]">
             <div className="container mx-auto py-16 px-4 max-w-3xl">
-              <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#6366f1]/10 dark:border-[#6366f1]/20 overflow-hidden p-6 text-center">
+              <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden p-6 text-center">
                 <CardContent>
-                  <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                  <h2 className="text-2xl font-medium tracking-tight text-gray-800 dark:text-gray-100 mb-2">
-                    Thank you for your submission!
+                  <div className="w-16 h-16 bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle2 className="w-8 h-8 text-[#6a5acd]" />
+                  </div>
+                  <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] bg-clip-text text-transparent">
+                    Thank You!
                   </h2>
-                  <p className="text-muted-foreground text-sm mb-4">
-                    We've received your request and will get back to you within 24 hours.
+                  <div className="w-16 h-0.5 mx-auto mb-6 bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] rounded-full"></div>
+                  <p className="text-gray-600 dark:text-gray-400 mb-8">
+                    We've received your submission and will get back to you within 24 hours.
                   </p>
-                  <Button asChild>
+                  <Button
+                    asChild
+                    className="bg-gradient-to-r from-[#0066ff] to-[#6a5acd] hover:from-[#0066ff]/90 hover:to-[#6a5acd]/90"
+                  >
                     <Link href="/">Back to Home</Link>
                   </Button>
                 </CardContent>

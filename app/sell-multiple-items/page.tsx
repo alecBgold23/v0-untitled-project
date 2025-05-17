@@ -29,7 +29,6 @@ import {
 import ContentAnimation from "@/components/content-animation"
 import { useToast } from "@/hooks/use-toast"
 import AddressAutocomplete from "@/components/address-autocomplete"
-import PhoneVerification from "@/components/phone-verification"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { submitMultipleItemsToSupabase } from "../actions/submit-multiple-items"
@@ -43,10 +42,6 @@ export default function SellMultipleItemsPage() {
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState(null)
-
-  // Phone verification states
-  const [showVerification, setShowVerification] = useState(false)
-  const [isVerified, setIsVerified] = useState(false)
 
   // Contact information
   const [fullName, setFullName] = useState("")
@@ -87,6 +82,8 @@ export default function SellMultipleItemsPage() {
   const formTopRef = useRef(null)
   const fileInputRefs = useRef({})
   const suggestionTimeoutsRef = useRef({})
+  const fullNameInputRef = useRef(null)
+  const formBoxRef = useRef(null)
 
   // Getter for items that uses the ref
   const getItems = useCallback(() => {
@@ -545,11 +542,35 @@ export default function SellMultipleItemsPage() {
       if (validateStep1()) {
         setFormStep(2)
         setFormErrors({})
-        // Scroll to the top of the page after changing step
-        setTimeout(scrollToTop, 50)
+
+        // Wait for the DOM to update with the new step
+        setTimeout(() => {
+          // Get the form box element
+          const formBox = formBoxRef.current
+          if (formBox) {
+            // Get the position of the form box
+            const rect = formBox.getBoundingClientRect()
+
+            // Calculate position to place the form box at the top of the viewport
+            const scrollTop = window.pageYOffset + rect.top
+
+            // Scroll to position
+            window.scrollTo({
+              top: scrollTop,
+              behavior: "smooth",
+            })
+
+            // Focus on the first input field
+            if (fullNameInputRef.current) {
+              setTimeout(() => {
+                fullNameInputRef.current.focus()
+              }, 500)
+            }
+          }
+        }, 100)
       }
     },
-    [scrollToTop, validateStep1],
+    [validateStep1],
   )
 
   // Upload images for all items
@@ -566,26 +587,54 @@ export default function SellMultipleItemsPage() {
         // Skip if no photos
         if (!item.photos || item.photos.length === 0) continue
 
-        // Use the first photo as the main image
-        const mainPhoto = item.photos[0]
-        if (!mainPhoto || !mainPhoto.file) continue
+        // Create arrays to store image paths and URLs
+        const imagePaths = []
+        const imageUrls = []
 
-        try {
-          // Upload the image to Supabase
-          const uploadResult = await uploadImagePrivate(mainPhoto.file, email)
-
-          if (uploadResult.success) {
-            // Update the item with image path and URL
-            updatedItems[i] = {
-              ...updatedItems[i],
-              imagePath: uploadResult.path || "",
-              imageUrl: uploadResult.signedUrl || "",
-            }
-          } else {
-            console.error(`Failed to upload image for item ${i + 1}:`, uploadResult.error)
+        // Upload all photos for this item
+        for (let j = 0; j < item.photos.length; j++) {
+          const photo = item.photos[j]
+          if (!photo || !photo.file) {
+            console.warn(`Photo ${j + 1} for item ${i + 1} is missing a file property`)
+            continue
           }
-        } catch (error) {
-          console.error(`Error uploading image for item ${i + 1}:`, error)
+
+          try {
+            // Validate file before upload
+            if (!isValidFile(photo.file)) {
+              console.error(`Photo ${j + 1} for item ${i + 1} is invalid or corrupted`)
+              continue
+            }
+
+            // Log upload attempt
+            console.log(`Attempting to upload image ${j + 1} for item ${i + 1}: ${photo.file.name}`)
+
+            // Upload the image to Supabase
+            const uploadResult = await uploadImagePrivate(photo.file, email)
+
+            if (uploadResult.success) {
+              // Add path and URL to arrays
+              imagePaths.push(uploadResult.path || "")
+              imageUrls.push(uploadResult.signedUrl || "")
+              console.log(`Successfully uploaded image ${j + 1} for item ${i + 1}`)
+            } else {
+              console.error(`Failed to upload image ${j + 1} for item ${i + 1}:`, uploadResult.error)
+              // Continue with other images even if one fails
+            }
+          } catch (error) {
+            console.error(`Error uploading image ${j + 1} for item ${i + 1}:`, error)
+            // Continue with other images even if one fails
+          }
+        }
+
+        // Update the item with all image paths and URLs
+        updatedItems[i] = {
+          ...updatedItems[i],
+          imagePaths: imagePaths,
+          imageUrls: imageUrls,
+          // Keep the first image as the main image for backward compatibility
+          imagePath: imagePaths.length > 0 ? imagePaths[0] : "",
+          imageUrl: imageUrls.length > 0 ? imageUrls[0] : "",
         }
       }
 
@@ -598,7 +647,27 @@ export default function SellMultipleItemsPage() {
     }
   }, [email, getItems, setItems])
 
-  // Complete form submission after verification
+  // Add this helper function to validate files before upload
+  const isValidFile = (file) => {
+    // Check if file exists
+    if (!file) return false
+
+    // Check if file size is reasonable (less than 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      console.error(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+      return false
+    }
+
+    // Check if file type is an image
+    if (!file.type.startsWith("image/")) {
+      console.error(`File ${file.name} is not an image (${file.type})`)
+      return false
+    }
+
+    return true
+  }
+
+  // Also update the completeFormSubmission function to handle upload failures gracefully
   const completeFormSubmission = useCallback(async () => {
     setIsSubmitting(true)
 
@@ -616,6 +685,15 @@ export default function SellMultipleItemsPage() {
       // First, upload images for all items
       const itemsWithImages = await uploadItemImages()
 
+      // Check if any items have images
+      const hasAnyImages = itemsWithImages.some(
+        (item) => (item.imagePaths && item.imagePaths.length > 0) || item.imagePath,
+      )
+
+      if (!hasAnyImages) {
+        console.warn("No images were successfully uploaded. Proceeding with submission anyway.")
+      }
+
       // Format items for submission
       const formattedItems = itemsWithImages.map((item) => ({
         name: item.name || "",
@@ -629,6 +707,8 @@ export default function SellMultipleItemsPage() {
         })),
         imagePath: item.imagePath || "",
         imageUrl: item.imageUrl || "",
+        imagePaths: item.imagePaths || [],
+        imageUrls: item.imageUrls || [],
       }))
 
       // Submit to Supabase
@@ -692,42 +772,11 @@ export default function SellMultipleItemsPage() {
       e.stopPropagation()
 
       if (validateStep2()) {
-        setIsSubmitting(true)
-
-        try {
-          // Format the phone number for verification
-          const formattedPhone = formatPhoneForApi(phone)
-          console.log("Phone number for verification:", formattedPhone)
-
-          // Check if we're in demo mode or should skip verification
-          if (
-            process.env.NEXT_PUBLIC_DEMO_MODE === "true" ||
-            process.env.NEXT_PUBLIC_SKIP_SMS_VERIFICATION === "true"
-          ) {
-            console.log("Demo mode or skip verification enabled - proceeding directly to submission")
-            // Skip verification in demo mode
-            await completeFormSubmission()
-          } else {
-            // Start phone verification process
-            setShowVerification(true)
-          }
-        } catch (error) {
-          console.error("Error submitting form:", error)
-          setSubmitResult({
-            success: false,
-            message: "An unexpected error occurred. Please try again later.",
-          })
-          setIsSubmitting(false)
-
-          toast({
-            title: "Error",
-            description: "There was a problem submitting your form. Please try again.",
-            variant: "destructive",
-          })
-        }
+        // Proceed directly to form submission without phone verification
+        await completeFormSubmission()
       }
     },
-    [completeFormSubmission, formatPhoneForApi, phone, toast, validateStep2],
+    [completeFormSubmission, validateStep2],
   )
 
   // Handle name input change
@@ -930,35 +979,31 @@ export default function SellMultipleItemsPage() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-background to-secondary dark:from-gray-900 dark:to-gray-950"
+      className="min-h-screen bg-gradient-to-b from-[#f8fafc] to-[#f0f5ff] dark:from-gray-950 dark:to-[#0c1445]"
       ref={formContainerRef}
     >
       {/* Add a ref at the top of the form for scrolling */}
       <div ref={formTopRef} className="scroll-target"></div>
 
-      <div className="container mx-auto py-16 px-4 max-w-3xl">
+      <div className="container mx-auto py-12 px-4 max-w-4xl">
         <ContentAnimation>
           {/* Professional Header */}
-          <div className="text-center mb-12 relative">
-            <div className="inline-flex items-center justify-center mb-4">
-              <div className="h-px w-12 bg-gradient-to-r from-[#0ea5e9] to-transparent"></div>
-              <span className="mx-4 text-sm font-medium uppercase tracking-wider text-muted-foreground">
-                Sell with confidence
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center mb-3">
+              <div className="h-px w-8 bg-gradient-to-r from-[#0066ff] to-transparent"></div>
+              <span className="mx-3 text-xs font-semibold uppercase tracking-wider text-[#6a5acd]">
+                Item Submission
               </span>
-              <div className="h-px w-12 bg-gradient-to-l from-[#0ea5e9] to-transparent"></div>
+              <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#8c52ff]"></div>
             </div>
 
-            <h1 className="font-semibold text-3xl md:text-4xl tracking-tight mb-4">
-              <span className="bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] bg-clip-text text-transparent">
-                Sell Multiple Items
-              </span>
+            <h1 className="font-bold text-3xl md:text-4xl tracking-tight mb-3 bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] bg-clip-text text-transparent">
+              Sell Your Item
             </h1>
 
-            <p className="text-muted-foreground max-w-md mx-auto text-sm md:text-base mb-2">
+            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto text-sm">
               Complete the form below to get an offer for your items within 24 hours.
             </p>
-
-            <div className="absolute -z-10 w-full h-full top-0 left-0 bg-gradient-to-r from-[#0ea5e9]/10 via-[#6366f1]/10 to-[#8b5cf6]/10 blur-3xl rounded-full opacity-70"></div>
           </div>
         </ContentAnimation>
 
@@ -970,46 +1015,26 @@ export default function SellMultipleItemsPage() {
               </div>
             )}
 
-            {/* Phone Verification Modal */}
-            {showVerification && !isVerified && (
-              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 border border-[#e2e8f0] dark:border-gray-700">
-                  <PhoneVerification
-                    phoneNumber={formatPhoneForApi(phone)}
-                    onVerified={() => {
-                      setIsVerified(true)
-                      setShowVerification(false)
-                      completeFormSubmission()
-                    }}
-                    onCancel={() => {
-                      setShowVerification(false)
-                      setIsSubmitting(false)
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Progress Steps */}
             <ContentAnimation delay={0.2}>
-              <div className="mb-8 relative">
-                <div className="hidden md:flex justify-between items-center relative z-10 px-8">
+              <div className="mb-8">
+                <div className="hidden md:flex justify-between items-center relative z-10 px-8 max-w-2xl mx-auto">
                   {/* Progress line */}
-                  <div className="absolute top-1/2 left-0 w-full h-0.5 bg-muted -translate-y-1/2"></div>
+                  <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 dark:bg-gray-700 -translate-y-1/2"></div>
                   <div
-                    className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] -translate-y-1/2 transition-all duration-500"
+                    className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] -translate-y-1/2 transition-all duration-500"
                     style={{ width: formStep === 1 ? "0%" : "100%" }}
                   ></div>
 
                   {/* Step 1 */}
-                  <div className="flex flex-col items-center relative bg-[#f8fafc] dark:bg-gray-900 px-4">
+                  <div className="flex flex-col items-center relative bg-[#f8fafc] dark:bg-gray-950 px-4">
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
+                      className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all ${
                         getStepStatus(1) === "complete"
-                          ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
+                          ? "bg-gradient-to-r from-[#0066ff] to-[#6a5acd] text-white"
                           : getStepStatus(1) === "current"
-                            ? "bg-white dark:bg-gray-800 border-2 border-[#6366f1] text-[#6366f1]"
-                            : "bg-white dark:bg-gray-800 border border-muted text-muted-foreground"
+                            ? "bg-white dark:bg-gray-800 border-2 border-[#0066ff] text-[#0066ff]"
+                            : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-400"
                       }`}
                     >
                       {getStepStatus(1) === "complete" ? (
@@ -1019,12 +1044,12 @@ export default function SellMultipleItemsPage() {
                       )}
                     </div>
                     <span
-                      className={`text-sm font-medium mt-2 ${
+                      className={`text-xs font-medium mt-2 ${
                         getStepStatus(1) === "current"
-                          ? "text-[#6366f1]"
+                          ? "text-[#0066ff]"
                           : getStepStatus(1) === "complete"
-                            ? "text-foreground"
-                            : "text-muted-foreground"
+                            ? "text-gray-900 dark:text-white"
+                            : "text-gray-500 dark:text-gray-400"
                       }`}
                     >
                       Item Details
@@ -1032,25 +1057,25 @@ export default function SellMultipleItemsPage() {
                   </div>
 
                   {/* Step 2 */}
-                  <div className="flex flex-col items-center relative bg-[#f8fafc] dark:bg-gray-900 px-4">
+                  <div className="flex flex-col items-center relative bg-[#f8fafc] dark:bg-gray-950 px-4">
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${
+                      className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all ${
                         getStepStatus(2) === "complete"
-                          ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
+                          ? "bg-gradient-to-r from-[#6a5acd] to-[#8c52ff] text-white"
                           : getStepStatus(2) === "current"
-                            ? "bg-white dark:bg-gray-800 border-2 border-[#6366f1] text-[#6366f1]"
-                            : "bg-white dark:bg-gray-800 border border-muted text-muted-foreground"
+                            ? "bg-white dark:bg-gray-800 border-2 border-[#6a5acd] text-[#6a5acd]"
+                            : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-400"
                       }`}
                     >
                       <User className="w-5 h-5" />
                     </div>
                     <span
-                      className={`text-sm font-medium mt-2 ${
+                      className={`text-xs font-medium mt-2 ${
                         getStepStatus(2) === "current"
-                          ? "text-[#6366f1]"
+                          ? "text-[#6a5acd]"
                           : getStepStatus(2) === "complete"
-                            ? "text-foreground"
-                            : "text-muted-foreground"
+                            ? "text-gray-900 dark:text-white"
+                            : "text-gray-500 dark:text-gray-400"
                       }`}
                     >
                       Contact Info
@@ -1060,14 +1085,16 @@ export default function SellMultipleItemsPage() {
 
                 {/* Mobile progress indicator */}
                 <div className="flex md:hidden justify-between items-center mb-4">
-                  <div className="text-lg font-medium">
+                  <div className="text-base font-medium text-gray-900 dark:text-white">
                     Step {formStep} of 2: {formStep === 1 ? "Item Details" : "Contact Info"}
                   </div>
-                  <div className="text-sm text-muted-foreground">{Math.round((formStep / 2) * 100)}% Complete</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {Math.round((formStep / 2) * 100)}% Complete
+                  </div>
                 </div>
-                <div className="h-1 w-full bg-muted rounded-full overflow-hidden mb-6 md:hidden">
+                <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-6 md:hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] transition-all duration-500"
                     style={{ width: `${(formStep / 2) * 100}%` }}
                   ></div>
                 </div>
@@ -1076,27 +1103,23 @@ export default function SellMultipleItemsPage() {
 
             <ContentAnimation delay={0.3}>
               <form
+                ref={formBoxRef}
                 onSubmit={handleSubmit}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#6366f1]/10 dark:border-[#6366f1]/20 overflow-hidden transition-all duration-300 relative z-20"
+                className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 overflow-hidden"
               >
-                {/* Form header - Updated with more vibrant gradient */}
-                <div className="bg-gradient-to-r from-[#00b4ff]/50 via-[#4338ca]/50 to-[#c026d3]/50 p-6 border-b border-[#e2e8f0] dark:border-gray-700 text-center shadow-sm">
-                  <div className="mb-2">
-                    <Link href="/sell-item" className="text-white hover:underline text-sm">
-                      Only selling one item? Click here
-                    </Link>
-                  </div>
-                  <h2 className="text-xl font-medium tracking-tight text-white">
+                {/* Form header */}
+                <div className="bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 p-6 border-b border-gray-200 dark:border-gray-800">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                     {formStep === 1 ? "Add your items" : "Your contact information"}
                   </h2>
-                  <p className="text-white/80 text-sm mt-1">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                     {formStep === 1
                       ? `You're currently adding ${getItems().length} item${getItems().length > 1 ? "s" : ""}`
                       : "Let us know how to reach you and arrange pickup"}
                   </p>
                 </div>
 
-                <div className="p-6">
+                <div className="p-6 md:p-8">
                   {formStep === 1 && (
                     <div className="space-y-6">
                       {/* Items list */}
@@ -1106,14 +1129,14 @@ export default function SellMultipleItemsPage() {
                             key={item.id}
                             id={item.id}
                             className={`border ${
-                              item.isValid ? "border-[#e2e8f0] dark:border-gray-700" : "border-[#6366f1]/30"
-                            } transition-all duration-300 hover:shadow-md bg-white dark:bg-gray-800`}
+                              item.isValid ? "border-gray-200 dark:border-gray-700" : "border-[#0066ff]/30"
+                            } transition-all duration-300 hover:shadow-md bg-white dark:bg-gray-800 rounded-lg overflow-hidden`}
                           >
-                            <CardHeader className="bg-gradient-to-r from-[#0ea5e9]/20 via-[#6366f1]/20 to-[#8b5cf6]/20 py-3 px-4 border-b border-[#e2e8f0] dark:border-gray-700">
+                            <CardHeader className="bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 py-3 px-4 border-b border-gray-200 dark:border-gray-700">
                               <div className="flex justify-between items-center">
                                 <div>
                                   <CardTitle className="text-base flex items-center gap-2">
-                                    <Package className="h-4 w-4 text-[#6366f1]" />
+                                    <Package className="h-4 w-4 text-[#6a5acd]" />
                                     Item {index + 1}
                                     {item.isValid && (
                                       <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
@@ -1168,7 +1191,10 @@ export default function SellMultipleItemsPage() {
                             {item.isExpanded && (
                               <CardContent className="pt-4 px-4 space-y-4">
                                 <div className="transition-all duration-300">
-                                  <Label htmlFor={`item-name-${index}`} className="text-sm font-medium mb-2 block">
+                                  <Label
+                                    htmlFor={`item-name-${index}`}
+                                    className="text-sm font-medium mb-2 block text-gray-900 dark:text-gray-100"
+                                  >
                                     Item Name <span className="text-red-500">*</span>
                                   </Label>
                                   <input
@@ -1176,7 +1202,7 @@ export default function SellMultipleItemsPage() {
                                     value={item.name || ""}
                                     onChange={(e) => handleNameChange(e, index)}
                                     placeholder="e.g., Leather Sofa, Samsung TV"
-                                    className="flex h-10 w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
+                                    className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066ff] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#0066ff]/30 focus:border-[#0066ff]/70 relative z-30"
                                     required
                                   />
 
@@ -1191,14 +1217,14 @@ export default function SellMultipleItemsPage() {
                                   {item.nameSuggestion && (
                                     <div
                                       onClick={() => applySuggestion(index)}
-                                      className="mt-3 p-3 bg-[#6366f1]/5 border border-[#6366f1]/20 rounded-lg cursor-pointer hover:bg-[#6366f1]/10 transition-colors duration-200"
+                                      className="mt-3 p-3 bg-[#6a5acd]/5 border border-[#6a5acd]/20 rounded-lg cursor-pointer hover:bg-[#6a5acd]/10 transition-colors duration-200"
                                     >
                                       <div className="flex items-center gap-2 mb-1">
-                                        <Wand2 className="h-4 w-4 text-[#6366f1]" />
-                                        <span className="text-sm font-medium text-[#6366f1]">
+                                        <Wand2 className="h-4 w-4 text-[#6a5acd]" />
+                                        <span className="text-sm font-medium text-[#6a5acd]">
                                           Suggested Description
                                         </span>
-                                        <span className="text-xs bg-[#6366f1]/10 text-[#6366f1] px-2 py-0.5 rounded-full">
+                                        <span className="text-xs bg-[#6a5acd]/10 text-[#6a5acd] px-2 py-0.5 rounded-full">
                                           Click to Apply
                                         </span>
                                       </div>
@@ -1209,10 +1235,13 @@ export default function SellMultipleItemsPage() {
 
                                 <div className="transition-all duration-300">
                                   <div className="flex justify-between items-center mb-2">
-                                    <Label htmlFor={`item-description-${index}`} className="text-sm font-medium">
+                                    <Label
+                                      htmlFor={`item-description-${index}`}
+                                      className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                                    >
                                       Brief Description <span className="text-red-500">*</span>
                                     </Label>
-                                    <div className="text-xs text-muted-foreground">
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
                                       {(item.description || "").length} characters
                                     </div>
                                   </div>
@@ -1222,60 +1251,153 @@ export default function SellMultipleItemsPage() {
                                     onChange={(e) => handleDescriptionChange(e, index)}
                                     placeholder="Describe your item in detail including brand, model, size, color, etc."
                                     rows={3}
-                                    className="flex min-h-[80px] w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
+                                    className="flex min-h-[80px] w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066ff] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#0066ff]/30 focus:border-[#0066ff]/70 relative z-30"
                                     required
                                   />
                                 </div>
 
                                 <div className="transition-all duration-300">
-                                  <Label className="text-sm font-medium mb-2 block">
+                                  <Label className="text-sm font-medium mb-2 block text-gray-900 dark:text-gray-100">
                                     Item Condition <span className="text-red-500">*</span>
                                   </Label>
-                                  <div className="grid grid-cols-5 gap-1">
+                                  <div className="grid grid-cols-5 gap-2">
                                     {/* Clickable condition options */}
-                                    {["like-new", "excellent", "good", "fair", "poor"].map((conditionOption) => (
+                                    <div
+                                      className={`flex flex-col items-center p-3 rounded-md border ${
+                                        item.condition === "like-new"
+                                          ? "border-[#0066ff] bg-[#0066ff]/5 dark:bg-[#0066ff]/20"
+                                          : "border-gray-200 dark:border-gray-700"
+                                      } cursor-pointer hover:border-[#0066ff] hover:bg-[#0066ff]/5 dark:hover:bg-[#0066ff]/10 transition-all shadow-sm`}
+                                      onClick={() => handleConditionSelect(index, "like-new")}
+                                    >
                                       <div
-                                        key={conditionOption}
-                                        className={`flex flex-col items-center p-2 rounded-lg border ${
-                                          item.condition === conditionOption
-                                            ? "border-[#6366f1] bg-[#6366f1]/5"
-                                            : "border-[#e2e8f0] dark:border-gray-700"
-                                        } cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/5 transition-all duration-200 shadow-sm hover:shadow-md`}
-                                        onClick={() => handleConditionSelect(index, conditionOption)}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                                          item.condition === "like-new"
+                                            ? "bg-gradient-to-r from-[#0066ff] to-[#6a5acd] text-white"
+                                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                        }`}
                                       >
-                                        <div
-                                          className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
-                                            item.condition === conditionOption
-                                              ? "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6] text-white"
-                                              : "bg-muted text-muted-foreground"
-                                          }`}
-                                        >
-                                          {conditionOption === "like-new" && <Sparkles className="w-4 h-4" />}
-                                          {conditionOption === "excellent" && <CheckCircle2 className="w-4 h-4" />}
-                                          {conditionOption === "good" && <Check className="w-4 h-4" />}
-                                          {conditionOption === "fair" && <Info className="w-4 h-4" />}
-                                          {conditionOption === "poor" && <AlertCircle className="w-4 h-4" />}
-                                        </div>
-                                        <Label
-                                          htmlFor={`condition-${conditionOption}-${index}`}
-                                          className="text-xs font-medium cursor-pointer text-center"
-                                        >
-                                          {conditionOption
-                                            .split("-")
-                                            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                                            .join(" ")}
-                                        </Label>
+                                        <Sparkles className="w-4 h-4" />
                                       </div>
-                                    ))}
+                                      <Label
+                                        htmlFor={`condition-like-new-${index}`}
+                                        className="text-xs font-medium cursor-pointer text-center"
+                                      >
+                                        Like New
+                                      </Label>
+                                    </div>
+
+                                    <div
+                                      className={`flex flex-col items-center p-3 rounded-md border ${
+                                        item.condition === "excellent"
+                                          ? "border-[#3a7bff] bg-[#3a7bff]/5 dark:bg-[#3a7bff]/20"
+                                          : "border-gray-200 dark:border-gray-700"
+                                      } cursor-pointer hover:border-[#3a7bff] hover:bg-[#3a7bff]/5 dark:hover:bg-[#3a7bff]/10 transition-all shadow-sm`}
+                                      onClick={() => handleConditionSelect(index, "excellent")}
+                                    >
+                                      <div
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                                          item.condition === "excellent"
+                                            ? "bg-gradient-to-r from-[#3a7bff] to-[#6a5acd] text-white"
+                                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                        }`}
+                                      >
+                                        <CheckCircle2 className="w-4 h-4" />
+                                      </div>
+                                      <Label
+                                        htmlFor={`condition-excellent-${index}`}
+                                        className="text-xs font-medium cursor-pointer text-center"
+                                      >
+                                        Excellent
+                                      </Label>
+                                    </div>
+
+                                    <div
+                                      className={`flex flex-col items-center p-3 rounded-md border ${
+                                        item.condition === "good"
+                                          ? "border-[#6a5acd] bg-[#6a5acd]/5 dark:bg-[#6a5acd]/20"
+                                          : "border-gray-200 dark:border-gray-700"
+                                      } cursor-pointer hover:border-[#6a5acd] hover:bg-[#6a5acd]/5 dark:hover:bg-[#6a5acd]/10 transition-all shadow-sm`}
+                                      onClick={() => handleConditionSelect(index, "good")}
+                                    >
+                                      <div
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                                          item.condition === "good"
+                                            ? "bg-gradient-to-r from-[#6a5acd] to-[#7a6ad8] text-white"
+                                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                        }`}
+                                      >
+                                        <Check className="w-4 h-4" />
+                                      </div>
+                                      <Label
+                                        htmlFor={`condition-good-${index}`}
+                                        className="text-xs font-medium cursor-pointer text-center"
+                                      >
+                                        Good
+                                      </Label>
+                                    </div>
+
+                                    <div
+                                      className={`flex flex-col items-center p-3 rounded-md border ${
+                                        item.condition === "fair"
+                                          ? "border-[#7a6ad8] bg-[#7a6ad8]/5 dark:bg-[#7a6ad8]/20"
+                                          : "border-gray-200 dark:border-gray-700"
+                                      } cursor-pointer hover:border-[#7a6ad8] hover:bg-[#7a6ad8]/5 dark:hover:bg-[#7a6ad8]/10 transition-all shadow-sm`}
+                                      onClick={() => handleConditionSelect(index, "fair")}
+                                    >
+                                      <div
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                                          item.condition === "fair"
+                                            ? "bg-gradient-to-r from-[#7a6ad8] to-[#8c52ff] text-white"
+                                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                        }`}
+                                      >
+                                        <Info className="w-4 h-4" />
+                                      </div>
+                                      <Label
+                                        htmlFor={`condition-fair-${index}`}
+                                        className="text-xs font-medium cursor-pointer text-center"
+                                      >
+                                        Fair
+                                      </Label>
+                                    </div>
+
+                                    <div
+                                      className={`flex flex-col items-center p-3 rounded-md border ${
+                                        item.condition === "poor"
+                                          ? "border-[#8c52ff] bg-[#8c52ff]/5 dark:bg-[#8c52ff]/20"
+                                          : "border-gray-200 dark:border-gray-700"
+                                      } cursor-pointer hover:border-[#8c52ff] hover:bg-[#8c52ff]/5 dark:hover:bg-[#8c52ff]/10 transition-all shadow-sm`}
+                                      onClick={() => handleConditionSelect(index, "poor")}
+                                    >
+                                      <div
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                                          item.condition === "poor"
+                                            ? "bg-gradient-to-r from-[#8c52ff] to-[#9d47ff] text-white"
+                                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                        }`}
+                                      >
+                                        <AlertCircle className="w-4 h-4" />
+                                      </div>
+                                      <Label
+                                        htmlFor={`condition-poor-${index}`}
+                                        className="text-xs font-medium cursor-pointer text-center"
+                                      >
+                                        Poor
+                                      </Label>
+                                    </div>
                                   </div>
                                 </div>
 
                                 <div className="transition-all duration-300">
                                   <div className="flex justify-between items-center mb-2">
-                                    <Label htmlFor={`item-issues-${index}`} className="text-sm font-medium">
+                                    <Label
+                                      htmlFor={`item-issues-${index}`}
+                                      className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                                    >
                                       Any issues or defects? <span className="text-red-500">*</span>
                                     </Label>
-                                    <div className="text-xs text-muted-foreground">
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
                                       {(item.issues || "").length} characters
                                     </div>
                                   </div>
@@ -1285,26 +1407,28 @@ export default function SellMultipleItemsPage() {
                                     onChange={(e) => handleIssuesChange(e, index)}
                                     placeholder="Please describe any scratches, dents, missing parts, or functional issues. If none, please write 'None'."
                                     rows={3}
-                                    className="flex min-h-[80px] w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
+                                    className="flex min-h-[80px] w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066ff] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#0066ff]/30 focus:border-[#0066ff]/70 relative z-30"
                                     required
                                   />
                                 </div>
 
                                 <div className="transition-all duration-300">
-                                  <Label className="text-sm font-medium mb-2 block">
+                                  <Label className="text-sm font-medium mb-2 block text-gray-900 dark:text-gray-100">
                                     Item Photos <span className="text-red-500">*</span>{" "}
-                                    <span className="text-sm font-normal text-muted-foreground">(at least 3)</span>
+                                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                                      (at least 3)
+                                    </span>
                                   </Label>
 
                                   {/* File upload */}
                                   <div
                                     onClick={() => fileInputRefs.current[`item-${index}`]?.click()}
-                                    className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors duration-200 border-[#6366f1]/40 hover:border-[#6366f1] bg-white dark:bg-gray-800 hover:bg-[#6366f1]/5 shadow-sm"
+                                    className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors duration-200 border-gray-300 dark:border-gray-700 hover:border-[#6a5acd] bg-[#f8fafc] dark:bg-gray-900 hover:bg-[#6a5acd]/5 dark:hover:bg-[#6a5acd]/10"
                                   >
                                     <div className="flex flex-col items-center justify-center gap-2">
-                                      <ImageIcon className="w-6 h-6 text-[#6366f1]/70" />
-                                      <p className="font-medium text-sm text-[#6366f1]">Click to Upload Images</p>
-                                      <p className="text-xs text-muted-foreground mt-1">
+                                      <ImageIcon className="w-6 h-6 text-[#6a5acd]/70" />
+                                      <p className="font-medium text-sm text-[#6a5acd]">Click to Upload Images</p>
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                         {(item.photos || []).length} of 3 required (max 10)
                                       </p>
                                     </div>
@@ -1324,7 +1448,7 @@ export default function SellMultipleItemsPage() {
                                       <div className="flex flex-wrap gap-3">
                                         {item.photos.map((photo, photoIndex) => (
                                           <div key={photo.id || photoIndex} className="relative group">
-                                            <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-md border border-[#e2e8f0] dark:border-gray-700 shadow-sm overflow-hidden">
+                                            <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
                                               {photo.previewUrl ? (
                                                 <img
                                                   src={photo.previewUrl || "/placeholder.svg"}
@@ -1334,14 +1458,14 @@ export default function SellMultipleItemsPage() {
                                                     console.error(`Error loading image ${photoIndex}:`, e)
                                                     e.currentTarget.style.display = "none"
                                                     e.currentTarget.parentElement.innerHTML = `
-                          <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-gray-400">
-                              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                              <circle cx="9" cy="9" r="2"></circle>
-                              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
-                            </svg>
-                          </div>
-                        `
+                         <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-gray-400">
+                             <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
+                             <circle cx="9" cy="9" r="2"></circle>
+                             <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                           </svg>
+                         </div>
+                       `
                                                   }}
                                                 />
                                               ) : (
@@ -1353,7 +1477,7 @@ export default function SellMultipleItemsPage() {
                                             <button
                                               type="button"
                                               onClick={() => removePhoto(index, photoIndex)}
-                                              className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md border border-gray-200"
+                                              className="absolute -top-2 -right-2 bg-white dark:bg-gray-800 text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md border border-gray-200 dark:border-gray-700"
                                               aria-label="Remove photo"
                                             >
                                               <X className="w-3 h-3" />
@@ -1366,12 +1490,12 @@ export default function SellMultipleItemsPage() {
 
                                   {/* Upload progress indicator */}
                                   <div className="flex items-center gap-1 mt-3 w-full">
-                                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                       <div
                                         className={`h-full ${
                                           (item.photos || []).length >= 3
                                             ? "bg-green-500"
-                                            : "bg-gradient-to-r from-[#0ea5e9] via-[#6366f1] to-[#8b5cf6]"
+                                            : "bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff]"
                                         }`}
                                         style={{ width: `${Math.min(100, ((item.photos || []).length / 3) * 100)}%` }}
                                       ></div>
@@ -1421,7 +1545,7 @@ export default function SellMultipleItemsPage() {
                         <Button
                           type="button"
                           onClick={addItem}
-                          className="bg-[#6366f1]/10 text-[#6366f1] hover:bg-[#6366f1]/20 border border-[#6366f1]/20 transition-all duration-300"
+                          className="bg-[#6a5acd]/10 text-[#6a5acd] hover:bg-[#6a5acd]/20 border border-[#6a5acd]/20 transition-all duration-300"
                         >
                           <Plus className="w-4 h-4 mr-2" />
                           Add Another Item
@@ -1433,7 +1557,7 @@ export default function SellMultipleItemsPage() {
                           type="button"
                           onClick={handleContinueToStep2}
                           disabled={!step1Valid}
-                          className="bg-gradient-to-r from-[#0284c7] via-[#4f46e5] to-[#7c3aed] hover:from-[#0284c7]/90 hover:via-[#4f46e5]/90 hover:to-[#7c3aed]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium"
+                          className="bg-gradient-to-r from-[#0066ff] to-[#6a5acd] hover:from-[#0066ff]/90 hover:to-[#6a5acd]/90 text-white px-6 py-2.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow flex items-center gap-2 font-medium text-sm"
                         >
                           <span>Continue</span>
                           <ChevronRight className="w-4 h-4" />
@@ -1444,9 +1568,12 @@ export default function SellMultipleItemsPage() {
 
                   {formStep === 2 && (
                     <div className="space-y-6">
-                      <div className="transition-all duration-300">
-                        <Label htmlFor="full-name" className="text-sm font-medium mb-2 flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
+                      <div className="transition-all">
+                        <Label
+                          htmlFor="full-name"
+                          className="text-sm font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100"
+                        >
+                          <User className="w-4 h-4 text-[#6a5acd]" />
                           <span>
                             Full Name <span className="text-red-500">*</span>
                           </span>
@@ -1457,15 +1584,19 @@ export default function SellMultipleItemsPage() {
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                           placeholder="Your full name"
-                          className="flex h-10 w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
+                          className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a5acd] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#6a5acd]/30 focus:border-[#6a5acd]/70 relative z-30"
                           required
+                          ref={fullNameInputRef}
                         />
                         {formErrors.fullName && <ErrorMessage message={formErrors.fullName} />}
                       </div>
 
-                      <div className="transition-all duration-300">
-                        <Label htmlFor="email" className="text-sm font-medium mb-2 flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-muted-foreground" />
+                      <div className="transition-all">
+                        <Label
+                          htmlFor="email"
+                          className="text-sm font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100"
+                        >
+                          <Mail className="w-4 h-4 text-[#6a5acd]" />
                           <span>
                             Email Address <span className="text-red-500">*</span>
                           </span>
@@ -1477,15 +1608,18 @@ export default function SellMultipleItemsPage() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="your.email@example.com"
-                          className="flex h-10 w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
+                          className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a5acd] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#6a5acd]/30 focus:border-[#6a5acd]/70 relative z-30"
                           required
                         />
                         {formErrors.email && <ErrorMessage message={formErrors.email} />}
                       </div>
 
-                      <div className="transition-all duration-300">
-                        <Label htmlFor="phone" className="text-sm font-medium mb-2 flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-muted-foreground" />
+                      <div className="transition-all">
+                        <Label
+                          htmlFor="phone"
+                          className="text-sm font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100"
+                        >
+                          <Phone className="w-4 h-4 text-[#6a5acd]" />
                           <span>
                             Phone Number <span className="text-red-500">*</span>
                           </span>
@@ -1497,17 +1631,18 @@ export default function SellMultipleItemsPage() {
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           placeholder="(123) 456-7890"
-                          className={`flex h-10 w-full rounded-md border ${
-                            formErrors.phone ? "border-[#6366f1]/50" : "border-input/50"
-                          } bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30`}
+                          className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a5acd] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#6a5acd]/30 focus:border-[#6a5acd]/70 relative z-30"
                           required
                         />
                         {formErrors.phone && <ErrorMessage message={formErrors.phone} />}
                       </div>
 
-                      <div className="transition-all duration-300">
-                        <Label htmlFor="pickup_date" className="text-sm font-medium mb-2 flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <div className="transition-all">
+                        <Label
+                          htmlFor="pickup_date"
+                          className="text-sm font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100"
+                        >
+                          <Calendar className="w-4 h-4 text-[#6a5acd]" />
                           <span>
                             Preferred Pickup Date <span className="text-red-500">*</span>
                           </span>
@@ -1522,14 +1657,14 @@ export default function SellMultipleItemsPage() {
                             // Blur the input to make the calendar disappear
                             e.target.blur()
                           }}
-                          className="flex h-10 w-full rounded-md border border-input/50 bg-white dark:bg-gray-900/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#3b82f6]/30 focus:border-[#3b82f6]/70 relative z-30"
+                          className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a5acd] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#6a5acd]/30 focus:border-[#6a5acd]/70 relative z-30"
                           required
                         />
                         {formErrors.pickupDate && <ErrorMessage message={formErrors.pickupDate} />}
                       </div>
 
                       {/* Address Autocomplete */}
-                      <div className="transition-all duration-300">
+                      <div className="transition-all">
                         <AddressAutocomplete
                           value={address}
                           onChange={setAddress}
@@ -1540,69 +1675,41 @@ export default function SellMultipleItemsPage() {
                         />
                       </div>
 
-                      {/* Terms and conditions checkbox */}
-                      <div className="flex items-start space-x-2 mt-4">
-                        <Checkbox
-                          id="terms"
-                          checked={termsAccepted}
-                          onCheckedChange={(checked) => setTermsAccepted(checked === true)}
-                        />
-                        <div className="grid gap-1.5 leading-none">
-                          <label
-                            htmlFor="terms"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            Accept terms and conditions <span className="text-red-500">*</span>
-                          </label>
-                          <p className="text-xs text-muted-foreground">
-                            By checking this box, you agree to our{" "}
-                            <Link href="/terms" className="text-[#6366f1] hover:underline">
-                              Terms of Service
-                            </Link>{" "}
-                            and{" "}
-                            <Link href="/privacy-policy" className="text-[#6366f1] hover:underline">
-                              Privacy Policy
-                            </Link>
-                            .
-                          </p>
-                        </div>
-                      </div>
-                      {formErrors.terms && <ErrorMessage message={formErrors.terms} />}
-
                       {/* Show items summary in step 2 */}
-                      <div className="transition-all duration-300">
-                        <div className="bg-[#f8fafc] dark:bg-gray-900 border border-[#e2e8f0] dark:border-gray-700 rounded-lg p-4 shadow-sm">
-                          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-[#6366f1]" />
+                      <div className="transition-all">
+                        <div className="bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 shadow-sm">
+                          <h4 className="text-sm font-medium mb-3 flex items-center gap-2 text-gray-900 dark:text-white">
+                            <DollarSign className="w-4 h-4 text-[#6a5acd]" />
                             <span>Items Summary ({getItems().length})</span>
                           </h4>
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                              <p className="text-sm text-muted-foreground">
-                                <span className="font-medium text-foreground">Items:</span> {getItems().length} items
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                <span className="font-medium text-gray-900 dark:text-white">Items:</span>{" "}
+                                {getItems().length} items
                               </p>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                <span className="font-medium text-foreground">Names:</span>{" "}
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                <span className="font-medium text-gray-900 dark:text-white">Names:</span>{" "}
                                 {getItems()
                                   .map((item) => item.name || "Unnamed Item")
                                   .join(", ")}
                               </p>
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-foreground mb-2">Item Details:</p>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">Item Details:</p>
                               <Accordion type="single" collapsible className="w-full">
                                 {getItems().map((item, index) => (
                                   <AccordionItem key={item.id} value={`item-${index}`}>
                                     <AccordionTrigger className="text-sm hover:no-underline py-2">
                                       <span className="flex items-center gap-2">
-                                        <Package className="h-4 w-4 text-[#6366f1]" />
+                                        <Package className="h-4 w-4 text-[#6a5acd]" />
                                         {item.name || `Item ${index + 1}`}
                                       </span>
                                     </AccordionTrigger>
                                     <AccordionContent>
                                       <div className="pt-2">
-                                        <p className="text-sm text-muted-foreground">
-                                          <span className="font-medium text-foreground">Condition:</span>{" "}
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                          <span className="font-medium text-gray-900 dark:text-white">Condition:</span>{" "}
                                           {item.condition
                                             ? item.condition
                                                 .split("-")
@@ -1610,16 +1717,18 @@ export default function SellMultipleItemsPage() {
                                                 .join(" ")
                                             : "Not specified"}
                                         </p>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                          <span className="font-medium text-foreground">Description:</span>{" "}
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                          <span className="font-medium text-gray-900 dark:text-white">
+                                            Description:
+                                          </span>{" "}
                                           {item.description || "No description provided"}
                                         </p>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                          <span className="font-medium text-foreground">Issues:</span>{" "}
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                          <span className="font-medium text-gray-900 dark:text-white">Issues:</span>{" "}
                                           {item.issues || "None specified"}
                                         </p>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                          <span className="font-medium text-foreground">Photos:</span>{" "}
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                          <span className="font-medium text-gray-900 dark:text-white">Photos:</span>{" "}
                                           {(item.photos || []).length}
                                         </p>
                                       </div>
@@ -1632,33 +1741,89 @@ export default function SellMultipleItemsPage() {
                         </div>
                       </div>
 
-                      <div className="flex justify-between mt-6">
-                        <Button
+                      <div className="mt-6 transition-all">
+                        <div className="p-4 rounded-md bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+                          <div className="flex items-start space-x-3">
+                            <Checkbox
+                              id="consent"
+                              name="consent"
+                              checked={termsAccepted}
+                              onCheckedChange={setTermsAccepted}
+                              className={`mt-1 border-[#6a5acd] text-[#6a5acd] focus-visible:ring-[#6a5acd] ${formErrors.terms ? "border-red-300" : ""}`}
+                              required
+                            />
+                            <div>
+                              <Label htmlFor="consent" className="font-medium text-gray-900 dark:text-white">
+                                I consent to being contacted by BluBerry <span className="text-red-500">*</span>
+                              </Label>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                By submitting this form, you agree to our{" "}
+                                <Link
+                                  href="/privacy-policy"
+                                  className="text-[#0066ff] underline hover:text-[#6a5acd] transition-colors"
+                                >
+                                  Privacy Policy
+                                </Link>
+                                . We'll use your information to process your request and contact you about your items.
+                              </p>
+                              {formErrors.terms && <ErrorMessage message={formErrors.terms} />}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between mt-8">
+                        <button
                           type="button"
-                          variant="outline"
-                          onClick={() => setFormStep(1)}
-                          className="hover:bg-muted/50 transition-all duration-200"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+
+                            // Set form step first
+                            setFormStep(1)
+
+                            // Wait for the DOM to update with the new step
+                            setTimeout(() => {
+                              // Get the form box element
+                              const formBox = formBoxRef.current
+                              if (formBox) {
+                                // Get the position of the form box
+                                const rect = formBox.getBoundingClientRect()
+
+                                // Calculate position to place the form box at the top of the viewport
+                                const scrollTop = window.pageYOffset + rect.top
+
+                                // Scroll to position
+                                window.scrollTo({
+                                  top: scrollTop,
+                                  behavior: "smooth",
+                                })
+                              }
+                            }, 100)
+                          }}
+                          className="px-6 py-2.5 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 font-medium text-sm"
                         >
-                          <ChevronLeft className="w-4 h-4 mr-2" />
-                          Back to Items
-                        </Button>
+                          <ChevronLeft className="w-4 h-4" />
+                          <span>Back</span>
+                        </button>
 
                         <Button
                           type="submit"
-                          disabled={isSubmitting || !step2Valid}
-                          className="bg-gradient-to-r from-[#0284c7] via-[#4f46e5] to-[#7c3aed] hover:from-[#0284c7]/90 hover:via-[#4f46e5]/90 hover:to-[#7c3aed]/90 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-medium"
+                          disabled={!step2Valid || isSubmitting}
+                          className="bg-gradient-to-r from-[#6a5acd] to-[#8c52ff] hover:from-[#6a5acd]/90 hover:to-[#8c52ff]/90 text-white px-8 py-2.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow relative overflow-hidden"
                         >
-                          {isSubmitting ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                              <span>Submitting...</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>Submit</span>
-                              <Check className="w-4 h-4" />
-                            </>
-                          )}
+                          <span className="relative flex items-center justify-center gap-2">
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Submitting...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>Submit</span>
+                              </>
+                            )}
+                          </span>
                         </Button>
                       </div>
                     </div>
@@ -1668,18 +1833,47 @@ export default function SellMultipleItemsPage() {
             </ContentAnimation>
           </>
         ) : (
-          <ContentAnimation delay={0.3}>
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-[#6366f1]/10 dark:border-[#6366f1]/20 overflow-hidden transition-all duration-300 relative z-20 p-6 text-center">
-              <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-medium tracking-tight text-gray-800 dark:text-gray-100 mb-2">
-                Thank you for your submission!
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                We've received your request and will get back to you within 24 hours.
-              </p>
-              <Link href="/" className="text-[#6366f1] hover:underline text-sm mt-4 inline-block">
-                Back to Home
-              </Link>
+          <ContentAnimation>
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 overflow-hidden">
+              <div className="bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Submission Received</h2>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+                  Thank you for your submission. We'll be in touch soon.
+                </p>
+              </div>
+
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle2 className="w-8 h-8 text-[#6a5acd]" />
+                </div>
+
+                <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] bg-clip-text text-transparent">
+                  Thank You!
+                </h2>
+
+                <div className="w-16 h-0.5 mx-auto mb-6 bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] rounded-full"></div>
+
+                <p className="text-base mb-8 text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
+                  We've received your submission and will review your item details. You can expect to hear from us
+                  within 24 hours with a price offer.
+                </p>
+
+                <div className="bg-[#f8fafc] dark:bg-gray-800 p-6 rounded-md max-w-md mx-auto flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-[#6a5acd] flex-shrink-0" />
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-left">
+                    We've sent a confirmation email to{" "}
+                    <span className="font-medium text-gray-900 dark:text-white">{email}</span> with the details of your
+                    submission.
+                  </p>
+                </div>
+
+                <Button
+                  asChild
+                  className="mt-8 bg-gradient-to-r from-[#0066ff] to-[#6a5acd] hover:from-[#0066ff]/90 hover:to-[#6a5acd]/90"
+                >
+                  <Link href="/">Back to Home</Link>
+                </Button>
+              </div>
             </div>
           </ContentAnimation>
         )}

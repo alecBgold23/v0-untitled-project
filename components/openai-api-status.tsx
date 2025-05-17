@@ -61,11 +61,11 @@ export function OpenAIAPIStatus() {
   }
 
   return (
-    <Alert className="bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900">
-      <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-      <AlertTitle className="text-red-800 dark:text-red-300">API Not Configured</AlertTitle>
+    <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900">
+      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+      <AlertTitle className="text-amber-800 dark:text-amber-300">API Not Configured</AlertTitle>
       <AlertDescription className="flex flex-col gap-2">
-        <span className="text-red-700 dark:text-red-400">{message}</span>
+        <span className="text-amber-700 dark:text-amber-400">{message}</span>
         <Link href="/settings/api-key" passHref>
           <Button variant="outline" size="sm" className="w-fit mt-1">
             <Settings className="mr-2 h-4 w-4" />

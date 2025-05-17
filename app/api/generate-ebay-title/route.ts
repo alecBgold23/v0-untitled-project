@@ -1,10 +1,6 @@
 import { OpenAI } from "openai"
 import { NextResponse } from "next/server"
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
 export async function POST(req: Request) {
   try {
     const { title, condition, extraDetails } = await req.json()
@@ -23,6 +19,10 @@ export async function POST(req: Request) {
         { status: 400 },
       )
     }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
 
     const prompt = `
 Based on the input below, return a **short, formatted product title** like one used on eBay.

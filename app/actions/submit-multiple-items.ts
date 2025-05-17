@@ -16,6 +16,8 @@ type ItemData = {
   photos: any[] // In a real implementation, you'd handle photo uploads separately
   imagePath?: string // Add image path field
   imageUrl?: string // Add image URL field
+  imagePaths?: string[]
+  imageUrls?: string[]
 }
 
 export async function submitMultipleItemsToSupabase(
@@ -51,23 +53,33 @@ export async function submitMultipleItemsToSupabase(
       }
     }
 
-    // Prepare items for insertion
-    const itemsToInsert = items.map((item) => ({
-      item_name: item.name,
-      item_description: item.description,
-      item_condition: item.condition,
-      item_issues: item.issues || "None",
-      full_name: fullName,
-      email: email,
-      phone: phone,
-      address: address,
-      pickup_date: pickupDate,
-      status: "pending",
-      submission_date: new Date().toISOString(),
-      photo_count: item.photos ? item.photos.length : 0,
-      image_path: item.imagePath || null, // Include image_path field
-      image_url: item.imageUrl || null, // Include image_url field
-    }))
+    // Prepare items for insertion - only use columns we know exist
+    const itemsToInsert = items.map((item) => {
+      // If we have multiple images, log a warning that we can only store the first one
+      if (item.imagePaths && item.imagePaths.length > 1) {
+        console.warn(
+          `Item ${item.name} has ${item.imagePaths.length} images, but only the first one will be stored due to schema limitations.`,
+        )
+      }
+
+      return {
+        item_name: item.name,
+        item_description: item.description,
+        item_condition: item.condition,
+        item_issues: item.issues || "None",
+        full_name: fullName,
+        email: email,
+        phone: phone,
+        address: address,
+        pickup_date: pickupDate,
+        status: "pending",
+        submission_date: new Date().toISOString(),
+        photo_count: item.photos ? item.photos.length : 0,
+        image_path: item.imagePath || (item.imagePaths && item.imagePaths.length > 0 ? item.imagePaths[0] : null),
+        image_url: item.imageUrl || (item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[0] : null),
+        // No metadata or additional image columns
+      }
+    })
 
     console.log("Prepared items for insertion:", itemsToInsert)
 
