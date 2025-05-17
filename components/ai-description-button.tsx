@@ -73,23 +73,12 @@ export function AIDescriptionButton({
     }
   }
 
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleGenerateDescription = () => {
-    setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
-      setError("Description generation is not yet configured. The OpenAI API key will be set up later.")
-    }, 500)
-  }
-
   return (
     <Button
       type="button"
       variant="outline"
       size="sm"
-      onClick={handleGenerateDescription}
+      onClick={generateDescription}
       disabled={isGenerating || !title}
       className="gap-1.5"
     >
