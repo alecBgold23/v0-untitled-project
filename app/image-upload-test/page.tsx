@@ -4,11 +4,7 @@ export default function ImageUploadTestPage() {
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-6">Image Upload Test</h1>
-      <ImageUploadForm
-        onUploadComplete={(result) => {
-          console.log("Upload completed:", result)
-        }}
-      />
+      <ImageUploadForm />
     </div>
   )
 }
