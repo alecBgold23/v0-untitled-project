@@ -41,32 +41,40 @@ export default function AddressAutocomplete({
     pacContainers.forEach((container) => {
       const containerEl = container as HTMLElement
 
-      // Calculate right-aligned position
-      const rightAlignedLeft = rect.right - containerEl.offsetWidth
-      const safeLeft = Math.max(10, rightAlignedLeft)
+      // Set a fixed width for the dropdown (keeping it small)
+      containerEl.style.width = "240px"
 
-      // Position below the input but aligned to the right
+      // Calculate center position based on input field and shift left by ~1.5cm (57px)
+      const centerPosition = rect.left + rect.width / 2 - 120 - 57 // 120px is half of 240px width
+
+      // Ensure the dropdown doesn't go off-screen
+      const safeLeft = Math.max(10, Math.min(centerPosition, window.innerWidth - 240 - 10))
+
+      // Position below the input and centered
       containerEl.style.left = `${safeLeft}px`
       containerEl.style.top = `${rect.bottom + window.scrollY}px`
 
-      // Apply dark mode
+      // Apply dark mode with black background
       if (theme === "dark") {
-        containerEl.style.backgroundColor = "#1e1e1e"
+        containerEl.style.backgroundColor = "#000000"
         containerEl.style.color = "#ffffff"
         containerEl.style.borderColor = "#333333"
+        containerEl.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px #333333"
       } else {
         containerEl.style.backgroundColor = "#ffffff"
         containerEl.style.color = "#000000"
         containerEl.style.borderColor = "#e5e7eb"
+        containerEl.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05)"
       }
 
-      // Ensure other styles
-      containerEl.style.width = "240px"
+      // Professional styling
       containerEl.style.maxHeight = "300px"
       containerEl.style.overflowY = "auto"
-      containerEl.style.borderRadius = "0.375rem"
-      containerEl.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.1)"
+      containerEl.style.borderRadius = "0.5rem"
       containerEl.style.zIndex = "9999"
+      containerEl.style.padding = "4px 0"
+      containerEl.style.backdropFilter = "blur(8px)"
+      containerEl.style.transition = "box-shadow 0.2s ease, border-color 0.2s ease"
     })
   }
 
@@ -148,12 +156,17 @@ export default function AddressAutocomplete({
     const style = document.createElement("style")
     style.id = styleId
     style.textContent = `
+      .pac-container {
+        border: ${theme === "dark" ? "1px solid #333333" : "1px solid rgba(0, 0, 0, 0.08)"} !important;
+      }
+      
       .pac-item {
-        padding: 8px !important;
+        padding: 10px 12px !important;
         cursor: pointer !important;
         font-size: 0.875rem !important;
-        border-top: 1px solid ${theme === "dark" ? "#333333" : "#e5e7eb"} !important;
+        border-top: 1px solid ${theme === "dark" ? "#222222" : "#f0f0f0"} !important;
         line-height: 1.5 !important;
+        transition: background-color 0.15s ease !important;
       }
       
       .pac-item:first-child {
@@ -161,13 +174,14 @@ export default function AddressAutocomplete({
       }
       
       .pac-item:hover {
-        background-color: ${theme === "dark" ? "#2d2d2d" : "#f3f4f6"} !important;
+        background-color: ${theme === "dark" ? "#111111" : "#f8f9fa"} !important;
       }
       
       .pac-item-query {
         font-size: 0.875rem !important;
         padding-right: 3px !important;
         color: ${theme === "dark" ? "#ffffff" : "#000000"} !important;
+        font-weight: 500 !important;
       }
       
       .pac-icon {
@@ -175,7 +189,7 @@ export default function AddressAutocomplete({
       }
       
       .pac-item-selected, .pac-item-selected:hover {
-        background-color: ${theme === "dark" ? "#3b3b3b" : "#e5e7eb"} !important;
+        background-color: ${theme === "dark" ? "#1a1a1a" : "#f0f0f0"} !important;
       }
       
       .pac-matched {

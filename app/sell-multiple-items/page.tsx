@@ -498,6 +498,24 @@ export default function SellMultipleItemsPage() {
     })
   }, [])
 
+  // Scroll to the top of the form
+  const scrollToFormTop = useCallback(() => {
+    if (formTopRef.current) {
+      // Use scrollIntoView with specific options to position at the top of the viewport
+      formTopRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+
+      // Focus on the first input field in step 2
+      if (formStep === 1) {
+        // Small delay to ensure DOM is updated and scrolling is complete
+        setTimeout(() => {
+          if (fullNameInputRef.current) {
+            fullNameInputRef.current.focus()
+          }
+        }, 300)
+      }
+    }
+  }, [formStep])
+
   // Validate all items in step 1
   const validateStep1 = useCallback(() => {
     try {
@@ -577,34 +595,11 @@ export default function SellMultipleItemsPage() {
         setFormStep(2)
         setFormErrors({})
 
-        // Wait for the DOM to update with the new step
-        setTimeout(() => {
-          // Get the form box element
-          const formBox = formBoxRef.current
-          if (formBox) {
-            // Get the position of the form box
-            const rect = formBox.getBoundingClientRect()
-
-            // Calculate position to place the form box at the top of the viewport
-            const scrollTop = window.pageYOffset + rect.top
-
-            // Scroll to position
-            window.scrollTo({
-              top: scrollTop,
-              behavior: "smooth",
-            })
-
-            // Focus on the first input field
-            if (fullNameInputRef.current) {
-              setTimeout(() => {
-                fullNameInputRef.current.focus()
-              }, 500)
-            }
-          }
-        }, 100)
+        // Scroll to the top of the form
+        scrollToFormTop()
       }
     },
-    [validateStep1],
+    [validateStep1, scrollToFormTop],
   )
 
   // Upload images for all items
@@ -1859,28 +1854,8 @@ export default function SellMultipleItemsPage() {
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-
-                            // Set form step first
                             setFormStep(1)
-
-                            // Wait for the DOM to update with the new step
-                            setTimeout(() => {
-                              // Get the form box element
-                              const formBox = formBoxRef.current
-                              if (formBox) {
-                                // Get the position of the form box
-                                const rect = formBox.getBoundingClientRect()
-
-                                // Calculate position to place the form box at the top of the viewport
-                                const scrollTop = window.pageYOffset + rect.top
-
-                                // Scroll to position
-                                window.scrollTo({
-                                  top: scrollTop,
-                                  behavior: "smooth",
-                                })
-                              }
-                            }, 100)
+                            scrollToFormTop()
                           }}
                           className="px-6 py-2.5 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 font-medium text-sm"
                         >
