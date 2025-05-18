@@ -1,19 +1,27 @@
 import { NextResponse } from "next/server"
 
 export async function GET() {
-  const pricingKey = process.env.PRICING_OPENAI_API_KEY
+  try {
+    // Check if the PRICING_OPENAI_API_KEY environment variable is set
+    const hasPricingKey = !!process.env.PRICING_OPENAI_API_KEY
 
-  // Log to server console
-  console.log("Pricing OpenAI Key check:", {
-    exists: !!pricingKey,
-    length: pricingKey ? pricingKey.length : 0,
-    prefix: pricingKey ? pricingKey.substring(0, 3) + "..." : "N/A",
-  })
+    // Log the status for debugging
+    console.log("PRICING_OPENAI_API_KEY status:", hasPricingKey ? "Available" : "Not available")
 
-  // Return the status (without exposing the actual key)
-  return NextResponse.json({
-    hasPricingKey: !!pricingKey && pricingKey.length > 20,
-    keyLength: pricingKey ? pricingKey.length : 0,
-    timestamp: new Date().toISOString(),
-  })
+    // Return the status
+    return NextResponse.json({
+      hasPricingKey,
+      timestamp: new Date().toISOString(),
+    })
+  } catch (error) {
+    console.error("Error checking pricing API key:", error)
+    return NextResponse.json(
+      {
+        hasPricingKey: false,
+        error: "Failed to check pricing API key",
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 },
+    )
+  }
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { AlertCircle, CheckCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 
 export function PricingKeyStatus() {
   const [status, setStatus] = useState<"loading" | "available" | "unavailable">("loading")
@@ -35,6 +36,12 @@ export function PricingKeyStatus() {
 
     checkPricingKey()
   }, [])
+
+  const enableDemoMode = () => {
+    // This is just a UI indication - actual demo mode is handled in the price-estimator component
+    setStatus("available")
+    setError(null)
+  }
 
   if (status === "loading") {
     return (
@@ -72,6 +79,11 @@ export function PricingKeyStatus() {
         </div>
         <div className="mt-2 text-xs">
           Make sure the <code>PRICING_OPENAI_API_KEY</code> environment variable is set with a valid OpenAI API key.
+        </div>
+        <div className="mt-3">
+          <Button size="sm" variant="outline" onClick={enableDemoMode} className="w-full">
+            Continue with Demo Mode
+          </Button>
         </div>
       </AlertDescription>
     </Alert>
