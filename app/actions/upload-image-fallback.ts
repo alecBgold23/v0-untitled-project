@@ -48,7 +48,12 @@ export async function uploadImageFallback(file: File, userId: string) {
     }
 
     // Get public URL
-    const { data: publicUrlData } = supabase.storage.from("images2").getPublicUrl(data.path)
+    const { data: publicUrlData, error: publicUrlError } = supabase.storage.from("images2").getPublicUrl(data.path)
+
+    if (publicUrlError) {
+      console.error(`Error getting public URL: ${publicUrlError.message}`)
+      return { success: false, error: publicUrlError.message }
+    }
 
     return {
       success: true,

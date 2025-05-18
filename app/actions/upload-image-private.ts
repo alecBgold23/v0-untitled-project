@@ -39,7 +39,21 @@ export async function uploadImagePrivate(file: File, userId: string) {
     }
 
     // Check if the bucket exists
-    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets()
+    let bucketsResponse
+    try {
+      bucketsResponse = await supabase.storage.listBuckets()
+      if (!bucketsResponse.data) {
+        throw new Error(`API responded with status: ${bucketsResponse.status}`)
+      }
+    } catch (bucketError) {
+      console.error(
+        `Error listing buckets: ${bucketError instanceof Error ? bucketError.message : String(bucketError)}`,
+      )
+      return { success: false, error: "Storage access error" }
+    }
+
+    const { data: buckets, error: bucketError } = bucketsResponse
+
     if (bucketError) {
       console.error(`Error listing buckets: ${bucketError.message}`)
       return { success: false, error: "Storage access error" }
@@ -52,9 +66,16 @@ export async function uploadImagePrivate(file: File, userId: string) {
       console.error(`Bucket "${bucketName}" does not exist`)
       // Try to create the bucket if it doesn't exist
       try {
-        const { error: createBucketError } = await supabase.storage.createBucket(bucketName, {
+        const createBucketResponse = await supabase.storage.createBucket(bucketName, {
           public: true,
         })
+
+        if (!createBucketResponse.data) {
+          throw new Error(`API responded with status: ${createBucketResponse.status}`)
+        }
+
+        const { error: createBucketError } = createBucketResponse
+
         if (createBucketError) {
           console.error(`Failed to create bucket: ${createBucketError.message}`)
           return { success: false, error: "Storage configuration error" }
@@ -69,10 +90,24 @@ export async function uploadImagePrivate(file: File, userId: string) {
     }
 
     // Upload file to 'images2' bucket
-    const { data, error } = await supabase.storage.from(bucketName).upload(fileName, buffer, {
-      contentType: file.type,
-      upsert: false,
-    })
+    let uploadResponse
+    try {
+      uploadResponse = await supabase.storage.from(bucketName).upload(fileName, buffer, {
+        contentType: file.type,
+        upsert: false,
+      })
+
+      if (!uploadResponse.data) {
+        throw new Error(`API responded with status: ${uploadResponse.status}`)
+      }
+    } catch (uploadError) {
+      console.error(
+        `Supabase storage upload error: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`,
+      )
+      return { success: false, error: "Upload failed" }
+    }
+
+    const { data, error } = uploadResponse
 
     if (error) {
       console.error(`Supabase storage upload error: ${error.message}`)
@@ -85,7 +120,21 @@ export async function uploadImagePrivate(file: File, userId: string) {
     }
 
     // Get public URL of the uploaded file
-    const { data: publicUrlData } = supabase.storage.from(bucketName).getPublicUrl(data.path)
+    let publicUrlResponse
+    try {
+      publicUrlResponse = supabase.storage.from(bucketName).getPublicUrl(data.path)
+
+      if (!publicUrlResponse.data) {
+        throw new Error(`API responded with status: ${publicUrlResponse.status}`)
+      }
+    } catch (publicUrlError) {
+      console.error(
+        `Failed to get public URL for uploaded file: ${publicUrlError instanceof Error ? publicUrlError.message : String(publicUrlError)}`,
+      )
+      return { success: false, error: "Failed to get public URL" }
+    }
+
+    const { data: publicUrlData } = publicUrlResponse
 
     if (!publicUrlData || !publicUrlData.publicUrl) {
       console.error("Failed to get public URL for uploaded file")

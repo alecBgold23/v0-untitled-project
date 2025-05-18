@@ -897,6 +897,13 @@ export default function SellMultipleItemsPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt: text }),
           })
+
+          // Check if response is ok before trying to parse JSON
+          if (!res.ok) {
+            throw new Error(`API responded with status: ${res.status}`)
+          }
+
+          // Safely parse JSON
           const data = await res.json()
 
           // Get fresh copy of items (they might have changed during the fetch)
@@ -904,7 +911,7 @@ export default function SellMultipleItemsPage() {
 
           // Make sure the item still exists
           if (updatedItems[index]) {
-            if (res.ok && data.suggestion) {
+            if (data && data.suggestion) {
               updatedItems[index] = {
                 ...updatedItems[index],
                 nameSuggestion: data.suggestion,
@@ -920,7 +927,7 @@ export default function SellMultipleItemsPage() {
             setItems(updatedItems)
           }
         } catch (err) {
-          console.error(err)
+          console.error("Error fetching suggestion:", err)
           // Update the items array to clear loading state on error
           const updatedItems = [...getItems()]
           if (updatedItems[index]) {

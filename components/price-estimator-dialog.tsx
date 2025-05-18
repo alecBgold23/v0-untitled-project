@@ -27,6 +27,10 @@ export function PriceEstimatorDialog({ description, onPriceEstimated, itemId }: 
           }),
         })
 
+        if (!res.ok) {
+          throw new Error(`API responded with status: ${res.status}`)
+        }
+
         const data = await res.json()
 
         if (res.ok && data.price) {
