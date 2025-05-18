@@ -6,21 +6,28 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, DollarSign, RefreshCw, AlertCircle } from "lucide-react"
+import { Loader2, DollarSign, RefreshCw, AlertCircle, Database } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface PriceEstimatorProps {
   initialDescription?: string
   onPriceEstimated?: (price: string) => void
   className?: string
+  itemId?: string
 }
 
-export function PriceEstimator({ initialDescription = "", onPriceEstimated, className = "" }: PriceEstimatorProps) {
+export function PriceEstimator({
+  initialDescription = "",
+  onPriceEstimated,
+  className = "",
+  itemId,
+}: PriceEstimatorProps) {
   const [description, setDescription] = useState(initialDescription)
   const [estimatedPrice, setEstimatedPrice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [errorDetails, setErrorDetails] = useState<string | null>(null)
+  const [savedToDatabase, setSavedToDatabase] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,6 +40,7 @@ export function PriceEstimator({ initialDescription = "", onPriceEstimated, clas
     setIsLoading(true)
     setError(null)
     setErrorDetails(null)
+    setSavedToDatabase(false)
 
     try {
       console.log("Sending price estimation request for:", description.substring(0, 50) + "...")
@@ -40,7 +48,10 @@ export function PriceEstimator({ initialDescription = "", onPriceEstimated, clas
       const res = await fetch("/api/price-item", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description }),
+        body: JSON.stringify({
+          description,
+          itemId, // Include the itemId if available
+        }),
       })
 
       const data = await res.json()
@@ -56,6 +67,11 @@ export function PriceEstimator({ initialDescription = "", onPriceEstimated, clas
 
       console.log("Price estimation successful:", data.price)
       setEstimatedPrice(data.price)
+
+      // If itemId was provided, we assume it was saved to the database
+      if (itemId) {
+        setSavedToDatabase(true)
+      }
 
       // Call the callback if provided
       if (onPriceEstimated) {
@@ -74,6 +90,7 @@ export function PriceEstimator({ initialDescription = "", onPriceEstimated, clas
 
   const resetEstimate = () => {
     setEstimatedPrice(null)
+    setSavedToDatabase(false)
   }
 
   return (
@@ -93,6 +110,14 @@ export function PriceEstimator({ initialDescription = "", onPriceEstimated, clas
             <div className="text-3xl font-bold bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] bg-clip-text text-transparent">
               {estimatedPrice}
             </div>
+
+            {savedToDatabase && (
+              <div className="flex items-center justify-center gap-2 mt-3 text-green-600 text-sm">
+                <Database className="h-4 w-4" />
+                <span>Saved to database</span>
+              </div>
+            )}
+
             <p className="text-xs text-gray-500 mt-4">
               This is an AI-generated estimate based on the provided description. Actual value may vary based on
               condition, market demand, and other factors.

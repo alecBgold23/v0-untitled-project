@@ -18,6 +18,7 @@ type ItemData = {
   imageUrl?: string // Add image URL field
   imagePaths?: string[]
   imageUrls?: string[]
+  estimatedPrice?: number | null
 }
 
 export async function submitMultipleItemsToSupabase(
@@ -62,7 +63,7 @@ export async function submitMultipleItemsToSupabase(
         )
       }
 
-      return {
+      const itemData = {
         item_name: item.name,
         item_description: item.description,
         item_condition: item.condition,
@@ -77,8 +78,11 @@ export async function submitMultipleItemsToSupabase(
         photo_count: item.photos ? item.photos.length : 0,
         image_path: item.imagePath || (item.imagePaths && item.imagePaths.length > 0 ? item.imagePaths[0] : null),
         image_url: item.imageUrl || (item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[0] : null),
+        estimated_price: item.estimatedPrice || null,
         // No metadata or additional image columns
       }
+
+      return itemData
     })
 
     console.log("Prepared items for insertion:", itemsToInsert)

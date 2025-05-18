@@ -320,13 +320,25 @@ export default function SellMultipleItemsPage() {
         [itemId]: price,
       }))
 
+      // Also update the item with the estimated price
+      const updatedItems = [...getItems()]
+      const itemIndex = updatedItems.findIndex((item) => item.id === itemId)
+
+      if (itemIndex !== -1) {
+        updatedItems[itemIndex] = {
+          ...updatedItems[itemIndex],
+          estimatedPrice: price, // Store the price in the item object
+        }
+        setItems(updatedItems)
+      }
+
       toast({
         title: "Price Estimated",
         description: `The estimated value is ${price}`,
         variant: "default",
       })
     },
-    [toast],
+    [getItems, setItems, toast],
   )
 
   // Update item field - memoized to prevent recreation on renders
@@ -737,6 +749,7 @@ export default function SellMultipleItemsPage() {
         imageUrl: item.imageUrl || "",
         imagePaths: item.imagePaths || [],
         imageUrls: item.imageUrls || [],
+        estimatedPrice: item.estimatedPrice || estimatedPrices[item.id] || null, // Add this line
       }))
 
       // Submit to Supabase
@@ -791,7 +804,7 @@ export default function SellMultipleItemsPage() {
         variant: "destructive",
       })
     }
-  }, [address, email, fullName, getItems, phone, pickupDate, scrollToTop, toast, uploadItemImages])
+  }, [address, email, fullName, getItems, phone, pickupDate, scrollToTop, toast, uploadItemImages, estimatedPrices])
 
   // Handle form submission
   const handleSubmit = useCallback(
@@ -1541,6 +1554,7 @@ export default function SellMultipleItemsPage() {
                                       description={`${item.name || ""} ${item.description || ""} Condition: ${item.condition || "unknown"} Issues: ${item.issues || "none"}`}
                                       onPriceEstimated={(price) => handlePriceEstimated(item.id, price)}
                                       buttonClassName="text-[#6a5acd] border-[#6a5acd]/30 hover:bg-[#6a5acd]/10"
+                                      itemId={item.id} // Add this line to pass the itemId
                                     />
                                   </div>
 

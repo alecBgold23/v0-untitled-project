@@ -16,17 +16,15 @@ import { DollarSign } from "lucide-react"
 interface PriceEstimatorDialogProps {
   description: string
   onPriceEstimated?: (price: string) => void
-  buttonVariant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive"
-  buttonSize?: "default" | "sm" | "lg" | "icon"
   buttonClassName?: string
+  itemId?: string
 }
 
 export function PriceEstimatorDialog({
   description,
   onPriceEstimated,
-  buttonVariant = "outline",
-  buttonSize = "sm",
   buttonClassName = "",
+  itemId,
 }: PriceEstimatorDialogProps) {
   const [open, setOpen] = useState(false)
 
@@ -34,23 +32,27 @@ export function PriceEstimatorDialog({
     if (onPriceEstimated) {
       onPriceEstimated(price)
     }
-    // Keep dialog open to show the result
+    // Don't close the dialog automatically so user can see the result
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={buttonVariant} size={buttonSize} className={`${buttonClassName}`}>
-          <DollarSign className="h-4 w-4 mr-1" />
+        <Button variant="outline" size="sm" className={buttonClassName}>
+          <DollarSign className="h-3.5 w-3.5 mr-1" />
           Estimate Price
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Estimate Item Price</DialogTitle>
-          <DialogDescription>Get an AI-powered estimate of your item's value</DialogDescription>
+          <DialogTitle>Price Estimator</DialogTitle>
+          <DialogDescription>
+            Get an AI-powered estimate of your item's value based on its description.
+          </DialogDescription>
         </DialogHeader>
-        <PriceEstimator initialDescription={description} onPriceEstimated={handlePriceEstimated} />
+        <div className="py-4">
+          <PriceEstimator initialDescription={description} onPriceEstimated={handlePriceEstimated} itemId={itemId} />
+        </div>
       </DialogContent>
     </Dialog>
   )
