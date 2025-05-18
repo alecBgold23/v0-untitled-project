@@ -33,10 +33,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { submitMultipleItemsToSupabase } from "../actions/submit-multiple-items"
 import { Checkbox } from "@/components/ui/checkbox"
+import { uploadImagePrivate } from "@/app/actions/upload-image-private"
+import { uploadImageFallback } from "@/app/actions/upload-image-fallback"
 import { PriceEstimatorDialog } from "@/components/price-estimator-dialog"
-
-// Import the new robust upload function
-import { uploadImageRobust } from "@/app/actions/upload-image-robust"
 
 export default function SellMultipleItemsPage() {
   const { toast } = useToast()
@@ -603,12 +602,11 @@ export default function SellMultipleItemsPage() {
     [validateStep1, scrollToFormTop],
   )
 
-  // Upload images for all items - improved version
+  // Upload images for all items
   const uploadItemImages = useCallback(async () => {
     try {
       const items = getItems()
       const updatedItems = [...items]
-      console.log(`Starting upload process for ${items.length} items...`)
 
       // Process each item
       for (let i = 0; i < items.length; i++) {
@@ -616,12 +614,7 @@ export default function SellMultipleItemsPage() {
         if (!item) continue
 
         // Skip if no photos
-        if (!item.photos || item.photos.length === 0) {
-          console.log(`Item ${i + 1} has no photos to upload`)
-          continue
-        }
-
-        console.log(`Processing ${item.photos.length} photos for item ${i + 1}`)
+        if (!item.photos || item.photos.length === 0) continue
 
         // Create arrays to store image paths and URLs
         const imagePaths = []
@@ -636,11 +629,23 @@ export default function SellMultipleItemsPage() {
           }
 
           try {
+            // Validate file before upload
+            if (!isValidFile(photo.file)) {
+              console.error(`Photo ${j + 1} for item ${i + 1} is invalid or corrupted`)
+              continue
+            }
+
             // Log upload attempt
             console.log(`Attempting to upload image ${j + 1} for item ${i + 1}: ${photo.file.name}`)
 
-            // Use the new robust upload function
-            const uploadResult = await uploadImageRobust(photo.file, email || "anonymous")
+            // Try primary upload method first
+            let uploadResult = await uploadImagePrivate(photo.file, email || "anonymous")
+
+            // If primary method fails, try fallback method
+            if (!uploadResult.success) {
+              console.log(`Primary upload method failed, trying fallback for image ${j + 1} for item ${i + 1}`)
+              uploadResult = await uploadImageFallback(photo.file, email || "anonymous")
+            }
 
             if (uploadResult.success) {
               // Add path and URL to arrays
@@ -649,20 +654,11 @@ export default function SellMultipleItemsPage() {
               console.log(`Successfully uploaded image ${j + 1} for item ${i + 1}`)
             } else {
               console.error(`Failed to upload image ${j + 1} for item ${i + 1}:`, uploadResult.error)
-              // Show error toast to user
-              toast({
-                title: "Upload Error",
-                description: `Failed to upload image ${j + 1}: ${uploadResult.error}`,
-                variant: "destructive",
-              })
+              // Continue with other images even if one fails
             }
           } catch (error) {
             console.error(`Error uploading image ${j + 1} for item ${i + 1}:`, error)
-            toast({
-              title: "Upload Error",
-              description: "An unexpected error occurred during upload",
-              variant: "destructive",
-            })
+            // Continue with other images even if one fails
           }
         }
 
@@ -682,14 +678,9 @@ export default function SellMultipleItemsPage() {
       return updatedItems
     } catch (error) {
       console.error("Error uploading item images:", error)
-      toast({
-        title: "Upload Error",
-        description: "Failed to upload images. Please try again.",
-        variant: "destructive",
-      })
       return getItems()
     }
-  }, [email, getItems, setItems, toast])
+  }, [email, getItems, setItems])
 
   // Add this helper function to validate files before upload
   const isValidFile = (file) => {
