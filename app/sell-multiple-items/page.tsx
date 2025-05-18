@@ -1020,6 +1020,25 @@ export default function SellMultipleItemsPage() {
 
   const [step, setStep] = useState(1)
 
+  useEffect(() => {
+    // Create smooth entrance animation
+    const mainContent = document.querySelector(".page-transition-wrapper")
+    if (mainContent) {
+      mainContent.classList.add("opacity-0")
+      setTimeout(() => {
+        mainContent.classList.remove("opacity-0")
+        mainContent.classList.add("opacity-100", "transition-opacity", "duration-500")
+      }, 100)
+    }
+
+    return () => {
+      // Clean up
+      if (mainContent) {
+        mainContent.classList.add("opacity-0")
+      }
+    }
+  }, [])
+
   return (
     <div
       className="min-h-screen bg-gradient-to-b from-[#f8fafc] to-[#f0f5ff] dark:from-gray-950 dark:to-[#0c1445]"
@@ -1028,7 +1047,7 @@ export default function SellMultipleItemsPage() {
       {/* Add a ref at the top of the form for scrolling */}
       <div ref={formTopRef} className="scroll-target"></div>
 
-      <div className="container mx-auto py-12 px-4 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 md:py-12 page-transition-wrapper">
         <ContentAnimation>
           {/* Professional Header */}
           <div className="text-center mb-10">

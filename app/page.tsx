@@ -12,9 +12,15 @@ export default function Home() {
   const [showInitialLine, setShowInitialLine] = useState(true)
   const isMobile = useIsMobile()
 
-  // Function to navigate to sell item page
+  // Function to navigate to sell item page with smooth transition
   const navigateToSellItem = () => {
-    router.push("/sell-multiple-items")
+    // Add a subtle animation before navigation
+    document.body.style.opacity = "0.9"
+    document.body.style.transition = "opacity 0.3s ease"
+
+    setTimeout(() => {
+      router.push("/sell-multiple-items")
+    }, 200)
   }
 
   // Effect to show and hide the line on initial load
@@ -23,6 +29,18 @@ export default function Home() {
       setShowInitialLine(false)
     }, 100)
     return () => clearTimeout(hideTimer)
+  }, [])
+
+  // Add this useEffect after the existing useEffect
+  useEffect(() => {
+    // Reset body opacity when component mounts
+    document.body.style.opacity = "1"
+    document.body.style.transition = "opacity 0.5s ease"
+
+    return () => {
+      // Clean up
+      document.body.style.transition = ""
+    }
   }, [])
 
   return (
@@ -36,20 +54,20 @@ export default function Home() {
               className="flex flex-col items-center text-center cursor-pointer group mb-4"
               onClick={navigateToSellItem}
             >
-              <h1 className="text-3xl md:text-4xl font-medium mb-1 drop-shadow-sm pb-1 transition-transform duration-300 group-hover:scale-105 relative">
+              <h1 className="text-3xl md:text-4xl font-medium mb-1 drop-shadow-sm pb-1 transition-all duration-500 ease-out group-hover:scale-105 relative">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
                   BluBerry
                 </span>
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/70 to-transparent shimmer dark:via-black/70"></span>
               </h1>
-              <p className="text-lg md:text-xl text-foreground mb-4 transition-all duration-300 group-hover:text-[#0066ff]">
+              <p className="text-lg md:text-xl text-foreground mb-4 transition-all duration-500 ease-out group-hover:text-[#0066ff]">
                 Selling made simpler.
               </p>
               <div
                 className={`w-full max-w-md h-1 bg-gradient-to-r from-transparent via-[#0066ff] to-transparent rounded-full ${
                   showInitialLine
                     ? "opacity-100 animate-line-wipe"
-                    : "opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                    : "opacity-0 transition-all duration-500 ease-out group-hover:opacity-100"
                 }`}
               ></div>
             </div>
@@ -429,15 +447,17 @@ export default function Home() {
           0% {
             transform: scaleX(0);
             transform-origin: left;
+            opacity: 0.7;
           }
           100% {
             transform: scaleX(1);
             transform-origin: left;
+            opacity: 1;
           }
         }
         
         .animate-line-wipe {
-          animation: lineWipe 100ms ease-out forwards;
+          animation: lineWipe 800ms cubic-bezier(0.25, 0.1, 0.25, 1.0) forwards;
         }
 
         .content-animation-wrapper {
@@ -446,8 +466,19 @@ export default function Home() {
         
         .shadow-section {
           box-shadow: 
-            0 -20px 25px -5px rgba(0, 0, 0, 0.2),
-            0 -10px 10px -5px rgba(0, 0, 0, 0.1);
+            0 -20px 25px -5px rgba(0, 0, 0, 0.1),
+            0 -10px 10px -5px rgba(0, 0, 0, 0.05);
+          transition: box-shadow 0.5s ease-out;
+        }
+
+        /* Add smooth transitions for all interactive elements */
+        a, button, .cursor-pointer {
+          transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1.0) !important;
+        }
+
+        /* Smooth page transitions */
+        .page-transition-wrapper {
+          transition: opacity 0.3s ease-out;
         }
       `}</style>
     </div>
