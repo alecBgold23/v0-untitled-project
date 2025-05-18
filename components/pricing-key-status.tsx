@@ -7,23 +7,29 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 export function PricingKeyStatus() {
   const [status, setStatus] = useState<"loading" | "available" | "unavailable">("loading")
   const [timestamp, setTimestamp] = useState<string>("")
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const checkPricingKey = async () => {
       try {
+        console.log("Checking pricing API key status...")
         const response = await fetch("/api/check-pricing-key")
         const data = await response.json()
+
+        console.log("Pricing key status:", data)
 
         if (data.hasPricingKey) {
           setStatus("available")
         } else {
           setStatus("unavailable")
+          setError("PRICING_OPENAI_API_KEY environment variable is not set")
         }
 
         setTimestamp(data.timestamp)
       } catch (error) {
         console.error("Error checking pricing API key:", error)
         setStatus("unavailable")
+        setError("Failed to check API key status")
       }
     }
 
@@ -60,9 +66,12 @@ export function PricingKeyStatus() {
       <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
       <AlertTitle className="text-amber-800 dark:text-amber-300">Pricing API Key Not Available</AlertTitle>
       <AlertDescription className="text-amber-700 dark:text-amber-400">
-        The Pricing OpenAI API key is not configured or is invalid.
+        {error || "The Pricing OpenAI API key is not configured or is invalid."}
         <div className="text-xs mt-1 opacity-70">
           Last checked: {timestamp ? new Date(timestamp).toLocaleString() : "Unknown"}
+        </div>
+        <div className="mt-2 text-xs">
+          Make sure the <code>PRICING_OPENAI_API_KEY</code> environment variable is set with a valid OpenAI API key.
         </div>
       </AlertDescription>
     </Alert>

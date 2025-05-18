@@ -6,7 +6,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, DollarSign, RefreshCw } from "lucide-react"
+import { Loader2, DollarSign, RefreshCw, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface PriceEstimatorProps {
@@ -20,6 +20,7 @@ export function PriceEstimator({ initialDescription = "", onPriceEstimated, clas
   const [estimatedPrice, setEstimatedPrice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [errorDetails, setErrorDetails] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,29 +32,41 @@ export function PriceEstimator({ initialDescription = "", onPriceEstimated, clas
 
     setIsLoading(true)
     setError(null)
+    setErrorDetails(null)
 
     try {
+      console.log("Sending price estimation request for:", description.substring(0, 50) + "...")
+
       const res = await fetch("/api/price-item", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description }),
       })
 
+      const data = await res.json()
+
       if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.error || "Failed to estimate price")
+        console.error("Price estimation failed:", data)
+        throw new Error(data.error || "Failed to estimate price")
       }
 
-      const data = await res.json()
+      if (!data.price) {
+        throw new Error("No price was returned from the API")
+      }
+
+      console.log("Price estimation successful:", data.price)
       setEstimatedPrice(data.price)
 
       // Call the callback if provided
       if (onPriceEstimated) {
         onPriceEstimated(data.price)
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error estimating price:", err)
       setError(err instanceof Error ? err.message : "An unexpected error occurred")
+      if (err instanceof Error && err.cause) {
+        setErrorDetails(JSON.stringify(err.cause))
+      }
     } finally {
       setIsLoading(false)
     }
@@ -110,7 +123,16 @@ export function PriceEstimator({ initialDescription = "", onPriceEstimated, clas
 
             {error && (
               <Alert variant="destructive" className="py-2">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>
+                  {error}
+                  {errorDetails && (
+                    <details className="mt-2 text-xs">
+                      <summary>Technical details</summary>
+                      <pre className="whitespace-pre-wrap">{errorDetails}</pre>
+                    </details>
+                  )}
+                </AlertDescription>
               </Alert>
             )}
 

@@ -1,60 +1,66 @@
 "use client"
 
+import { useEffect, useState, type ReactNode } from "react"
 import { motion } from "framer-motion"
-import type { ReactNode } from "react"
-import { useRef } from "react"
-import { useInView } from "framer-motion"
 
 interface ContentAnimationProps {
   children: ReactNode
   delay?: number
-  className?: string
   duration?: number
-  animation?: "fadeUp" | "fadeIn" | "fadeLeft" | "fadeRight"
-}
-
-const variants = {
-  fadeUp: {
-    hidden: { opacity: 0, y: 5 },
-    visible: { opacity: 1, y: 0 },
-  },
-  fadeIn: {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 },
-  },
-  fadeLeft: {
-    hidden: { opacity: 0, x: -20 },
-    visible: { opacity: 1, x: 0 },
-  },
-  fadeRight: {
-    hidden: { opacity: 0, x: 20 },
-    visible: { opacity: 1, x: 0 },
-  },
+  animation?: "fadeIn" | "slideUp" | "slideIn" | "scale"
+  className?: string
 }
 
 export default function ContentAnimation({
   children,
   delay = 0,
+  duration = 0.5,
+  animation = "slideUp",
   className = "",
-  duration,
-  animation = "fadeUp",
 }: ContentAnimationProps) {
-  const ref = useRef(null)
-  const inView = useInView(ref, { once: true })
+  const [isClient, setIsClient] = useState(false)
 
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  // Define animation variants
+  const variants = {
+    fadeIn: {
+      hidden: { opacity: 0 },
+      visible: { opacity: 1, transition: { duration } },
+    },
+    slideUp: {
+      hidden: { opacity: 0, y: 20 },
+      visible: { opacity: 1, y: 0, transition: { duration } },
+    },
+    slideIn: {
+      hidden: { opacity: 0, x: -20 },
+      visible: { opacity: 1, x: 0, transition: { duration } },
+    },
+    scale: {
+      hidden: { opacity: 0, scale: 0.8 },
+      visible: { opacity: 1, scale: 1, transition: { duration } },
+    },
+  }
+
+  // Select the appropriate animation variant
+  const selectedVariant = variants[animation]
+
+  // If we're on the server or hydrating, render without animation to avoid hydration mismatch
+  if (!isClient) {
+    return <div className={className}>{children}</div>
+  }
+
+  // On the client, render with animation
   return (
     <motion.div
-      ref={ref}
-      initial="hidden"
-      animate={inView ? "visible" : "hidden"}
-      variants={variants[animation]}
-      transition={{
-        type: "spring",
-        stiffness: 100,
-        damping: 15,
-        delay: 0,
-      }}
       className={`content-animation-wrapper ${className}`}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-50px" }}
+      variants={selectedVariant}
+      transition={{ delay }}
     >
       {children}
     </motion.div>

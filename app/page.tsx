@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-
 import { ArrowRight, Star, Leaf, Clock, Shield, CreditCard } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"

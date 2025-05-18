@@ -21,6 +21,7 @@ export default function ImageGallery() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
 
   async function loadImages() {
     setLoading(true)
@@ -72,6 +73,10 @@ export default function ImageGallery() {
     else return (bytes / 1048576).toFixed(1) + " MB"
   }
 
+  const handleImageError = (imageId: string) => {
+    setImageErrors((prev) => ({ ...prev, [imageId]: true }))
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -102,15 +107,18 @@ export default function ImageGallery() {
           {images.map((image) => (
             <Card key={image.id} className="overflow-hidden">
               <div className="aspect-square relative bg-gray-100">
-                <img
-                  src={image.public_url || "/placeholder.svg"}
-                  alt={image.file_name}
-                  className="object-cover w-full h-full"
-                  onError={(e) => {
-                    e.currentTarget.src = "/abstract-colorful-swirls.png"
-                    e.currentTarget.classList.add("object-contain", "p-4")
-                  }}
-                />
+                {imageErrors[image.id] ? (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                    <ImageIcon className="h-8 w-8 text-gray-400" />
+                  </div>
+                ) : (
+                  <img
+                    src={image.public_url || "/placeholder.svg?height=200&width=200&query=image"}
+                    alt={image.file_name}
+                    className="object-cover w-full h-full"
+                    onError={() => handleImageError(image.id)}
+                  />
+                )}
               </div>
               <CardContent className="p-3">
                 <div className="flex justify-between items-center">

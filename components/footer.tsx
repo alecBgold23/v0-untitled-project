@@ -6,6 +6,7 @@ import { BluberryLogoSVG } from "./blueberry-logo-svg"
 
 export default function Footer() {
   const pathname = usePathname()
+  const currentYear = new Date().getFullYear()
 
   // Reduced navigation links for mobile
   const essentialLinks = [
@@ -24,19 +25,15 @@ export default function Footer() {
   ]
 
   return (
-    <footer className="py-6 md:py-8 bg-background border-t border-border">
-      <div className="container mx-auto px-4">
+    <footer className="bg-background border-t border-border py-6">
+      <div className="container mx-auto px-4 text-center">
         {/* Mobile Footer */}
         <div className="md:hidden">
           <div className="flex flex-col items-center text-center mb-6">
-            <Link href="/" className="inline-flex items-center mb-4">
-              <div className="relative w-5 h-5 mr-1">
-                <BluberryLogoSVG width={20} height={20} />
-              </div>
-              <span className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
-                BluBerry
-              </span>
-            </Link>
+            <div className="flex items-center justify-center">
+              <BluberryLogoSVG width={30} height={30} />
+              <span className="ml-2 text-lg font-medium">BluBerry</span>
+            </div>
 
             <div className="flex flex-wrap justify-center gap-4 mb-4">
               {essentialLinks.map((link) => (
@@ -69,19 +66,13 @@ export default function Footer() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Company Info Column */}
             <div className="flex flex-col items-center md:items-start">
-              <div className="mb-4 flex">
-                <Link href="/" className="inline-flex items-center">
-                  <div className="relative w-5 h-5 mr-1">
-                    <BluberryLogoSVG width={20} height={20} />
-                  </div>
-                  <span className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
-                    BluBerry
-                  </span>
-                </Link>
+              <div className="mb-4 flex items-center justify-center">
+                <BluberryLogoSVG width={30} height={30} />
+                <span className="ml-2 text-lg font-medium">BluBerry</span>
               </div>
 
               <div className="space-y-2 mb-4">
-                <p className="text-sm text-muted-foreground">847-510-3229</p>
+                <p className="text-sm text-muted-foreground">(847) 510-3229</p>
                 <p>
                   <a
                     href="mailto:alecgold808@gmail.com"
@@ -129,9 +120,7 @@ export default function Footer() {
 
         {/* Copyright Section */}
         <div className="mt-4 md:mt-8 pt-4 border-t border-border/40 text-center">
-          <p className="text-xs text-muted-foreground">
-            Copyright © {new Date().getFullYear()} BluBerry. All rights reserved.
-          </p>
+          <p className="text-xs text-muted-foreground">© {currentYear} BluBerry. All rights reserved.</p>
         </div>
       </div>
     </footer>
