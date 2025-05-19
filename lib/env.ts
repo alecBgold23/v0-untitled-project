@@ -1,63 +1,26 @@
-// Environment variable helper functions
-
 /**
- * Check if an environment variable exists and is not empty
+ * Gets the OpenAI API key from environment variables
+ * Tries PRICING_OPENAI_API_KEY first, then falls back to OPENAI_API_KEY
  */
-export function hasEnvVariable(name: string): boolean {
-  const value = process.env[name]
-  return value !== undefined && value !== null && value !== ""
-}
-
-/**
- * Get an environment variable with a fallback value
- */
-export function getEnvVariable(name: string, fallback = ""): string {
-  return hasEnvVariable(name) ? process.env[name]! : fallback
-}
-
-// Check if OpenAI API key is available and appears valid
-export function hasOpenAIKey(): boolean {
-  const key = process.env.OPENAI_API_KEY
-  // Check if key exists, has length, and starts with the expected prefix
-  return !!key && key.length > 20 && (key.startsWith("sk-") || key.startsWith("org-"))
-}
-
-// Get OpenAI API key if available
-export function getOpenAIKey(): string | null {
-  if (hasOpenAIKey()) {
-    return process.env.OPENAI_API_KEY!
+export function getOpenAIKey(): string {
+  // Try to get the pricing-specific OpenAI API key first
+  const pricingKey = process.env.PRICING_OPENAI_API_KEY?.trim()
+  if (pricingKey) {
+    return pricingKey
   }
-  return null
+
+  // Fall back to the general OpenAI API key
+  const generalKey = process.env.OPENAI_API_KEY?.trim()
+  if (generalKey) {
+    return generalKey
+  }
+
+  return ""
 }
 
 /**
- * Check if Twilio is configured
+ * Checks if an OpenAI API key is configured
  */
-export function hasTwilioConfig(): boolean {
-  return (
-    hasEnvVariable("TWILIO_ACCOUNT_SID") &&
-    hasEnvVariable("TWILIO_AUTH_TOKEN") &&
-    hasEnvVariable("TWILIO_VERIFY_SERVICE_SID")
-  )
-}
-
-/**
- * Check if email is configured
- */
-export function hasEmailConfig(): boolean {
-  return hasEnvVariable("CONTACT_EMAIL") && hasEnvVariable("EMAIL_PASSWORD")
-}
-
-/**
- * Check if demo mode is enabled
- */
-export function isDemoMode(): boolean {
-  return process.env.NEXT_PUBLIC_DEMO_MODE === "true"
-}
-
-/**
- * Check if SMS verification should be skipped
- */
-export function shouldSkipSMSVerification(): boolean {
-  return process.env.NEXT_PUBLIC_SKIP_SMS_VERIFICATION === "true"
+export function hasOpenAIKey(): boolean {
+  return !!getOpenAIKey()
 }

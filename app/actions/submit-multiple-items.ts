@@ -1,100 +1,85 @@
 "use server"
 
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { sendConfirmationEmail } from "./send-confirmation-email"
 
-// Create a direct Supabase client with service role key for server actions
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
-type ItemData = {
+interface ItemData {
   name: string
   description: string
   condition: string
   issues: string
-  photos: any[] // In a real implementation, you'd handle photo uploads separately
-  imagePath?: string // Add image path field
-  imageUrl?: string // Add image URL field
+  imagePath?: string
+  imageUrl?: string
   imagePaths?: string[]
   imageUrls?: string[]
-  estimatedPrice?: number | null
+  estimatedPrice?: string
+  photos?: Array<{
+    name: string
+    type: string
+    size: number
+  }>
 }
 
-export async function submitMultipleItemsToSupabase(
-  items: ItemData[],
-  contactInfo: {
-    fullName: string
-    email: string
-    phone: string
-    address: string
-    pickupDate: string
-  },
-) {
+interface ContactInfo {
+  fullName: string
+  email: string
+  phone: string
+  address: string
+  pickupDate: string
+}
+
+export async function submitMultipleItemsToSupabase(items: ItemData[], contactInfo: ContactInfo) {
   console.log("Starting submission to Supabase:", { items, contactInfo })
 
   try {
-    const { fullName, email, phone, address, pickupDate } = contactInfo
-
-    // Validate required contact info
-    if (!fullName || !email || !phone) {
-      console.error("Missing required contact information")
-      return {
-        success: false,
-        message: "Missing required contact information",
-      }
-    }
-
-    // Validate items
+    // Validate inputs
     if (!items || items.length === 0) {
-      console.error("No items to submit")
       return {
         success: false,
-        message: "No items to submit",
+        message: "No items provided",
       }
     }
 
-    // Prepare items for insertion - only use columns we know exist
-    const itemsToInsert = items.map((item) => {
-      // If we have multiple images, log a warning that we can only store the first one
-      if (item.imagePaths && item.imagePaths.length > 1) {
-        console.warn(
-          `Item ${item.name} has ${item.imagePaths.length} images, but only the first one will be stored due to schema limitations.`,
-        )
+    if (!contactInfo.email || !contactInfo.fullName) {
+      return {
+        success: false,
+        message: "Contact information is incomplete",
       }
+    }
 
-      const itemData = {
-        item_name: item.name,
-        item_description: item.description,
-        item_condition: item.condition,
-        item_issues: item.issues || "None",
-        full_name: fullName,
-        email: email,
-        phone: phone,
-        address: address,
-        pickup_date: pickupDate,
-        status: "pending",
-        submission_date: new Date().toISOString(),
-        photo_count: item.photos ? item.photos.length : 0,
-        image_path: item.imagePath || (item.imagePaths && item.imagePaths.length > 0 ? item.imagePaths[0] : null),
-        image_url: item.imageUrl || (item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[0] : null),
-        estimated_price: item.estimatedPrice || null,
-        // No metadata or additional image columns
-      }
+    // Get Supabase client
+    const supabase = getSupabaseAdmin()
 
-      return itemData
-    })
+    // Prepare data for insertion
+    const submissionData = items.map((item) => ({
+      item_name: item.name,
+      item_description: item.description,
+      item_condition: item.condition,
+      image_path: item.imagePath || "",
+      email: contactInfo.email,
+      phone: contactInfo.phone,
+      address: contactInfo.address,
+      full_name: contactInfo.fullName,
+      pickup_date: contactInfo.pickupDate,
+      status: "pending",
+      submission_date: new Date().toISOString(),
+      estimated_price: item.estimatedPrice || null,
+      image_paths: item.imagePaths || [],
+      image_urls: item.imageUrls || [],
+    }))
 
-    console.log("Prepared items for insertion:", itemsToInsert)
+    // Ensure the table exists before inserting
+    await initializeTable(supabase)
 
     // Insert data into Supabase
-    const { data, error } = await supabase.from("sell_items").insert(itemsToInsert)
+    const { data, error } = await supabase.from("sell_items").insert(submissionData).select()
 
     if (error) {
-      console.error("Error submitting to Supabase:", error)
+      console.error("Error submitting items to Supabase:", error)
       return {
         success: false,
-        message: `Failed to submit items: ${error.message}`,
+        message: `Database error: ${error.message}`,
+        code: error.code,
       }
     }
 
@@ -103,15 +88,15 @@ export async function submitMultipleItemsToSupabase(
     // Send confirmation email
     try {
       const emailResult = await sendConfirmationEmail({
-        fullName,
-        email,
+        fullName: contactInfo.fullName,
+        email: contactInfo.email,
         itemName: `Multiple Items (${items.length})`,
         itemCondition: "Multiple",
         itemDescription: items.map((item) => `${item.name}: ${item.description}`).join(" | "),
         itemIssues: items.map((item) => `${item.name}: ${item.issues}`).join(" | "),
-        phone,
-        address,
-        pickupDate,
+        phone: contactInfo.phone,
+        address: contactInfo.address,
+        pickupDate: contactInfo.pickupDate,
       })
 
       console.log("Email result:", emailResult)
@@ -121,14 +106,51 @@ export async function submitMultipleItemsToSupabase(
 
     return {
       success: true,
-      message: "Items submitted successfully!",
-      emailSent: true, // Even if email fails, submission is successful
+      data,
+      message: `Successfully submitted ${items.length} item(s)`,
     }
   } catch (error) {
     console.error("Unexpected error in submitMultipleItemsToSupabase:", error)
     return {
       success: false,
-      message: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}`,
+      message: error instanceof Error ? error.message : "Unknown error occurred",
     }
+  }
+}
+
+// Helper function to ensure the table exists
+async function initializeTable(supabase) {
+  try {
+    // Check if table exists by attempting a simple query
+    const { error } = await supabase.from("sell_items").select("id").limit(1)
+
+    if (error && error.code === "PGRST116") {
+      // Table doesn't exist, create it
+      const { error: createError } = await supabase.sql`
+        CREATE TABLE IF NOT EXISTS sell_items (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          item_name TEXT NOT NULL,
+          item_description TEXT NOT NULL,
+          image_path TEXT,
+          email TEXT,
+          item_condition TEXT NOT NULL,
+          phone TEXT,
+          address TEXT,
+          full_name TEXT,
+          pickup_date TEXT,
+          status TEXT DEFAULT 'pending',
+          submission_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          estimated_price TEXT,
+          image_paths TEXT[],
+          image_urls TEXT[]
+        );
+      `
+
+      if (createError) {
+        console.error("Error creating sell_items table:", createError)
+      }
+    }
+  } catch (err) {
+    console.error("Error checking/creating table:", err)
   }
 }

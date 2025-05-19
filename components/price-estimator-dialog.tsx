@@ -4,51 +4,100 @@ import { useEffect } from "react"
 
 interface SilentPriceEstimatorProps {
   description: string
-  onPriceEstimated?: (price: string) => void
+  onPriceEstimated?: (price: string | null, error?: string) => void
   itemId?: string
+  name?: string
+  condition?: string
+  issues?: string
 }
 
-export function PriceEstimatorDialog({ description, onPriceEstimated, itemId }: SilentPriceEstimatorProps) {
+export function PriceEstimatorDialog({
+  description,
+  onPriceEstimated,
+  itemId,
+  name,
+  condition,
+  issues,
+}: SilentPriceEstimatorProps) {
   useEffect(() => {
     // Skip if no description
     if (!description.trim()) return
 
     const estimatePrice = async () => {
       try {
-        console.log("Starting silent price estimation for:", description.substring(0, 30) + "...")
+        console.log("Starting price estimation for:", description.substring(0, 30) + "...")
 
-        // Call the API route for price estimation
-        const res = await fetch("/api/price-item", {
+        // Make the API request
+        const response = await fetch("/api/price-item", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             description,
             itemId,
+            name,
+            condition,
+            issues,
           }),
+          cache: "no-store",
         })
 
-        if (!res.ok) {
-          throw new Error(`API responded with status: ${res.status}`)
+        // Handle non-OK responses
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => "Unknown error")
+          console.error(`API error (${response.status}):`, errorText)
+
+          // Call the callback with an error
+          if (onPriceEstimated) {
+            onPriceEstimated(null, `Pricing service unavailable (${response.status})`)
+          }
+          return
         }
 
-        const data = await res.json()
+        // Parse the response
+        try {
+          const data = await response.json()
 
-        if (res.ok && data.price) {
-          console.log("Price estimation successful:", data.price)
-          if (onPriceEstimated) {
-            onPriceEstimated(data.price)
+          // Check if the API returned an error
+          if (data.error) {
+            console.error("API returned error:", data.error)
+            if (onPriceEstimated) {
+              onPriceEstimated(null, data.error)
+            }
+            return
           }
-        } else {
-          console.error("Price estimation failed:", data.error || "Unknown error")
+
+          // Check if we have a price
+          if (data.price) {
+            console.log(`Price estimation result: ${data.price} (source: ${data.source})`)
+            if (onPriceEstimated) {
+              onPriceEstimated(data.price)
+            }
+          } else {
+            // No price in the response
+            console.error("API response missing price")
+            if (onPriceEstimated) {
+              onPriceEstimated(null, "Pricing service returned no data")
+            }
+          }
+        } catch (parseError) {
+          console.error("Error parsing API response:", parseError)
+          if (onPriceEstimated) {
+            onPriceEstimated(null, "Error processing pricing data")
+          }
         }
       } catch (error) {
-        console.error("Error during price estimation:", error)
+        console.error("Unexpected error during price estimation:", error)
+
+        // Report the error
+        if (onPriceEstimated) {
+          onPriceEstimated(null, "Pricing service unavailable")
+        }
       }
     }
 
     // Run the estimation
     estimatePrice()
-  }, [description, itemId, onPriceEstimated])
+  }, [description, itemId, name, condition, issues, onPriceEstimated])
 
   // This component doesn't render anything
   return null

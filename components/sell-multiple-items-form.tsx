@@ -1069,6 +1069,7 @@ export default function SellMultipleItemsForm() {
   )
 
   const [step, setStep] = useState(1)
+  const [isEstimating, setEstimating] = useState(false)
 
   useEffect(() => {
     // Create smooth entrance animation
@@ -1088,6 +1089,65 @@ export default function SellMultipleItemsForm() {
       }
     }
   }, [])
+
+  // Add error handling for price estimation
+  const estimatePrice = async (item: any) => {
+    try {
+      setEstimating(true)
+      const response = await fetch("/api/price-item", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          description: item.description,
+          name: item.name,
+          condition: item.condition,
+          issues: item.issues,
+          itemId: item.id,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`Price estimation error (${response.status}):`, errorText)
+
+        // For rate limit errors, use a fallback price
+        if (response.status === 429) {
+          return { price: generateFallbackPrice(item) }
+        }
+
+        throw new Error(`Price estimation failed: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error("Error estimating price:", error)
+      // Return a fallback price on error
+      return { price: generateFallbackPrice(item), source: "fallback" }
+    } finally {
+      setEstimating(false)
+    }
+  }
+
+  // Simple fallback price generator
+  const generateFallbackPrice = (item: any) => {
+    const basePrice = 25
+    const condition = item.condition?.toLowerCase() || ""
+
+    let multiplier = 1
+    if (condition.includes("new")) multiplier = 2
+    else if (condition.includes("excellent")) multiplier = 1.5
+    else if (condition.includes("good")) multiplier = 1.2
+    else if (condition.includes("fair")) multiplier = 0.8
+    else if (condition.includes("poor")) multiplier = 0.5
+
+    const randomFactor = 0.8 + Math.random() * 0.4
+    const price = Math.round(basePrice * multiplier * randomFactor)
+
+    return `$${price}`
+  }
 
   return (
     <div

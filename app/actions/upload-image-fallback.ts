@@ -1,71 +1,85 @@
 "use server"
 
-import { createClient } from "@supabase/supabase-js"
-
-const supabaseUrl = process.env.SUPABASE_URL || ""
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
 export async function uploadImageFallback(file: File, userId: string) {
-  if (!file) {
-    return { success: false, error: "No file provided" }
-  }
-
   try {
-    // Create a unique filename
-    const fileName = `${userId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`
+    if (!file) {
+      return { success: false, error: "No file provided" }
+    }
 
-    // For very small files, we can try base64 encoding
-    const fileReader = new FileReader()
+    // Get Supabase client
+    const supabase = getSupabaseAdmin()
 
-    // Convert file to base64 using a promise
-    const base64Data = await new Promise<string>((resolve, reject) => {
-      fileReader.onload = () => {
-        const result = fileReader.result as string
-        // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
-        const base64 = result.split(",")[1]
-        resolve(base64)
+    // Create a very simple filename
+    const extension = file.name.includes(".") ? file.name.split(".").pop() : "jpg"
+    const safeExtension = ["jpg", "jpeg", "png", "gif", "webp"].includes(extension?.toLowerCase() || "")
+      ? extension
+      : "jpg"
+
+    const timestamp = Date.now()
+    const randomString = Math.random().toString(36).substring(2, 10)
+    const fileName = `file_${timestamp}_${randomString}.${safeExtension}`
+
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    // Try multiple buckets in order of preference
+    const bucketNames = ["uploads", "images", "itemimages"]
+    let uploadResult = null
+    let uploadError = null
+    let successBucket = null
+
+    for (const bucketName of bucketNames) {
+      try {
+        console.log(`Fallback: Attempting upload to bucket: ${bucketName}`)
+        const { data, error } = await supabase.storage.from(bucketName).upload(fileName, buffer, {
+          contentType: file.type,
+          upsert: true,
+        })
+
+        if (!error) {
+          uploadResult = data
+          successBucket = bucketName
+          console.log(`Fallback: Successfully uploaded to bucket: ${bucketName}`)
+          break
+        } else {
+          console.log(`Fallback: Failed to upload to bucket ${bucketName}:`, error.message)
+          uploadError = error
+        }
+      } catch (err) {
+        console.error(`Fallback: Error trying bucket ${bucketName}:`, err)
       }
-      fileReader.onerror = () => {
-        reject(new Error("Failed to read file"))
+    }
+
+    if (!uploadResult) {
+      console.error("Fallback: All upload attempts failed. Last error:", uploadError)
+      return {
+        success: false,
+        error: uploadError ? uploadError.message : "Failed to upload to any storage bucket",
       }
-      fileReader.readAsDataURL(file)
-    })
-
-    // Decode base64 to binary
-    const binaryData = Buffer.from(base64Data, "base64")
-
-    // Upload to Supabase
-    const { data, error } = await supabase.storage.from("images2").upload(fileName, binaryData, {
-      contentType: file.type,
-      upsert: false,
-    })
-
-    if (error) {
-      console.error(`Fallback upload error: ${error.message}`)
-      return { success: false, error: error.message }
     }
 
     // Get public URL
-    const { data: publicUrlData, error: publicUrlError } = supabase.storage.from("images2").getPublicUrl(data.path)
+    const publicUrlResponse = supabase.storage.from(successBucket).getPublicUrl(uploadResult.path)
 
-    if (publicUrlError) {
-      console.error(`Error getting public URL: ${publicUrlError.message}`)
-      return { success: false, error: publicUrlError.message }
+    if (!publicUrlResponse.data?.publicUrl) {
+      return { success: false, error: "Failed to get public URL" }
     }
 
     return {
       success: true,
-      path: data.path,
-      url: publicUrlData.publicUrl,
-      signedUrl: publicUrlData.publicUrl,
+      path: uploadResult.path,
+      url: publicUrlResponse.data.publicUrl,
+      signedUrl: publicUrlResponse.data.publicUrl,
+      bucket: successBucket,
     }
   } catch (error) {
-    console.error(`Error in fallback upload: ${error instanceof Error ? error.message : String(error)}`)
+    console.error("Error in uploadImageFallback:", error)
     return {
       success: false,
-      error: `Fallback upload failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error: error instanceof Error ? error.message : "Unknown error",
     }
   }
 }

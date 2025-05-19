@@ -48,18 +48,15 @@ export function AIDescriptionButton({
 
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate description")
-      }
-
       if (data.description) {
         onDescriptionGenerated(data.description)
         toast({
           title: "Success",
-          description: "AI-generated description added",
+          description:
+            data.source === "openai" ? "AI-generated description added" : "Description generated using fallback system",
         })
       } else {
-        throw new Error("No description was generated")
+        throw new Error(data.error || "No description was generated")
       }
     } catch (error) {
       console.error("Error generating description:", error)
@@ -73,23 +70,12 @@ export function AIDescriptionButton({
     }
   }
 
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleGenerateDescription = () => {
-    setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
-      setError("Description generation is not yet configured. The OpenAI API key will be set up later.")
-    }, 500)
-  }
-
   return (
     <Button
       type="button"
       variant="outline"
       size="sm"
-      onClick={handleGenerateDescription}
+      onClick={generateDescription}
       disabled={isGenerating || !title}
       className="gap-1.5"
     >

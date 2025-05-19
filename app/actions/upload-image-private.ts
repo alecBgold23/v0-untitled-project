@@ -1,11 +1,28 @@
 "use server"
 
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
-const supabaseUrl = process.env.SUPABASE_URL || ""
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "" // Use service role key for server-side
+// Function to sanitize filenames according to Supabase requirements
+function sanitizeFileName(userId: string, fileName: string): string {
+  // Replace spaces and special characters with underscores
+  // Keep only alphanumeric characters, underscores, hyphens, and periods
+  const baseFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_")
 
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
+  // Ensure the filename has a valid extension
+  let extension = ""
+  const lastDotIndex = baseFileName.lastIndexOf(".")
+  if (lastDotIndex > 0) {
+    extension = baseFileName.substring(lastDotIndex)
+  }
+
+  // Create a safe file name with timestamp and sanitized user ID
+  const safeUserId = (userId || "anonymous").replace(/[^a-zA-Z0-9]/g, "_").substring(0, 20)
+  const timestamp = Date.now()
+  const randomString = Math.random().toString(36).substring(2, 10)
+
+  // Construct final filename (avoiding any special characters)
+  return `${safeUserId}_${timestamp}_${randomString}${extension}`.toLowerCase()
+}
 
 export async function uploadImagePrivate(file: File, userId: string) {
   if (!file) {
@@ -13,147 +30,94 @@ export async function uploadImagePrivate(file: File, userId: string) {
   }
 
   try {
-    // Create a unique filename to avoid collisions
-    const fileName = `${userId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`
-
-    // Log file details for debugging
+    // Sanitize the filename properly
+    const fileName = sanitizeFileName(userId, file.name)
     console.log(`Attempting to upload file: ${fileName}, size: ${file.size} bytes, type: ${file.type}`)
 
-    // Check if Supabase is properly configured
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
-      console.error("Supabase environment variables are not properly configured")
-      return { success: false, error: "Storage configuration error" }
+    // Validate file before attempting to upload
+    if (!file.type.startsWith("image/")) {
+      return { success: false, error: "Only image files are allowed" }
     }
 
-    // Convert file to buffer for upload (Node environment)
-    let buffer: Buffer
-    try {
-      const arrayBuffer = await file.arrayBuffer()
-      buffer = Buffer.from(arrayBuffer)
-      console.log(`Successfully converted file to buffer, size: ${buffer.length} bytes`)
-    } catch (bufferError) {
-      console.error(
-        `Error converting file to buffer: ${bufferError instanceof Error ? bufferError.message : String(bufferError)}`,
-      )
-      return { success: false, error: "Failed to process file" }
+    if (file.size > 10 * 1024 * 1024) {
+      return { success: false, error: "File size exceeds 10MB limit" }
     }
 
-    // Check if the bucket exists
-    let bucketsResponse
-    try {
-      bucketsResponse = await supabase.storage.listBuckets()
-      if (!bucketsResponse.data) {
-        throw new Error(`API responded with status: ${bucketsResponse.status}`)
-      }
-    } catch (bucketError) {
-      console.error(
-        `Error listing buckets: ${bucketError instanceof Error ? bucketError.message : String(bucketError)}`,
-      )
-      return { success: false, error: "Storage access error" }
-    }
+    // Get Supabase client
+    const supabase = getSupabaseAdmin()
 
-    const { data: buckets, error: bucketError } = bucketsResponse
+    // Convert file to buffer for upload
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    console.log(`Successfully converted file to buffer, size: ${buffer.length} bytes`)
 
-    if (bucketError) {
-      console.error(`Error listing buckets: ${bucketError.message}`)
-      return { success: false, error: "Storage access error" }
-    }
+    // Try multiple buckets in order of preference
+    const bucketNames = ["itemimages", "uploads", "images"]
+    let uploadResult = null
+    let uploadError = null
 
-    const bucketName = "images2"
-    const bucketExists = buckets.some((bucket) => bucket.name === bucketName)
-
-    if (!bucketExists) {
-      console.error(`Bucket "${bucketName}" does not exist`)
-      // Try to create the bucket if it doesn't exist
+    for (const bucketName of bucketNames) {
       try {
-        const createBucketResponse = await supabase.storage.createBucket(bucketName, {
-          public: true,
+        console.log(`Attempting upload to bucket: ${bucketName}`)
+        const { data, error } = await supabase.storage.from(bucketName).upload(fileName, buffer, {
+          contentType: file.type,
+          upsert: true,
         })
 
-        if (!createBucketResponse.data) {
-          throw new Error(`API responded with status: ${createBucketResponse.status}`)
+        if (!error) {
+          uploadResult = data
+          console.log(`Successfully uploaded to bucket: ${bucketName}`)
+          break
+        } else {
+          console.log(`Failed to upload to bucket ${bucketName}:`, error.message)
+          uploadError = error
         }
-
-        const { error: createBucketError } = createBucketResponse
-
-        if (createBucketError) {
-          console.error(`Failed to create bucket: ${createBucketError.message}`)
-          return { success: false, error: "Storage configuration error" }
-        }
-        console.log(`Created bucket "${bucketName}"`)
-      } catch (createError) {
-        console.error(
-          `Error creating bucket: ${createError instanceof Error ? createError.message : String(createError)}`,
-        )
-        return { success: false, error: "Storage configuration error" }
+      } catch (err) {
+        console.error(`Error trying bucket ${bucketName}:`, err)
       }
     }
 
-    // Upload file to 'images2' bucket
-    let uploadResponse
-    try {
-      uploadResponse = await supabase.storage.from(bucketName).upload(fileName, buffer, {
-        contentType: file.type,
-        upsert: false,
-      })
-
-      if (!uploadResponse.data) {
-        throw new Error(`API responded with status: ${uploadResponse.status}`)
+    if (!uploadResult) {
+      console.error("All upload attempts failed. Last error:", uploadError)
+      return {
+        success: false,
+        error: uploadError ? uploadError.message : "Failed to upload to any storage bucket",
       }
-    } catch (uploadError) {
-      console.error(
-        `Supabase storage upload error: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`,
-      )
-      return { success: false, error: "Upload failed" }
-    }
-
-    const { data, error } = uploadResponse
-
-    if (error) {
-      console.error(`Supabase storage upload error: ${error.message}`)
-      return { success: false, error: error.message }
-    }
-
-    if (!data || !data.path) {
-      console.error("Upload succeeded but no path was returned")
-      return { success: false, error: "Upload path not returned" }
     }
 
     // Get public URL of the uploaded file
-    let publicUrlResponse
-    try {
-      publicUrlResponse = supabase.storage.from(bucketName).getPublicUrl(data.path)
+    const bucketName = uploadResult.path.split("/")[0]
+    const publicUrlResponse = supabase.storage.from(bucketName).getPublicUrl(uploadResult.path)
 
-      if (!publicUrlResponse.data) {
-        throw new Error(`API responded with status: ${publicUrlResponse.status}`)
-      }
-    } catch (publicUrlError) {
-      console.error(
-        `Failed to get public URL for uploaded file: ${publicUrlError instanceof Error ? publicUrlError.message : String(publicUrlError)}`,
-      )
-      return { success: false, error: "Failed to get public URL" }
-    }
-
-    const { data: publicUrlData } = publicUrlResponse
-
-    if (!publicUrlData || !publicUrlData.publicUrl) {
+    if (!publicUrlResponse.data || !publicUrlResponse.data.publicUrl) {
       console.error("Failed to get public URL for uploaded file")
       return { success: false, error: "Failed to get public URL" }
     }
 
-    console.log(`Successfully uploaded file: ${fileName}, path: ${data.path}, URL: ${publicUrlData.publicUrl}`)
+    console.log(
+      `Successfully uploaded file: ${fileName}, path: ${uploadResult.path}, URL: ${publicUrlResponse.data.publicUrl}`,
+    )
 
     return {
       success: true,
-      path: data.path,
-      url: publicUrlData.publicUrl,
-      signedUrl: publicUrlData.publicUrl, // For backward compatibility
+      path: uploadResult.path,
+      url: publicUrlResponse.data.publicUrl,
+      signedUrl: publicUrlResponse.data.publicUrl, // For backward compatibility
+      bucket: bucketName,
     }
   } catch (error) {
-    console.error(`Unexpected error in uploadImagePrivate: ${error instanceof Error ? error.message : String(error)}`)
+    // Detailed error logging
+    console.error(`Unexpected error in uploadImagePrivate:`, error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    const errorStack = error instanceof Error ? error.stack : undefined
+
+    if (errorStack) {
+      console.error(`Error stack:`, errorStack)
+    }
+
     return {
       success: false,
-      error: `Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error: `Upload failed: ${errorMessage}`,
     }
   }
 }
