@@ -31,13 +31,13 @@ import { useToast } from "@/hooks/use-toast"
 import AddressAutocomplete from "@/components/address-autocomplete"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { submitMultipleItemsToSupabase } from "../actions/submit-multiple-items"
+import { submitMultipleItemsToSupabase } from "../app/actions/submit-multiple-items"
 import { Checkbox } from "@/components/ui/checkbox"
 import { uploadImagePrivate } from "@/app/actions/upload-image-private"
 import { uploadImageFallback } from "@/app/actions/upload-image-fallback"
 import { PriceEstimatorDialog } from "@/components/price-estimator-dialog"
 
-export default function SellMultipleItemsPage() {
+export default function SellMultipleItemsForm() {
   const { toast } = useToast()
   const [formStep, setFormStep] = useState(1)
   const [formSubmitted, setFormSubmitted] = useState(false)
@@ -79,6 +79,17 @@ export default function SellMultipleItemsPage() {
     },
   ])
 
+  // State to trigger re-renders when items change
+  const [itemsVersion, setItemsVersion] = useState(0)
+
+  // Refs
+  const formContainerRef = useRef(null)
+  const formTopRef = useRef(null)
+  const fileInputRefs = useRef({})
+  const suggestionTimeoutsRef = useRef({})
+  const fullNameInputRef = useRef(null)
+  const formBoxRef = useRef(null)
+
   // Create a fallback API endpoint in case the real one doesn't exist
   useEffect(() => {
     // Check if the API endpoint exists
@@ -106,17 +117,6 @@ export default function SellMultipleItemsPage() {
       }
     })
   }, [])
-
-  // State to trigger re-renders when items change
-  const [itemsVersion, setItemsVersion] = useState(0)
-
-  // Refs
-  const formContainerRef = useRef(null)
-  const formTopRef = useRef(null)
-  const fileInputRefs = useRef({})
-  const suggestionTimeoutsRef = useRef({})
-  const fullNameInputRef = useRef(null)
-  const formBoxRef = useRef(null)
 
   // Getter for items that uses the ref
   const getItems = useCallback(() => {
@@ -843,37 +843,6 @@ export default function SellMultipleItemsPage() {
     [completeFormSubmission, validateStep2],
   )
 
-  // Handle name input change
-  const handleNameChange = useCallback(
-    (e, index) => {
-      const value = e.target.value
-      updateItemField(index, "name", value)
-
-      // Schedule suggestion generation with debounce
-      if (value && value.trim().length >= 3) {
-        // Clear any existing timeout for this item
-        if (suggestionTimeoutsRef.current[index]) {
-          clearTimeout(suggestionTimeoutsRef.current[index])
-        }
-
-        // Set a new timeout
-        suggestionTimeoutsRef.current[index] = setTimeout(() => {
-          const currentItems = getItems()
-          // Only fetch if the name is still the same and different from last processed
-          if (
-            currentItems[index] &&
-            currentItems[index].name === value &&
-            currentItems[index].name !== currentItems[index].lastProcessedName &&
-            value.trim().length >= 3
-          ) {
-            fetchNameSuggestion(value, index)
-          }
-        }, 800)
-      }
-    },
-    [getItems, updateItemField, fetchNameSuggestion],
-  )
-
   // Fetch suggestion for a specific item
   const fetchNameSuggestion = useCallback(
     async (text, index) => {
@@ -968,6 +937,37 @@ export default function SellMultipleItemsPage() {
       }
     },
     [getItems, setItems],
+  )
+
+  // Handle name input change
+  const handleNameChange = useCallback(
+    (e, index) => {
+      const value = e.target.value
+      updateItemField(index, "name", value)
+
+      // Schedule suggestion generation with debounce
+      if (value && value.trim().length >= 3) {
+        // Clear any existing timeout for this item
+        if (suggestionTimeoutsRef.current[index]) {
+          clearTimeout(suggestionTimeoutsRef.current[index])
+        }
+
+        // Set a new timeout
+        suggestionTimeoutsRef.current[index] = setTimeout(() => {
+          const currentItems = getItems()
+          // Only fetch if the name is still the same and different from last processed
+          if (
+            currentItems[index] &&
+            currentItems[index].name === value &&
+            currentItems[index].name !== currentItems[index].lastProcessedName &&
+            value.trim().length >= 3
+          ) {
+            fetchNameSuggestion(value, index)
+          }
+        }, 800)
+      }
+    },
+    [getItems, updateItemField, fetchNameSuggestion],
   )
 
   // Handle description input change
@@ -1625,7 +1625,7 @@ export default function SellMultipleItemsPage() {
                                       description={`${item.name || ""} ${item.description || ""} Condition: ${item.condition || "unknown"} Issues: ${item.issues || "none"}`}
                                       onPriceEstimated={(price) => handlePriceEstimated(item.id, price)}
                                       buttonClassName="text-[#6a5acd] border-[#6a5acd]/30 hover:bg-[#6a5acd]/10"
-                                      itemId={item.id} // Add this line to pass the itemId
+                                      itemId={item.id}
                                     />
                                   </div>
 
@@ -2013,6 +2013,3 @@ export default function SellMultipleItemsPage() {
     </div>
   )
 }
-
-export const dynamic = "force-dynamic"
-export const runtime = "edge"
