@@ -1,9 +1,19 @@
 "use client"
 
-import { useEffect } from "react"
-import { generatePriceEstimate } from "@/lib/openai-browser"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { DollarSign, Wand2 } from "lucide-react"
+import { SimilarEbayItems } from "@/components/similar-ebay-items"
 
-interface SilentPriceEstimatorProps {
+interface PriceEstimatorDialogProps {
   description: string
   onPriceEstimated?: (price: string | null, error?: string) => void
   itemId?: string
@@ -21,65 +31,109 @@ export function PriceEstimatorDialog({
   condition,
   issues,
   buttonClassName,
-}: SilentPriceEstimatorProps) {
+}: PriceEstimatorDialogProps) {
+  const [open, setOpen] = useState(false)
+  const [estimatedPrice, setEstimatedPrice] = useState<string | null>(null)
+
+  // Silent price estimation on mount
   useEffect(() => {
-    // Skip if no description
-    if (!description.trim()) return
+    // Skip if no description or dialog is open (we'll use the dialog component instead)
+    if (!description.trim() || open) return
 
     const estimatePrice = async () => {
       try {
-        console.log("Starting price estimation for:", description.substring(0, 30) + "...")
+        console.log("Starting silent price estimation for:", description.substring(0, 30) + "...")
 
-        // First try the API
-        try {
-          const response = await fetch("/api/price-item", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              description,
-              itemId,
-              name,
-              condition,
-              issues,
-            }),
-            cache: "no-store",
-          })
+        // Make the API request
+        const response = await fetch("/api/ebay-price-estimate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            description,
+            itemId,
+            name,
+            condition,
+            issues,
+          }),
+          cache: "no-store",
+        })
 
-          if (response.ok) {
-            const data = await response.json()
-            if (data.price) {
-              console.log(`Price estimation result: ${data.price} (source: ${data.source})`)
-              if (onPriceEstimated) {
-                onPriceEstimated(data.price)
-              }
-              return
-            }
-          }
-        } catch (apiError) {
-          console.error("API error:", apiError)
+        // Handle non-OK responses
+        if (!response.ok) {
+          console.error(`API error (${response.status})`)
+          return
         }
 
-        // If API fails, use local fallback
-        console.log("Using local fallback for price estimation")
-        const fallbackPrice = await generatePriceEstimate(description, condition || "used")
+        // Parse the response
+        const data = await response.json()
 
-        if (onPriceEstimated) {
-          onPriceEstimated(fallbackPrice)
+        // Check if we have a price
+        if (data.price) {
+          console.log(`Price estimation result: ${data.price} (source: ${data.source || "ebay"})`)
+          setEstimatedPrice(data.price)
+
+          if (onPriceEstimated) {
+            onPriceEstimated(data.price)
+          }
+        } else if (data.fallbackPrice) {
+          console.log(`Using fallback price: ${data.fallbackPrice}`)
+          setEstimatedPrice(data.fallbackPrice)
+
+          if (onPriceEstimated) {
+            onPriceEstimated(data.fallbackPrice)
+          }
         }
       } catch (error) {
         console.error("Unexpected error during price estimation:", error)
-
-        // Even if everything fails, still provide a price estimate
-        if (onPriceEstimated) {
-          onPriceEstimated("$20-$50", "Error generating price estimate")
-        }
       }
     }
 
     // Run the estimation
     estimatePrice()
-  }, [description, itemId, name, condition, issues, onPriceEstimated])
+  }, [description, itemId, name, condition, issues, onPriceEstimated, open])
 
-  // This component doesn't render anything
-  return null
+  const handlePriceSelected = (price: string) => {
+    setEstimatedPrice(price)
+
+    if (onPriceEstimated) {
+      onPriceEstimated(price)
+    }
+
+    setOpen(false)
+  }
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className={buttonClassName || ""}>
+            {estimatedPrice ? (
+              <>
+                <DollarSign className="h-4 w-4 mr-1" />
+                Update Price
+              </>
+            ) : (
+              <>
+                <Wand2 className="h-4 w-4 mr-1" />
+                Estimate Price
+              </>
+            )}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Price Estimator</DialogTitle>
+            <DialogDescription>Find similar items on eBay to estimate the value of your item</DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4">
+            <SimilarEbayItems
+              description={`${name || ""} ${description} ${condition || ""} ${issues || ""}`}
+              onPriceSelected={handlePriceSelected}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
 }

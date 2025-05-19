@@ -24,6 +24,40 @@ function sanitizeFileName(userId: string, fileName: string): string {
   return `${safeUserId}_${timestamp}_${randomString}${extension}`.toLowerCase()
 }
 
+// Function to check if a bucket exists and create it if it doesn't
+async function ensureBucketExists(supabase, bucketName) {
+  try {
+    // Check if bucket exists
+    const { data: bucket, error: getBucketError } = await supabase.storage.getBucket(bucketName)
+
+    if (getBucketError && getBucketError.message.includes("not found")) {
+      console.log(`Bucket ${bucketName} not found, attempting to create it...`)
+
+      // Create the bucket if it doesn't exist
+      const { data: newBucket, error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true, // Make bucket public
+      })
+
+      if (createError) {
+        console.error(`Failed to create bucket ${bucketName}:`, createError.message)
+        return false
+      }
+
+      console.log(`Successfully created bucket ${bucketName}`)
+      return true
+    } else if (getBucketError) {
+      console.error(`Error checking bucket ${bucketName}:`, getBucketError.message)
+      return false
+    }
+
+    console.log(`Bucket ${bucketName} already exists`)
+    return true
+  } catch (error) {
+    console.error(`Unexpected error checking/creating bucket ${bucketName}:`, error)
+    return false
+  }
+}
+
 export async function uploadImagePrivate(file: File, userId: string) {
   if (!file) {
     return { success: false, error: "No file provided" }
@@ -52,12 +86,22 @@ export async function uploadImagePrivate(file: File, userId: string) {
     console.log(`Successfully converted file to buffer, size: ${buffer.length} bytes`)
 
     // Try multiple buckets in order of preference
-    const bucketNames = ["itemimages", "uploads", "images"]
+    const bucketNames = ["itemimages", "uploads", "images", "default"]
     let uploadResult = null
     let uploadError = null
 
     for (const bucketName of bucketNames) {
       try {
+        console.log(`Checking bucket: ${bucketName}`)
+
+        // Ensure the bucket exists before trying to upload
+        const bucketExists = await ensureBucketExists(supabase, bucketName)
+
+        if (!bucketExists) {
+          console.log(`Skipping bucket ${bucketName} as it doesn't exist and couldn't be created`)
+          continue
+        }
+
         console.log(`Attempting upload to bucket: ${bucketName}`)
         const { data, error } = await supabase.storage.from(bucketName).upload(fileName, buffer, {
           contentType: file.type,

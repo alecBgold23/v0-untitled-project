@@ -36,7 +36,8 @@ export async function searchItems(params: SearchParams) {
     }
   })
 
-  const response = await fetch(`https://api.ebay.com/buy/browse/v1/item_summary/search?${queryParams.toString()}`, {
+  const apiEndpoint = process.env.EBAY_BROWSE_API_ENDPOINT || "https://api.ebay.com/buy/browse/v1"
+  const response = await fetch(`${apiEndpoint}/item_summary/search?${queryParams.toString()}`, {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -61,7 +62,7 @@ export async function searchItems(params: SearchParams) {
 export async function getItem(params: GetItemParams) {
   const token = await getEbayOAuthToken()
 
-  let url = `https://api.ebay.com/buy/browse/v1/item/${params.itemId}`
+  let url = `${process.env.EBAY_BROWSE_API_ENDPOINT || "https://api.ebay.com/buy/browse/v1"}/item/${params.itemId}`
 
   if (params.fieldgroups) {
     url += `?fieldgroups=${params.fieldgroups}`
@@ -170,52 +171,6 @@ export async function getItemPriceEstimate(description: string, categoryId?: str
     }
   } catch (error) {
     console.error("Error estimating price from eBay:", error)
-    return null
-  }
-}
-
-// Browser-compatible functions
-export async function searchEbayItems(query: string): Promise<any | null> {
-  try {
-    // In a browser environment, we'll use the API route instead
-    const response = await fetch(`/api/ebay-search?query=${encodeURIComponent(query)}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-
-    if (!response.ok) {
-      console.error("Error searching eBay items:", await response.text())
-      return null
-    }
-
-    return await response.json()
-  } catch (error: any) {
-    console.error("Error searching eBay items:", error)
-    return null
-  }
-}
-
-export async function getEbayPriceEstimate(query: string): Promise<string | null> {
-  try {
-    // In a browser environment, we'll use the API route instead
-    const response = await fetch(`/api/ebay-price-estimate?query=${encodeURIComponent(query)}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-
-    if (!response.ok) {
-      console.error("Error getting eBay price estimate:", await response.text())
-      return null
-    }
-
-    const data = await response.json()
-    return data.price
-  } catch (error: any) {
-    console.error("Error getting eBay price estimate:", error)
     return null
   }
 }

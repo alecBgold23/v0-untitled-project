@@ -51,35 +51,104 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
     const supabase = getSupabaseAdmin()
 
     // Prepare data for insertion
-    const submissionData = items.map((item) => ({
-      item_name: item.name,
-      item_description: item.description,
-      item_condition: item.condition,
-      image_path: item.imagePath || "",
-      email: contactInfo.email,
-      phone: contactInfo.phone,
-      address: contactInfo.address,
-      full_name: contactInfo.fullName,
-      pickup_date: contactInfo.pickupDate,
-      status: "pending",
-      submission_date: new Date().toISOString(),
-      estimated_price: item.estimatedPrice || null,
-      image_paths: item.imagePaths || [],
-      image_urls: item.imageUrls || [],
-    }))
+    const submissionData = items.map((item) => {
+      // Create base data object
+      const itemData = {
+        item_name: item.name,
+        item_description: item.description,
+        item_condition: item.condition,
+        image_path: item.imagePath || "",
+        email: contactInfo.email,
+        phone: contactInfo.phone,
+        address: contactInfo.address,
+        full_name: contactInfo.fullName,
+        pickup_date: contactInfo.pickupDate,
+        status: "pending",
+        submission_date: new Date().toISOString(),
+        estimated_price: item.estimatedPrice || null,
+      }
+
+      // Only add image_paths and image_urls if they have values
+      if (item.imagePaths && item.imagePaths.length > 0) {
+        itemData.image_paths = item.imagePaths
+      }
+
+      if (item.imageUrls && item.imageUrls.length > 0) {
+        itemData.image_urls = item.imageUrls
+      }
+
+      return itemData
+    })
 
     // Ensure the table exists before inserting
     await initializeTable(supabase)
 
     // Insert data into Supabase
-    const { data, error } = await supabase.from("sell_items").insert(submissionData).select()
+    let data = null
+    try {
+      const { data: insertData, error } = await supabase.from("sell_items").insert(submissionData).select()
 
-    if (error) {
-      console.error("Error submitting items to Supabase:", error)
+      if (error) {
+        console.error("Error submitting items to Supabase:", error)
+
+        // If the error is related to missing columns, try a fallback approach
+        if (error.message && (error.message.includes("column") || error.message.includes("schema"))) {
+          console.log("Attempting fallback insertion without image arrays...")
+
+          // Create simplified data without the problematic columns
+          const simplifiedData = items.map((item) => ({
+            item_name: item.name,
+            item_description: item.description,
+            item_condition: item.condition,
+            image_path: item.imagePath || (item.imagePaths && item.imagePaths.length > 0 ? item.imagePaths[0] : ""),
+            email: contactInfo.email,
+            phone: contactInfo.phone,
+            address: contactInfo.address,
+            full_name: contactInfo.fullName,
+            pickup_date: contactInfo.pickupDate,
+            status: "pending",
+            submission_date: new Date().toISOString(),
+            estimated_price: item.estimatedPrice || null,
+          }))
+
+          // Try insertion again with simplified data
+          const fallbackResult = await supabase.from("sell_items").insert(simplifiedData).select()
+
+          if (fallbackResult.error) {
+            console.error("Fallback insertion also failed:", fallbackResult.error)
+            return {
+              success: false,
+              message: `Database error: ${fallbackResult.error.message}`,
+              code: fallbackResult.error.code,
+            }
+          }
+
+          data = fallbackResult.data
+          return {
+            success: true,
+            data,
+            message: `Successfully submitted ${items.length} item(s) with fallback method`,
+          }
+        }
+
+        return {
+          success: false,
+          message: `Database error: ${error.message}`,
+          code: error.code,
+        }
+      }
+
+      data = insertData
+      return {
+        success: true,
+        data,
+        message: `Successfully submitted ${items.length} item(s)`,
+      }
+    } catch (insertError) {
+      console.error("Exception during database insertion:", insertError)
       return {
         success: false,
-        message: `Database error: ${error.message}`,
-        code: error.code,
+        message: `Unexpected error during submission: ${insertError.message || "Unknown error"}`,
       }
     }
 
@@ -148,6 +217,37 @@ async function initializeTable(supabase) {
 
       if (createError) {
         console.error("Error creating sell_items table:", createError)
+      }
+    } else {
+      // Table exists, check if columns exist and add them if they don't
+      try {
+        // Try to add image_paths column if it doesn't exist
+        await supabase.sql`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT FROM information_schema.columns 
+              WHERE table_name = 'sell_items' AND column_name = 'image_paths'
+            ) THEN
+              ALTER TABLE sell_items ADD COLUMN image_paths TEXT[];
+            END IF;
+          END $$;
+        `
+
+        // Try to add image_urls column if it doesn't exist
+        await supabase.sql`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT FROM information_schema.columns 
+              WHERE table_name = 'sell_items' AND column_name = 'image_urls'
+            ) THEN
+              ALTER TABLE sell_items ADD COLUMN image_urls TEXT[];
+            END IF;
+          END $$;
+        `
+      } catch (alterError) {
+        console.error("Error altering table:", alterError)
       }
     }
   } catch (err) {

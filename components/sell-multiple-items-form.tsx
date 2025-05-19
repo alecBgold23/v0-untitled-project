@@ -31,20 +31,38 @@ import { useToast } from "@/hooks/use-toast"
 import AddressAutocomplete from "@/components/address-autocomplete"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { submitMultipleItemsToSupabase } from "../app/actions/submit-multiple-items"
 import { Checkbox } from "@/components/ui/checkbox"
 import { uploadImagePrivate } from "@/app/actions/upload-image-private"
 import { uploadImageFallback } from "@/app/actions/upload-image-fallback"
-import { PriceEstimatorDialog } from "@/components/price-estimator-dialog"
 import { generatePriceEstimate } from "@/lib/openai-browser"
+import { sellMultipleItems } from "../app/actions/sell-multiple-items"
 
-export default function SellMultipleItemsForm() {
+interface SellMultipleItemsFormProps {
+  onError?: (error: Error) => void
+  onLoad?: () => void
+}
+
+export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleItemsFormProps) {
   const { toast } = useToast()
   const [formStep, setFormStep] = useState(1)
   const [formSubmitted, setFormSubmitted] = useState(false)
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState(null)
+
+  // Call onLoad when component is mounted
+  useEffect(() => {
+    try {
+      if (onLoad) {
+        onLoad()
+      }
+    } catch (error) {
+      console.error("Error in onLoad callback:", error)
+      if (onError) {
+        onError(error instanceof Error ? error : new Error(String(error)))
+      }
+    }
+  }, [onLoad, onError])
 
   // Store estimated prices for each item
   const [estimatedPrices, setEstimatedPrices] = useState<{ [key: string]: string }>({})
@@ -680,7 +698,13 @@ export default function SellMultipleItemsForm() {
               // Add path and URL to arrays
               imagePaths.push(uploadResult.path || "")
               imageUrls.push(uploadResult.url || uploadResult.signedUrl || "")
-              console.log(`Successfully uploaded image ${j + 1} for item ${i + 1}`)
+
+              // If this is a local fallback (base64), store it differently
+              if (uploadResult.isLocalFallback) {
+                console.log(`Using local fallback for image ${j + 1} for item ${i + 1}`)
+              } else {
+                console.log(`Successfully uploaded image ${j + 1} for item ${i + 1}`)
+              }
             } else {
               console.error(`Failed to upload image ${j + 1} for item ${i + 1}:`, uploadResult.error)
               // Continue with other images even if one fails
@@ -777,7 +801,7 @@ export default function SellMultipleItemsForm() {
       }))
 
       // Submit to Supabase
-      const result = await submitMultipleItemsToSupabase(formattedItems, {
+      const result = await sellMultipleItems(formattedItems, {
         fullName,
         email,
         phone,
@@ -1166,6 +1190,9 @@ export default function SellMultipleItemsForm() {
             </p>
           </div>
         </ContentAnimation>
+
+        {/* Rest of the component remains the same... */}
+        {/* ... (keep all the existing JSX) */}
 
         {!formSubmitted ? (
           <>
@@ -1661,40 +1688,6 @@ export default function SellMultipleItemsForm() {
                                       ></div>
                                     </div>
                                   </div>
-                                </div>
-
-                                {/* Price Estimator */}
-                                <div className="transition-all duration-300 mt-4">
-                                  <div className="flex justify-between items-center">
-                                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                      Estimated Value
-                                    </Label>
-                                    <PriceEstimatorDialog
-                                      description={`${item.name || ""} ${item.description || ""} Condition: ${item.condition || "unknown"} Issues: ${item.issues || "none"}`}
-                                      onPriceEstimated={(price) => handlePriceEstimated(item.id, price)}
-                                      buttonClassName="text-[#6a5acd] border-[#6a5acd]/30 hover:bg-[#6a5acd]/10"
-                                      itemId={item.id}
-                                    />
-                                  </div>
-
-                                  {estimatedPrices[item.id] ? (
-                                    <div className="mt-2 p-3 bg-[#6a5acd]/5 border border-[#6a5acd]/20 rounded-lg">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <DollarSign className="h-4 w-4 text-[#6a5acd]" />
-                                        <span className="text-sm font-medium text-[#6a5acd]">Estimated Value</span>
-                                      </div>
-                                      <p className="text-lg font-semibold">{estimatedPrices[item.id]}</p>
-                                      <p className="text-xs text-gray-500 mt-1">
-                                        This is an AI-generated estimate based on your item description.
-                                      </p>
-                                    </div>
-                                  ) : (
-                                    <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
-                                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        Click "Estimate Price" to get an AI-powered value estimate for this item.
-                                      </p>
-                                    </div>
-                                  )}
                                 </div>
                               </CardContent>
                             )}
