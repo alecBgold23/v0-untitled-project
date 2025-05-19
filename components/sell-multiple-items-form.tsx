@@ -34,8 +34,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox"
 import { uploadImagePrivate } from "@/app/actions/upload-image-private"
 import { uploadImageFallback } from "@/app/actions/upload-image-fallback"
-import { generatePriceEstimate } from "@/lib/openai-browser"
 import { sellMultipleItems } from "../app/actions/sell-multiple-items"
+import { PriceEstimatorDialog } from "@/components/price-estimator-dialog"
 
 interface SellMultipleItemsFormProps {
   onError?: (error: Error) => void
@@ -787,17 +787,17 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
         name: item.name || "",
         description: item.description || "",
         condition: item.condition || "",
-        issues: item.issues || "",
+        issues: item.issues || "", // This will map to item_issues in the database
         photos: (item.photos || []).map((photo) => ({
           name: photo.name || "",
           type: photo.type || "",
           size: photo.size || 0,
         })),
         imagePath: item.imagePath || "",
-        imageUrl: item.imageUrl || "",
+        imageUrl: item.imageUrl || "", // This will map to image_url in the database
         imagePaths: item.imagePaths || [],
         imageUrls: item.imageUrls || [],
-        estimatedPrice: item.estimatedPrice || estimatedPrices[item.id] || null, // Add this line
+        estimatedPrice: item.estimatedPrice || estimatedPrices[item.id] || null,
       }))
 
       // Submit to Supabase
@@ -1063,7 +1063,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
   useEffect(() => {
     return () => {
       try {
-        // Revoke all created object URLs to prevent memory leaks
+        // Revoke all created object URLs
         const items = getItems()
         items.forEach((item) => {
           if (item && item.photos) {
@@ -1115,50 +1115,27 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     }
   }, [])
 
-  // Add error handling for price estimation
+  // Replace the estimatePrice function with this:
   const estimatePrice = async (item: any) => {
     try {
       setEstimating(true)
-      // Use the browser-compatible function
-      const priceData = await generatePriceEstimate({
-        description: item.description,
-        name: item.name,
-        condition: item.condition,
-        issues: item.issues,
-        itemId: item.id,
-      })
 
-      if (!priceData || !priceData.price) {
-        console.error("Price estimation failed: No price returned")
-        return { price: generateFallbackPrice(item), source: "fallback" }
-      }
+      // Use the client-side price estimator instead of API call
+      const { estimateItemPrice } = await import("@/lib/client-price-estimator")
 
-      return { price: priceData.price, source: "ai" }
+      const result = estimateItemPrice(item.description || "", item.name || "", item.condition || "", item.issues || "")
+
+      return { price: result.price, source: "client" }
     } catch (error) {
       console.error("Error estimating price:", error)
-      // Return a fallback price on error
-      return { price: generateFallbackPrice(item), source: "fallback" }
+      // Return a fallback price on any error
+      return {
+        price: `$${Math.round((25 + Math.random() * 75) / 5) * 5}`,
+        source: "fallback",
+      }
     } finally {
       setEstimating(false)
     }
-  }
-
-  // Simple fallback price generator
-  const generateFallbackPrice = (item: any) => {
-    const basePrice = 25
-    const condition = item.condition?.toLowerCase() || ""
-
-    let multiplier = 1
-    if (condition.includes("new")) multiplier = 2
-    else if (condition.includes("excellent")) multiplier = 1.5
-    else if (condition.includes("good")) multiplier = 1.2
-    else if (condition.includes("fair")) multiplier = 0.8
-    else if (condition.includes("poor")) multiplier = 0.5
-
-    const randomFactor = 0.8 + Math.random() * 0.4
-    const price = Math.round(basePrice * multiplier * randomFactor)
-
-    return `$${price}`
   }
 
   return (
@@ -1597,6 +1574,36 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                     className="flex min-h-[80px] w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066ff] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#0066ff]/30 focus:border-[#0066ff]/70 relative z-30"
                                     required
                                   />
+                                </div>
+
+                                <div className="transition-all duration-300 mt-4">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                      <DollarSign className="h-4 w-4 text-[#6a5acd]" />
+                                      <span>Price Estimate</span>
+                                    </Label>
+
+                                    <PriceEstimatorDialog
+                                      description={`${item.name || ""} ${item.description || ""}`}
+                                      condition={item.condition || ""}
+                                      issues={item.issues || ""}
+                                      itemId={item.id}
+                                      name={item.name}
+                                      onPriceEstimated={(price) => handlePriceEstimated(item.id, price)}
+                                      buttonClassName="h-8 text-xs"
+                                    />
+                                  </div>
+
+                                  {estimatedPrices[item.id] && (
+                                    <div className="p-3 bg-[#6a5acd]/5 rounded-lg border border-[#6a5acd]/20">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                                          Estimated Value:
+                                        </span>
+                                        <span className="font-semibold text-lg">{estimatedPrices[item.id]}</span>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
 
                                 <div className="transition-all duration-300">

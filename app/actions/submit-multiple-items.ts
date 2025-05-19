@@ -1,7 +1,6 @@
 "use server"
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
-import { sendConfirmationEmail } from "./send-confirmation-email"
 
 interface ItemData {
   name: string
@@ -9,7 +8,7 @@ interface ItemData {
   condition: string
   issues: string
   imagePath?: string
-  imageUrl?: string
+  imageUrl?: string // This will map to image_url column
   imagePaths?: string[]
   imageUrls?: string[]
   estimatedPrice?: string
@@ -57,6 +56,10 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
         item_name: item.name,
         item_description: item.description,
         item_condition: item.condition,
+        item_issues: item.issues || "None",
+        // Explicitly map imageUrl to image_url column
+        image_url: item.imageUrl || "",
+        // Keep image_path for backward compatibility
         image_path: item.imagePath || "",
         email: contactInfo.email,
         phone: contactInfo.phone,
@@ -100,6 +103,10 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
             item_name: item.name,
             item_description: item.description,
             item_condition: item.condition,
+            item_issues: item.issues || "None",
+            // Explicitly map imageUrl to image_url column
+            image_url: item.imageUrl || "",
+            // Keep image_path for backward compatibility
             image_path: item.imagePath || (item.imagePaths && item.imagePaths.length > 0 ? item.imagePaths[0] : ""),
             email: contactInfo.email,
             phone: contactInfo.phone,
@@ -151,33 +158,6 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
         message: `Unexpected error during submission: ${insertError.message || "Unknown error"}`,
       }
     }
-
-    console.log("Successfully submitted to Supabase")
-
-    // Send confirmation email
-    try {
-      const emailResult = await sendConfirmationEmail({
-        fullName: contactInfo.fullName,
-        email: contactInfo.email,
-        itemName: `Multiple Items (${items.length})`,
-        itemCondition: "Multiple",
-        itemDescription: items.map((item) => `${item.name}: ${item.description}`).join(" | "),
-        itemIssues: items.map((item) => `${item.name}: ${item.issues}`).join(" | "),
-        phone: contactInfo.phone,
-        address: contactInfo.address,
-        pickupDate: contactInfo.pickupDate,
-      })
-
-      console.log("Email result:", emailResult)
-    } catch (error) {
-      console.error("Error sending confirmation email:", error)
-    }
-
-    return {
-      success: true,
-      data,
-      message: `Successfully submitted ${items.length} item(s)`,
-    }
   } catch (error) {
     console.error("Unexpected error in submitMultipleItemsToSupabase:", error)
     return {
@@ -201,8 +181,10 @@ async function initializeTable(supabase) {
           item_name TEXT NOT NULL,
           item_description TEXT NOT NULL,
           image_path TEXT,
+          image_url TEXT, -- Ensure this column exists
           email TEXT,
           item_condition TEXT NOT NULL,
+          item_issues TEXT, -- Ensure this column exists
           phone TEXT,
           address TEXT,
           full_name TEXT,
@@ -221,6 +203,19 @@ async function initializeTable(supabase) {
     } else {
       // Table exists, check if columns exist and add them if they don't
       try {
+        // Try to add image_url column if it doesn't exist
+        await supabase.sql`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT FROM information_schema.columns 
+              WHERE table_name = 'sell_items' AND column_name = 'image_url'
+            ) THEN
+              ALTER TABLE sell_items ADD COLUMN image_url TEXT;
+            END IF;
+          END $$;
+        `
+
         // Try to add image_paths column if it doesn't exist
         await supabase.sql`
           DO $$

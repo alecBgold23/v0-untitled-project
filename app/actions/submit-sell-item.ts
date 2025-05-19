@@ -14,14 +14,14 @@ export async function submitSellItemToSupabase(formData: {
   fullName: string
   email: string
   phone: string
-  address: string
-  pickupDate: string
-  photoCount: number
+  address?: string
+  pickupDate?: string
+  photoCount?: number
   imageUrl?: string
   imagePath?: string
 }) {
   try {
-    console.log("Starting submission process...")
+    console.log("Starting submission process with data:", JSON.stringify(formData, null, 2))
 
     // Validate required fields
     if (
@@ -39,12 +39,20 @@ export async function submitSellItemToSupabase(formData: {
       }
     }
 
+    // Ensure itemIssues is never null - use empty string as fallback
+    const itemIssues = formData.itemIssues || "None"
+    console.log("Item issues value:", itemIssues)
+
+    // Ensure imageUrl is never null - use empty string as fallback
+    const imageUrl = formData.imageUrl || ""
+    console.log("Image URL value:", imageUrl)
+
     // Prepare data for submission
     const itemData = {
       item_name: formData.itemName,
-      item_description: formData.itemDescription + (formData.imageUrl ? `\n\nImage: ${formData.imageUrl}` : ""),
+      item_description: formData.itemDescription,
       item_condition: formData.itemCondition,
-      item_issues: formData.itemIssues || "None",
+      item_issues: itemIssues, // Using the non-null value
       full_name: formData.fullName,
       email: formData.email,
       phone: formData.phone,
@@ -53,7 +61,11 @@ export async function submitSellItemToSupabase(formData: {
       photo_count: formData.photoCount || 0,
       status: "pending",
       submission_date: new Date().toISOString(),
+      image_url: imageUrl, // Using the non-null value
+      image_path: formData.imagePath || "",
     }
+
+    console.log("Prepared item data for Supabase:", JSON.stringify(itemData, null, 2))
 
     // Store in temporary memory as a fallback
     temporarySubmissions.push(itemData)
@@ -83,15 +95,11 @@ export async function submitSellItemToSupabase(formData: {
     // Create a new client with the service role key to bypass RLS
     const adminSupabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
       auth: { persistSession: false },
-      global: {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
     })
 
     let supabaseSuccess = false
     let supabaseError = null
+    let insertedData = null
 
     try {
       // Insert data using the admin client with service role key
@@ -102,6 +110,7 @@ export async function submitSellItemToSupabase(formData: {
         supabaseError = error
       } else {
         console.log("Success with service role key client!", data)
+        insertedData = data
         supabaseSuccess = true
       }
     } catch (dbError) {
@@ -119,10 +128,10 @@ export async function submitSellItemToSupabase(formData: {
         itemName: formData.itemName,
         itemCondition: formData.itemCondition,
         itemDescription: formData.itemDescription,
-        itemIssues: formData.itemIssues,
+        itemIssues: formData.itemIssues || "None",
         phone: formData.phone,
-        address: formData.address,
-        pickupDate: formData.pickupDate,
+        address: formData.address || "",
+        pickupDate: formData.pickupDate || "",
         imageUrl: formData.imageUrl || "",
       })
 
@@ -145,6 +154,7 @@ export async function submitSellItemToSupabase(formData: {
           : "Your item has been submitted successfully! However, we couldn't send a confirmation email.",
         databaseSuccess: true,
         emailSuccess,
+        data: insertedData,
       }
     } else {
       // If Supabase failed but we have the data in memory and/or email

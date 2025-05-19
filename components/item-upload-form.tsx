@@ -27,12 +27,13 @@ export default function ItemUploadForm() {
     itemName: "",
     itemDescription: "",
     itemCondition: "",
-    itemIssues: "",
+    itemIssues: "None", // Default value to prevent null
     fullName: "",
     email: "",
     phone: "",
   })
   const [formSuccess, setFormSuccess] = useState(false)
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
 
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -94,20 +95,31 @@ export default function ItemUploadForm() {
         throw new Error(uploadResult.error || "Failed to upload image")
       }
 
+      console.log("Image upload result:", uploadResult)
+
+      // Get the image URL from the upload result
+      const imageUrl = uploadResult.signedUrl || uploadResult.url || ""
+      setUploadedImageUrl(imageUrl)
+
+      console.log("Image URL to be saved:", imageUrl)
+
       // Step 2: Submit the form data with the image URL
       const submitResult = await submitSellItemToSupabase({
         itemName: formData.itemName,
         itemDescription: formData.itemDescription,
         itemCondition: formData.itemCondition,
-        itemIssues: formData.itemIssues || "None",
+        itemIssues: formData.itemIssues || "None", // Ensure this is never null
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         address: "", // Optional in this form
         pickupDate: "", // Optional in this form
         photoCount: 1,
-        imageUrl: uploadResult.signedUrl || "",
+        imageUrl: imageUrl, // Use the image URL from the upload result
+        imagePath: uploadResult.path || "",
       })
+
+      console.log("Submit result:", submitResult)
 
       if (!submitResult.success) {
         throw new Error(submitResult.message || "Failed to submit item details")
@@ -120,19 +132,20 @@ export default function ItemUploadForm() {
         description: "Your item has been submitted successfully",
       })
 
-      // Reset form after 2 seconds
+      // Reset form after 5 seconds
       setTimeout(() => {
         setFormData({
           itemName: "",
           itemDescription: "",
           itemCondition: "",
-          itemIssues: "",
+          itemIssues: "None", // Default value
           fullName: "",
           email: "",
           phone: "",
         })
         setImageFile(null)
         setImagePreview(null)
+        setUploadedImageUrl(null)
         setFormSuccess(false)
       }, 5000)
     } catch (error) {
@@ -170,6 +183,17 @@ export default function ItemUploadForm() {
           <p className="text-center mb-4">
             Thank you for your submission. We will review your item and get back to you soon.
           </p>
+          {uploadedImageUrl && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-2">Uploaded image:</p>
+              <img
+                src={uploadedImageUrl || "/placeholder.svg"}
+                alt="Uploaded item"
+                className="max-w-full h-auto max-h-48 rounded-md"
+                onError={() => console.error("Failed to load image from URL:", uploadedImageUrl)}
+              />
+            </div>
+          )}
           <Button
             onClick={() => {
               setFormSuccess(false)

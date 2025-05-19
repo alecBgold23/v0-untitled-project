@@ -1,10 +1,15 @@
 import { createClient } from "@supabase/supabase-js"
+import type { Buffer } from "buffer"
 
 // Create a singleton client to avoid multiple instances
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+const supabaseServiceRole = createClient(supabaseUrl, supabaseServiceRoleKey)
+
+export const supabase = supabaseClient
 
 // Client-side image upload function (for use in browser)
 export async function uploadImageClient(file: File, userId = "anonymous") {
@@ -113,9 +118,35 @@ export async function uploadImageToSupabase(
 
     // Get the public URL
     const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath)
+    const imageUrl = urlData?.publicUrl || null
 
-    return { url: urlData.publicUrl }
+    return { url: imageUrl }
   } catch (error: any) {
     return { error: error.message || "Failed to upload image" }
+  }
+}
+
+// Server-side image upload function (for use in Node.js)
+export async function uploadImageServer(fileBuffer: Buffer, fileName: string, bucket = "images2") {
+  const filePath = `uploads/${Date.now()}-${fileName}`
+
+  // Upload the file
+  const { error: uploadError } = await supabaseServiceRole.storage.from(bucket).upload(filePath, fileBuffer, {
+    contentType: "image/jpeg", // adjust as needed
+    upsert: false,
+  })
+
+  if (uploadError) {
+    console.error("Upload error:", uploadError)
+    throw new Error("Failed to upload image to Supabase Storage")
+  }
+
+  // Get the public URL
+  const { data: publicUrlData } = supabaseServiceRole.storage.from(bucket).getPublicUrl(filePath)
+  const imageUrl = publicUrlData?.publicUrl || null
+
+  return {
+    image_path: filePath,
+    image_url: imageUrl,
   }
 }
