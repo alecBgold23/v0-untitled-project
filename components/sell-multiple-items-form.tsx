@@ -35,6 +35,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { uploadImagePrivate } from "@/app/actions/upload-image-private"
 import { uploadImageFallback } from "@/app/actions/upload-image-fallback"
 import { sellMultipleItems } from "../app/actions/sell-multiple-items"
+import { detectCategory, adjustForCondition } from "@/lib/enhanced-pricing"
 
 interface SellMultipleItemsFormProps {
   onError?: (error: Error) => void
@@ -74,6 +75,10 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
   // Validation states
   const [step1Valid, setStep1Valid] = useState(false)
   const [step2Valid, setStep2Valid] = useState(false)
+
+  // Price estimate state
+  const [priceEstimates, setPriceEstimates] = useState([])
+  const [totalEstimate, setTotalEstimate] = useState({ price: "$0", minPrice: 0, maxPrice: 0 })
 
   // Multiple items state - using a stable reference with useRef
   const itemsRef = useRef([
@@ -197,6 +202,65 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     [getItems, setItems],
   )
 
+  // Calculate price estimates for all items using enhanced pricing
+  const calculatePriceEstimates = useCallback(() => {
+    try {
+      const items = getItems()
+      const estimates = items.map((item) => {
+        // Use the enhanced category detection
+        const { category, basePrice, confidence } = detectCategory(item.description || "", item.name || "")
+
+        // Adjust price based on condition
+        const adjustedPrice = adjustForCondition(
+          basePrice,
+          item.condition || "",
+          item.description || "",
+          item.issues || "",
+        )
+
+        // Add some natural variation (±10%)
+        const variation = 0.9 + Math.random() * 0.2
+        const finalPrice = Math.round(adjustedPrice * variation)
+        const minPrice = Math.round(finalPrice * 0.85)
+        const maxPrice = Math.round(finalPrice * 1.15)
+
+        // Map confidence value to low/medium/high
+        let confidenceLevel = "medium"
+        if (confidence > 0.8) confidenceLevel = "high"
+        else if (confidence < 0.6) confidenceLevel = "low"
+
+        return {
+          price: `$${finalPrice}`,
+          minPrice,
+          maxPrice,
+          confidence: confidenceLevel,
+          source: "enhanced",
+          category,
+        }
+      })
+
+      setPriceEstimates(estimates)
+
+      // Calculate total estimate
+      const totalMin = estimates.reduce((sum, est) => sum + (est.minPrice || 0), 0)
+      const totalMax = estimates.reduce((sum, est) => sum + (est.maxPrice || 0), 0)
+      const totalPrice = `$${Math.round((totalMin + totalMax) / 2)}`
+
+      setTotalEstimate({
+        price: totalPrice,
+        minPrice: totalMin,
+        maxPrice: totalMax,
+        confidence: estimates.some((e) => e.confidence === "low")
+          ? "low"
+          : estimates.every((e) => e.confidence === "high")
+            ? "high"
+            : "medium",
+      })
+    } catch (error) {
+      console.error("Error calculating price estimates:", error)
+    }
+  }, [getItems])
+
   // Validate step 1 (all items)
   useEffect(() => {
     try {
@@ -226,6 +290,11 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       setStep2Valid(false)
     }
   }, [fullName, email, phone, address, pickupDate, termsAccepted])
+
+  // Update price estimates when items change
+  useEffect(() => {
+    calculatePriceEstimates()
+  }, [itemsVersion, calculatePriceEstimates])
 
   // Add a new item
   const addItem = useCallback(() => {
@@ -957,8 +1026,10 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           }
         }, 800)
       }
+
+      setTimeout(calculatePriceEstimates, 100)
     },
-    [getItems, updateItemField, fetchNameSuggestion],
+    [getItems, updateItemField, fetchNameSuggestion, calculatePriceEstimates],
   )
 
   // Handle description input change
@@ -966,8 +1037,10 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     (e, index) => {
       const value = e.target.value
       updateItemField(index, "description", value)
+
+      setTimeout(calculatePriceEstimates, 100)
     },
-    [updateItemField],
+    [updateItemField, calculatePriceEstimates],
   )
 
   // Handle issues input change
@@ -975,16 +1048,20 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     (e, index) => {
       const value = e.target.value
       updateItemField(index, "issues", value)
+
+      setTimeout(calculatePriceEstimates, 100)
     },
-    [updateItemField],
+    [updateItemField, calculatePriceEstimates],
   )
 
   // Handle condition selection
   const handleConditionSelect = useCallback(
     (index, conditionValue) => {
       updateItemField(index, "condition", conditionValue)
+
+      setTimeout(calculatePriceEstimates, 100)
     },
-    [updateItemField],
+    [updateItemField, calculatePriceEstimates],
   )
 
   // Apply suggestion for a specific item
@@ -1664,6 +1741,87 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                         </Button>
                       </div>
 
+                      {/* Price Estimate Section */}
+                      <div className="mt-6 p-4 rounded-lg border border-[#6a5acd]/20 bg-[#6a5acd]/5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <DollarSign className="h-5 w-5 text-[#6a5acd]" />
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Estimated Value</h3>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Based on the information you've provided, we estimate your items are worth approximately:
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-[#6a5acd]">{totalEstimate.price}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              Range: ${totalEstimate.minPrice} - ${totalEstimate.maxPrice}
+                            </div>
+                            <div
+                              className={`text-xs mt-1 px-2 py-0.5 rounded-full inline-flex items-center gap-1
+        ${
+          totalEstimate.confidence === "high"
+            ? "bg-green-100 text-green-800"
+            : totalEstimate.confidence === "medium"
+              ? "bg-yellow-100 text-yellow-800"
+              : "bg-orange-100 text-orange-800"
+        }`}
+                            >
+                              <span>
+                                {totalEstimate.confidence === "high"
+                                  ? "High"
+                                  : totalEstimate.confidence === "medium"
+                                    ? "Medium"
+                                    : "Low"}{" "}
+                                confidence
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 mt-4">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Individual item estimates:</p>
+                          {getItems().map((item, index) => (
+                            <div
+                              key={item.id}
+                              className="flex justify-between items-center p-2 rounded bg-white dark:bg-gray-800 shadow-sm"
+                            >
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-4 w-4 text-[#6a5acd]" />
+                                  <span className="text-sm font-medium">{item.name || `Item ${index + 1}`}</span>
+                                </div>
+                                {priceEstimates[index]?.category && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-6">
+                                    Category: {priceEstimates[index].category.replace(/_/g, " ")}
+                                  </span>
+                                )}
+                              </div>
+                              {priceEstimates[index] ? (
+                                <div className="text-right">
+                                  <div className="text-sm font-semibold">{priceEstimates[index].price}</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    ${priceEstimates[index].minPrice} - ${priceEstimates[index].maxPrice}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-sm text-gray-400">Add more details</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-2">
+                          <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          <p>
+                            This is just an estimate. The final offer may vary based on physical inspection. Adding more
+                            details and photos will help us provide a more accurate estimate.
+                          </p>
+                        </div>
+                      </div>
+
                       <div className="flex justify-end mt-6">
                         <button
                           type="button"
@@ -1797,11 +1955,11 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                <span className="font-medium text-gray-900 dark:text-white">Items:</span>{" "}
+                                <span className="font-medium text-gray-900 dark:text-white">Items:</span>
                                 {getItems().length} items
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                <span className="font-medium text-gray-900 dark:text-white">Names:</span>{" "}
+                                <span className="font-medium text-gray-900 dark:text-white">Names:</span>
                                 {getItems()
                                   .map((item) => item.name || "Unnamed Item")
                                   .join(", ")}
@@ -1821,7 +1979,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                     <AccordionContent>
                                       <div className="pt-2">
                                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                                          <span className="font-medium text-gray-900 dark:text-white">Condition:</span>{" "}
+                                          <span className="font-medium text-gray-900 dark:text-white">Condition:</span>
                                           {item.condition
                                             ? item.condition
                                                 .split("-")
@@ -1832,15 +1990,15 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                           <span className="font-medium text-gray-900 dark:text-white">
                                             Description:
-                                          </span>{" "}
+                                          </span>
                                           {item.description || "No description provided"}
                                         </p>
                                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                          <span className="font-medium text-gray-900 dark:text-white">Issues:</span>{" "}
+                                          <span className="font-medium text-gray-900 dark:text-white">Issues:</span>
                                           {item.issues || "None specified"}
                                         </p>
                                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                          <span className="font-medium text-gray-900 dark:text-white">Photos:</span>{" "}
+                                          <span className="font-medium text-gray-900 dark:text-white">Photos:</span>
                                           {(item.photos || []).length}
                                         </p>
                                       </div>
@@ -1869,7 +2027,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                 I consent to being contacted by BluBerry <span className="text-red-500">*</span>
                               </Label>
                               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                By submitting this form, you agree to our{" "}
+                                By submitting this form, you agree to our
                                 <Link
                                   href="/privacy-policy"
                                   className="text-[#0066ff] underline hover:text-[#6a5acd] transition-colors"
@@ -1953,7 +2111,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                 <div className="bg-[#f8fafc] dark:bg-gray-800 p-6 rounded-md max-w-md mx-auto flex items-center gap-3">
                   <CheckCircle2 className="h-5 w-5 text-[#6a5acd] flex-shrink-0" />
                   <p className="text-sm text-gray-600 dark:text-gray-400 text-left">
-                    We've sent a confirmation email to{" "}
+                    We've sent a confirmation email to
                     <span className="font-medium text-gray-900 dark:text-white">{email}</span> with the details of your
                     submission.
                   </p>

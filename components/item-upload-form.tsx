@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Upload, ImageIcon, CheckCircle2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { estimateItemPrice, type PriceEstimateResult } from "@/lib/client-price-estimator"
 
 export default function ItemUploadForm() {
   const router = useRouter()
@@ -34,6 +35,7 @@ export default function ItemUploadForm() {
   })
   const [formSuccess, setFormSuccess] = useState(false)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
+  const [priceEstimate, setPriceEstimate] = useState<PriceEstimateResult | null>(null)
 
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -168,6 +170,19 @@ export default function ItemUploadForm() {
       }
     }
   }, [imagePreview])
+
+  // Update price estimate when relevant form fields change
+  React.useEffect(() => {
+    if (formData.itemName || formData.itemDescription || formData.itemCondition || formData.itemIssues) {
+      const estimate = estimateItemPrice(
+        formData.itemDescription,
+        formData.itemName,
+        formData.itemCondition,
+        formData.itemIssues,
+      )
+      setPriceEstimate(estimate)
+    }
+  }, [formData.itemName, formData.itemDescription, formData.itemCondition, formData.itemIssues])
 
   if (formSuccess) {
     return (
@@ -347,6 +362,38 @@ export default function ItemUploadForm() {
               )}
             </div>
           </div>
+
+          {/* Price Estimate Section */}
+          {priceEstimate && (
+            <div className="p-4 border rounded-md bg-muted/30">
+              <h3 className="font-medium mb-2">Estimated Value</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold">{priceEstimate.price}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Range: ${priceEstimate.minPrice} - ${priceEstimate.maxPrice}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      priceEstimate.confidence === "high"
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                        : priceEstimate.confidence === "medium"
+                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                    }`}
+                  >
+                    {priceEstimate.confidence?.charAt(0).toUpperCase() + priceEstimate.confidence?.slice(1)} confidence
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-1">Based on provided details</p>
+                </div>
+              </div>
+              <p className="text-sm mt-2 text-muted-foreground">
+                This is an automated estimate. Add more details for a more accurate estimate.
+              </p>
+            </div>
+          )}
 
           <Button type="submit" disabled={isSubmitting || !imageFile} className="w-full">
             {isSubmitting ? (
