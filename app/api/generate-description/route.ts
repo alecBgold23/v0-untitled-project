@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { generateProductDescription } from "@/lib/openai"
-import { hasOpenAIKey } from "@/lib/env"
+import { generateProductDescription } from "@/lib/openai-browser"
 
 // Fallback description generator
 function generateFallbackDescription(title = "", condition = "", extraDetails = ""): string {
@@ -45,32 +44,23 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if OpenAI API key is available
-    if (!hasOpenAIKey()) {
-      console.warn("OpenAI API key is not configured, using fallback description generator")
-      return NextResponse.json({
-        description: generateFallbackDescription(title, condition, extraDetails),
-        source: "fallback",
-      })
-    }
-
-    // Generate description using OpenAI
+    // Generate description using our fallback mechanism
     try {
       const description = await generateProductDescription(title, condition, extraDetails)
 
       if (description) {
         return NextResponse.json({
           description,
-          source: "openai",
+          source: "algorithm",
         })
       } else {
-        throw new Error("OpenAI returned empty description")
+        throw new Error("Failed to generate description")
       }
-    } catch (openaiError) {
-      console.error("Error with OpenAI description generation:", openaiError)
+    } catch (genError) {
+      console.error("Error with description generation:", genError)
 
       return NextResponse.json({
-        error: openaiError.message || "Error generating description with OpenAI",
+        error: genError.message || "Error generating description",
         description: generateFallbackDescription(title, condition, extraDetails),
         source: "fallback",
       })

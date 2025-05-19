@@ -1,34 +1,42 @@
 /**
- * Safely parses JSON from a fetch response
- * @param response The fetch response
- * @returns The parsed JSON data
- * @throws Error if the response is not ok or if JSON parsing fails
+ * Fetch with timeout
+ * @param url URL to fetch
+ * @param options Fetch options
+ * @param timeout Timeout in milliseconds
+ * @returns Fetch response
  */
-export async function safeJsonParse(response: Response) {
-  if (!response.ok) {
-    throw new Error(`API responded with status: ${response.status}`)
-  }
+export async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 10000): Promise<Response> {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
 
-  try {
-    return await response.json()
-  } catch (error) {
-    console.error("Error parsing JSON response:", error)
-    throw new Error("Failed to parse response as JSON")
-  }
+  const response = await fetch(url, {
+    ...options,
+    signal: controller.signal,
+  })
+
+  clearTimeout(id)
+  return response
 }
 
 /**
- * Makes a fetch request and safely parses the JSON response
- * @param url The URL to fetch
+ * Retry a fetch request
+ * @param url URL to fetch
  * @param options Fetch options
- * @returns The parsed JSON data
+ * @param retries Number of retries
+ * @param delay Delay between retries in milliseconds
+ * @returns Fetch response
  */
-export async function fetchJson(url: string, options?: RequestInit) {
+export async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  retries = 3,
+  delay = 1000,
+): Promise<Response> {
   try {
-    const response = await fetch(url, options)
-    return await safeJsonParse(response)
+    return await fetch(url, options)
   } catch (error) {
-    console.error("Fetch error:", error)
-    throw error
+    if (retries <= 1) throw error
+    await new Promise((resolve) => setTimeout(resolve, delay))
+    return fetchWithRetry(url, options, retries - 1, delay)
   }
 }

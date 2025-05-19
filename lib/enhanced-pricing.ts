@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { generatePriceEstimate } from "@/lib/openai"
 
 // Types for price data
 type PriceData = {
@@ -513,5 +514,81 @@ export async function generateAccuratePrice(
   } catch (error) {
     console.error("Error generating accurate price:", error)
     throw error // Re-throw to propagate the error
+  }
+}
+
+/**
+ * Get a price estimate for an item
+ * @param description Item description
+ * @param condition Item condition
+ * @returns Price estimate
+ */
+export async function getPriceEstimate(description: string, condition = "used"): Promise<string> {
+  try {
+    return await generatePriceEstimate(description, condition)
+  } catch (error) {
+    console.error("Error getting price estimate:", error)
+    return generateFallbackPrice(description, condition)
+  }
+}
+
+/**
+ * Generate a fallback price estimate
+ * @param description Item description
+ * @param condition Item condition
+ * @returns Price estimate
+ */
+function generateFallbackPrice(description: string, condition = "used"): string {
+  // Very simple fallback
+  return "$20-$50"
+}
+
+/**
+ * Parse a price range string into min and max values
+ * @param priceRange Price range string (e.g., "$10-$20")
+ * @returns Object with min and max values
+ */
+export function parsePriceRange(priceRange: string): { min: number; max: number } {
+  try {
+    // Extract numbers from the price range
+    const matches = priceRange.match(/\$(\d+(?:\.\d+)?)-\$(\d+(?:\.\d+)?)/i)
+
+    if (matches && matches.length >= 3) {
+      const min = Number.parseFloat(matches[1])
+      const max = Number.parseFloat(matches[2])
+      return { min, max }
+    }
+
+    // If we can't parse the range, return default values
+    return { min: 20, max: 50 }
+  } catch (error) {
+    console.error("Error parsing price range:", error)
+    return { min: 20, max: 50 }
+  }
+}
+
+/**
+ * Calculate the average price from a price range
+ * @param priceRange Price range string or object
+ * @returns Average price
+ */
+export function calculateAveragePrice(priceRange: string | { min: number; max: number }): number {
+  try {
+    let min: number
+    let max: number
+
+    if (typeof priceRange === "string") {
+      const parsed = parsePriceRange(priceRange)
+      min = parsed.min
+      max = parsed.max
+    } else {
+      min = priceRange.min
+      max = priceRange.max
+    }
+
+    return (min + max) / 2
+  } catch (error) {
+    console.error("Error calculating average price:", error)
+    return 35 // Default average between $20-$50
   }
 }

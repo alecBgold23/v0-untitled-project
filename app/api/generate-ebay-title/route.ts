@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server"
-import { generateOptimizedTitle } from "@/lib/openai"
-import { hasOpenAIKey } from "@/lib/env"
-import { body } from "express-validator" // Assuming this is the missing import
+import { generateOptimizedTitle } from "@/lib/openai-browser"
 
 // Fallback title generator
 function generateFallbackTitle(description: string): string {
@@ -19,29 +17,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Description is required" }, { status: 400 })
     }
 
-    // Check if OpenAI API key is available
-    if (!hasOpenAIKey()) {
-      return NextResponse.json(
-        {
-          error: "OpenAI API key is not configured",
-          title: generateFallbackTitle(description),
-          source: "fallback",
-        },
-        { status: 200 },
-      )
-    }
-
-    // Generate optimized title using OpenAI
+    // Generate optimized title using our fallback mechanism
     const title = await generateOptimizedTitle(description, platform)
 
     return NextResponse.json({
       title,
-      source: "openai",
+      source: "algorithm",
     })
   } catch (error: any) {
     console.error("Error generating title:", error)
 
     // Return a fallback title
+    const body = await request.json() // Declare the body variable here
     return NextResponse.json(
       {
         error: error.message || "Error generating title",

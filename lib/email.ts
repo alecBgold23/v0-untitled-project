@@ -1,31 +1,46 @@
-import { Resend } from "resend"
+// This is a browser-compatible version of the email utility
 
-// Initialize Resend client
-const resend = new Resend("re_ScJSZp6x_8Gq33AABtqtiMLPUGqGaicCt")
-
-type EmailProps = {
+/**
+ * Send an email
+ * @param to Recipient email address
+ * @param subject Email subject
+ * @param text Email text content
+ * @param html Email HTML content
+ * @returns Object indicating success or failure
+ */
+export async function sendEmail({
+  to,
+  subject,
+  text,
+  html,
+}: {
   to: string
   subject: string
-  text?: string
+  text: string
   html?: string
-  from?: string
-}
-
-export async function sendEmail({ to, subject, text, html, from }: EmailProps) {
+}): Promise<{ success: boolean; error?: string }> {
   try {
-    const defaultFrom = "BluBerry <alecgold808@gmail.com>"
-
-    const response = await resend.emails.send({
-      from: from || defaultFrom,
-      to: [to],
-      subject,
-      text,
-      html,
+    // In a browser environment, we'll use the API route instead
+    const response = await fetch("/api/send-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        to,
+        subject,
+        text,
+        html,
+      }),
     })
 
-    return { success: true, data: response }
-  } catch (error) {
-    console.error("Error sending email:", error)
-    return { success: false, error }
+    if (!response.ok) {
+      const error = await response.text()
+      return { success: false, error }
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
   }
 }

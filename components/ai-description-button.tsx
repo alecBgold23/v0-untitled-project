@@ -46,24 +46,37 @@ export function AIDescriptionButton({
         }),
       })
 
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`)
+      }
+
       const data = await response.json()
 
       if (data.description) {
         onDescriptionGenerated(data.description)
         toast({
           title: "Success",
-          description:
-            data.source === "openai" ? "AI-generated description added" : "Description generated using fallback system",
+          description: "Description generated successfully",
         })
       } else {
-        throw new Error(data.error || "No description was generated")
+        // Use a simple fallback if no description is returned
+        const fallbackDescription = `${title} in ${condition} condition. ${extraDetails}`
+        onDescriptionGenerated(fallbackDescription)
+        toast({
+          title: "Notice",
+          description: "Using simple description format due to generation issues",
+        })
       }
     } catch (error) {
       console.error("Error generating description:", error)
+
+      // Use a simple fallback on error
+      const fallbackDescription = `${title} in ${condition} condition. ${extraDetails}`
+      onDescriptionGenerated(fallbackDescription)
+
       toast({
-        title: "Error",
-        description: error.message || "Failed to generate description",
-        variant: "destructive",
+        title: "Notice",
+        description: "Using simple description format due to generation issues",
       })
     } finally {
       setIsGenerating(false)
@@ -87,7 +100,7 @@ export function AIDescriptionButton({
       ) : (
         <>
           <Wand2 className="h-3.5 w-3.5" />
-          <span>Generate AI Description</span>
+          <span>Generate Description</span>
         </>
       )}
     </Button>

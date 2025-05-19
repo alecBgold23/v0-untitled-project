@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, DollarSign, RefreshCw, AlertCircle, Database } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { generatePriceEstimate } from "@/lib/openai-browser"
 
 interface PriceEstimatorProps {
   initialDescription?: string
@@ -43,51 +44,78 @@ export function PriceEstimator({
     setPriceSource(null)
 
     try {
-      const res = await fetch("/api/price-item", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description,
-          itemId,
-        }),
-      })
+      // First try the API
+      let price: string | null = null
+      let source: string | null = null
 
-      const data = await res.json()
+      try {
+        const res = await fetch("/api/price-item", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            description,
+            itemId,
+          }),
+        })
 
-      if (data.price) {
-        setEstimatedPrice(data.price)
-        setPriceSource(data.source || "algorithm")
-
-        if (itemId) {
-          try {
-            // Try to save directly to Supabase
-            const saveRes = await fetch("/api/save-estimated-price", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                itemId,
-                price: data.price,
-              }),
-            })
-
-            if (saveRes.ok) {
-              setSavedToDatabase(true)
-            }
-          } catch (err) {
-            // Silently fail - the user still gets their estimate
-            console.error("Failed to save price to database:", err)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.price) {
+            price = data.price
+            source = data.source || "algorithm"
           }
         }
+      } catch (apiError) {
+        console.error("API error:", apiError)
+        // Continue to fallback
+      }
 
-        if (onPriceEstimated) {
-          onPriceEstimated(data.price)
+      // If API failed, use local fallback
+      if (!price) {
+        price = await generatePriceEstimate(description)
+        source = "fallback"
+      }
+
+      setEstimatedPrice(price)
+      setPriceSource(source)
+
+      if (itemId) {
+        try {
+          // Try to save directly to Supabase
+          const saveRes = await fetch("/api/save-estimated-price", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              itemId,
+              price,
+            }),
+          })
+
+          if (saveRes.ok) {
+            setSavedToDatabase(true)
+          }
+        } catch (err) {
+          // Silently fail - the user still gets their estimate
+          console.error("Failed to save price to database:", err)
         }
-      } else {
-        throw new Error(data.error || "Failed to generate price estimate")
+      }
+
+      if (onPriceEstimated) {
+        onPriceEstimated(price)
       }
     } catch (err: any) {
       console.error("Error estimating price:", err)
-      setError("Unable to generate a price estimate. Please try again.")
+
+      // Even if everything fails, still provide a price estimate
+      const fallbackPrice = "$20-$50"
+      setEstimatedPrice(fallbackPrice)
+      setPriceSource("fallback")
+
+      if (onPriceEstimated) {
+        onPriceEstimated(fallbackPrice)
+      }
+
+      setError("There was an issue with the pricing service, but we've provided an estimate.")
     } finally {
       setIsLoading(false)
     }

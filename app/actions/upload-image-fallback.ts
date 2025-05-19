@@ -1,5 +1,4 @@
 "use server"
-
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
 export async function uploadImageFallback(file: File, userId: string) {

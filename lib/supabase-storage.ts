@@ -1,108 +1,65 @@
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseClient } from "@/lib/supabase-client"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-export async function uploadFile(file: File, userId: string) {
-  const fileExt = file.name.split(".").pop()
-  const fileName = `${userId}/${Date.now()}.${fileExt}`
-  const filePath = `${fileName}`
-
-  const { data, error } = await supabase.storage
-    .from("images2") // your bucket name here
-    .upload(filePath, file)
-
-  if (error) {
-    console.error("Error uploading file:", error)
-    return null
-  }
-
-  return data?.path
-}
-
-// Add a new function to upload an image from a URL
-export async function uploadImageFromUrl(imageUrl: string, userId: string) {
+/**
+ * Check if a bucket exists in Supabase storage
+ * @param bucket Bucket name
+ * @returns Boolean indicating if the bucket exists
+ */
+export async function bucketExists(bucket: string): Promise<boolean> {
   try {
-    // Fetch the image from the URL
-    const response = await fetch(imageUrl)
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.statusText}`)
-    }
-
-    // Get the image data as a blob
-    const imageBlob = await response.blob()
-
-    // Determine file extension from content type or URL
-    let fileExt = "jpg" // Default extension
-    const contentType = response.headers.get("content-type")
-    if (contentType) {
-      if (contentType.includes("png")) fileExt = "png"
-      else if (contentType.includes("gif")) fileExt = "gif"
-      else if (contentType.includes("webp")) fileExt = "webp"
-      else if (contentType.includes("svg")) fileExt = "svg"
-    } else {
-      // Try to get extension from URL
-      const urlExt = imageUrl.split(".").pop()?.toLowerCase()
-      if (urlExt && ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(urlExt)) {
-        fileExt = urlExt === "jpeg" ? "jpg" : urlExt
-      }
-    }
-
-    // Create a unique filename
-    const fileName = `${userId}/${Date.now()}.${fileExt}`
-
-    // Upload the blob to Supabase storage
-    const { data, error } = await supabase.storage.from("images2").upload(fileName, imageBlob, {
-      contentType: contentType || `image/${fileExt}`,
-    })
-
-    if (error) {
-      console.error("Error uploading image from URL:", error)
-      return null
-    }
-
-    return data?.path
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase.storage.getBucket(bucket)
+    return !error && !!data
   } catch (error) {
-    console.error("Error in uploadImageFromUrl:", error)
-    return null
-  }
-}
-
-// Replace the current getFileUrl function with this more concise version:
-
-export async function getFileUrl(path: string) {
-  try {
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("images2").getPublicUrl(path)
-
-    return publicUrl
-  } catch (error) {
-    console.error("Error getting public URL:", error)
-    return null
-  }
-}
-
-export async function deleteFile(path: string) {
-  const { error } = await supabase.storage.from("images2").remove([path])
-
-  if (error) {
-    console.error("Error deleting file:", error)
     return false
   }
-
-  return true
 }
 
-export async function listFiles(userId: string) {
-  const { data, error } = await supabase.storage.from("images2").list(userId)
-
-  if (error) {
-    console.error("Error listing files:", error)
-    return []
+/**
+ * Create a bucket in Supabase storage
+ * @param bucket Bucket name
+ * @param isPublic Whether the bucket should be public
+ * @returns Boolean indicating if the bucket was created successfully
+ */
+export async function createBucket(bucket: string, isPublic = true): Promise<boolean> {
+  try {
+    const supabase = getSupabaseClient()
+    const { error } = await supabase.storage.createBucket(bucket, {
+      public: isPublic,
+    })
+    return !error
+  } catch (error) {
+    return false
   }
+}
 
-  return data || []
+/**
+ * Upload a file to Supabase storage
+ * @param bucket Bucket name
+ * @param path Path within the bucket
+ * @param file File to upload
+ * @returns Object with the uploaded file URL or an error
+ */
+export async function uploadFile(
+  bucket: string,
+  path: string,
+  file: File,
+): Promise<{ url: string } | { error: string }> {
+  try {
+    const supabase = getSupabaseClient()
+
+    // Upload the file
+    const { data, error } = await supabase.storage.from(bucket).upload(path, file)
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    // Get the public URL
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path)
+
+    return { url: urlData.publicUrl }
+  } catch (error: any) {
+    return { error: error.message || "Failed to upload file" }
+  }
 }

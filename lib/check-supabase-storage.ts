@@ -1,79 +1,35 @@
-import { createClient } from "@supabase/supabase-js"
+import { createServerSupabaseClient } from "@/lib/supabase-server"
 
-export async function checkSupabaseStorage() {
+/**
+ * Checks if Supabase storage is properly configured and accessible
+ * @returns Object with success status and error message if applicable
+ */
+export async function checkSupabaseStorage(): Promise<{
+  success: boolean
+  error?: string
+  buckets?: string[]
+}> {
   try {
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+    const supabase = createServerSupabaseClient()
 
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
+    // List buckets to check if storage is working
+    const { data: buckets, error } = await supabase.storage.listBuckets()
+
+    if (error) {
       return {
         success: false,
-        error: "Supabase credentials not configured",
-        details: {
-          hasUrl: !!supabaseUrl,
-          hasKey: !!supabaseServiceRoleKey,
-        },
-      }
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: { persistSession: false },
-    })
-
-    // Try to list buckets
-    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets()
-
-    if (bucketsError) {
-      return {
-        success: false,
-        error: `Error listing buckets: ${bucketsError.message}`,
-        details: {
-          errorCode: bucketsError.code,
-          errorMessage: bucketsError.message,
-          statusCode: bucketsError.status,
-        },
-      }
-    }
-
-    // Check if our bucket exists
-    const bucketName = "images2"
-    const bucketExists = buckets.some((bucket) => bucket.name === bucketName)
-
-    if (!bucketExists) {
-      // Try to create the bucket
-      const { error: createError } = await supabase.storage.createBucket(bucketName, {
-        public: true,
-      })
-
-      if (createError) {
-        return {
-          success: false,
-          error: `Failed to create bucket: ${createError.message}`,
-          details: {
-            errorCode: createError.code,
-            errorMessage: createError.message,
-            statusCode: createError.status,
-          },
-        }
-      }
-
-      return {
-        success: true,
-        message: `Created bucket "${bucketName}"`,
-        buckets: [...buckets, { name: bucketName, id: bucketName }],
+        error: `Error listing buckets: ${error.message}`,
       }
     }
 
     return {
       success: true,
-      message: `Bucket "${bucketName}" exists`,
-      buckets,
+      buckets: buckets.map((bucket) => bucket.name),
     }
-  } catch (error) {
+  } catch (error: any) {
     return {
       success: false,
-      error: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-      details: { error: String(error) },
+      error: `Error checking Supabase storage: ${error.message}`,
     }
   }
 }

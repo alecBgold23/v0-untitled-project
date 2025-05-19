@@ -1,9 +1,5 @@
-import { OpenAI } from "openai"
+import { generateProductDescription } from "@/lib/openai-browser"
 import { NextResponse } from "next/server"
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 export async function POST(req: Request) {
   try {
@@ -32,13 +28,8 @@ The description should:
 Please provide ONLY the description text.
 `
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-    })
-
-    const description = response.choices[0].message.content?.trim()
+    const response = await generateProductDescription(prompt)
+    const description = response.trim()
     return NextResponse.json({ description })
   } catch (error: any) {
     console.error("OpenAI error:", error)

@@ -1,24 +1,35 @@
 import { NextResponse } from "next/server"
+import { hasEnv } from "@/lib/env"
 
 export async function GET() {
   try {
-    // Check if the pricing API key is set
-    const hasPricingKey = !!process.env.PRICING_OPENAI_API_KEY
+    const apiKey = process.env.PRICING_OPENAI_API_KEY
 
-    return NextResponse.json({
-      available: hasPricingKey,
-      error: hasPricingKey ? null : "PRICING_OPENAI_API_KEY is not configured",
-      timestamp: new Date().toISOString(),
-    })
-  } catch (error) {
-    console.error("Error checking pricing key:", error)
-    return NextResponse.json(
-      {
-        available: false,
-        error: "Failed to check pricing key status",
-        timestamp: new Date().toISOString(),
+    if (!apiKey || !hasEnv("PRICING_OPENAI_API_KEY")) {
+      return NextResponse.json({ valid: false, error: "API key not configured" })
+    }
+
+    // Make a simple request to OpenAI to check if the key is valid
+    const response = await fetch("https://api.openai.com/v1/models", {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
       },
-      { status: 500 },
-    )
+    })
+
+    if (response.ok) {
+      return NextResponse.json({ valid: true })
+    } else {
+      const error = await response.json()
+      return NextResponse.json({
+        valid: false,
+        error: error.error?.message || "Invalid API key",
+      })
+    }
+  } catch (error) {
+    console.error("Error checking pricing API key:", error)
+    return NextResponse.json({
+      valid: false,
+      error: "Error checking API key",
+    })
   }
 }

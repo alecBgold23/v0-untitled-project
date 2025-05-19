@@ -195,7 +195,139 @@ export function generateReliablePrice(description: string, name?: string, condit
     return `$${price}`
   } catch (error) {
     console.error("Error in generateReliablePrice:", error)
-    // Ultimate fallback - return a reasonable default price
-    return "$50"
+    // Ultimate fallback - return a reasonable default price range
+    return generateFallbackPrice(description, condition || "used")
   }
+}
+
+/**
+ * Generates a fallback price estimate based on description length and keywords
+ * @param description Item description
+ * @param condition Item condition
+ * @returns Estimated price range
+ */
+export function generateFallbackPrice(description: string, condition = "used"): string {
+  const text = description.toLowerCase()
+  const conditionLower = condition.toLowerCase()
+
+  // Base price factors
+  let baseMin = 15
+  let baseMax = 50
+
+  // Adjust based on description length
+  const words = text.split(/\s+/).filter(Boolean)
+  if (words.length > 20) {
+    baseMin += 20
+    baseMax += 100
+  } else if (words.length > 10) {
+    baseMin += 10
+    baseMax += 50
+  }
+
+  // Check for premium keywords
+  const premiumKeywords = [
+    "vintage",
+    "antique",
+    "rare",
+    "limited",
+    "edition",
+    "collector",
+    "brand new",
+    "unopened",
+    "sealed",
+    "mint",
+    "perfect",
+    "excellent",
+    "designer",
+    "luxury",
+    "premium",
+    "high-end",
+    "professional",
+  ]
+
+  let premiumCount = 0
+  premiumKeywords.forEach((keyword) => {
+    if (text.includes(keyword)) {
+      premiumCount++
+    }
+  })
+
+  // Adjust for premium items
+  if (premiumCount > 3) {
+    baseMin *= 3
+    baseMax *= 4
+  } else if (premiumCount > 0) {
+    baseMin *= 1.5
+    baseMax *= 2
+  }
+
+  // Adjust based on condition
+  const conditionMultipliers: Record<string, number> = {
+    new: 1.5,
+    "like new": 1.3,
+    excellent: 1.2,
+    "very good": 1.1,
+    good: 1.0,
+    fair: 0.8,
+    poor: 0.6,
+    "for parts": 0.4,
+  }
+
+  // Find the best matching condition
+  let conditionMultiplier = 1.0
+  for (const [conditionKey, multiplier] of Object.entries(conditionMultipliers)) {
+    if (conditionLower.includes(conditionKey)) {
+      conditionMultiplier = multiplier
+      break
+    }
+  }
+
+  // Apply condition multiplier
+  baseMin = Math.round(baseMin * conditionMultiplier)
+  baseMax = Math.round(baseMax * conditionMultiplier)
+
+  // Check for specific categories
+  const categoryDefinitions = [
+    { keywords: ["electronics", "computer", "laptop", "phone", "tablet", "camera"], basePrice: 100 },
+    { keywords: ["furniture", "sofa", "chair", "table", "desk", "bed"], basePrice: 80 },
+    { keywords: ["clothing", "shirt", "pants", "dress", "jacket", "coat"], basePrice: 25 },
+    { keywords: ["jewelry", "gold", "silver", "diamond", "ring", "necklace"], basePrice: 150 },
+    { keywords: ["toy", "game", "puzzle", "lego", "action figure"], basePrice: 20 },
+    { keywords: ["book", "novel", "textbook", "comic"], basePrice: 10 },
+    { keywords: ["art", "painting", "sculpture", "print"], basePrice: 75 },
+    { keywords: ["sports", "equipment", "bicycle", "golf", "tennis"], basePrice: 50 },
+  ]
+
+  // Check if the description matches any category
+  for (const category of categoryDefinitions) {
+    for (const keyword of category.keywords) {
+      if (text.includes(keyword)) {
+        // Adjust the base price based on the category
+        baseMin = Math.max(baseMin, Math.round(category.basePrice * 0.7 * conditionMultiplier))
+        baseMax = Math.max(baseMax, Math.round(category.basePrice * 1.3 * conditionMultiplier))
+        break
+      }
+    }
+  }
+
+  // Add some randomness
+  const min = Math.floor(baseMin + Math.random() * 10)
+  const max = Math.floor(baseMax + Math.random() * 20)
+
+  return `$${min}-$${max}`
+}
+
+/**
+ * Extracts a numeric price from a price range string
+ * @param priceRange Price range string (e.g., "$10-$20")
+ * @returns Average price as a number
+ */
+export function extractAveragePrice(priceRange: string): number {
+  const matches = priceRange.match(/\$(\d+)(?:\s*-\s*\$(\d+))?/)
+  if (!matches) return 0
+
+  const min = Number.parseInt(matches[1])
+  const max = matches[2] ? Number.parseInt(matches[2]) : min
+
+  return (min + max) / 2
 }

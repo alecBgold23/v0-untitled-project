@@ -36,6 +36,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { uploadImagePrivate } from "@/app/actions/upload-image-private"
 import { uploadImageFallback } from "@/app/actions/upload-image-fallback"
 import { PriceEstimatorDialog } from "@/components/price-estimator-dialog"
+import { generatePriceEstimate } from "@/lib/openai-browser"
 
 export default function SellMultipleItemsForm() {
   const { toast } = useToast()
@@ -1094,34 +1095,21 @@ export default function SellMultipleItemsForm() {
   const estimatePrice = async (item: any) => {
     try {
       setEstimating(true)
-      const response = await fetch("/api/price-item", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          description: item.description,
-          name: item.name,
-          condition: item.condition,
-          issues: item.issues,
-          itemId: item.id,
-        }),
+      // Use the browser-compatible function
+      const priceData = await generatePriceEstimate({
+        description: item.description,
+        name: item.name,
+        condition: item.condition,
+        issues: item.issues,
+        itemId: item.id,
       })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error(`Price estimation error (${response.status}):`, errorText)
-
-        // For rate limit errors, use a fallback price
-        if (response.status === 429) {
-          return { price: generateFallbackPrice(item) }
-        }
-
-        throw new Error(`Price estimation failed: ${response.status}`)
+      if (!priceData || !priceData.price) {
+        console.error("Price estimation failed: No price returned")
+        return { price: generateFallbackPrice(item), source: "fallback" }
       }
 
-      const data = await response.json()
-      return data
+      return { price: priceData.price, source: "ai" }
     } catch (error) {
       console.error("Error estimating price:", error)
       // Return a fallback price on error
