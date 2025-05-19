@@ -20,11 +20,11 @@ import {
   Check,
   X,
   ImageIcon,
-  DollarSign,
   Plus,
   Trash2,
   Copy,
   Wand2,
+  DollarSign,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import { useToast } from "@/hooks/use-toast"
@@ -35,7 +35,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { uploadImagePrivate } from "@/app/actions/upload-image-private"
 import { uploadImageFallback } from "@/app/actions/upload-image-fallback"
 import { sellMultipleItems } from "../app/actions/sell-multiple-items"
-import { PriceEstimatorDialog } from "@/components/price-estimator-dialog"
 
 interface SellMultipleItemsFormProps {
   onError?: (error: Error) => void
@@ -63,9 +62,6 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       }
     }
   }, [onLoad, onError])
-
-  // Store estimated prices for each item
-  const [estimatedPrices, setEstimatedPrices] = useState<{ [key: string]: string }>({})
 
   // Contact information
   const [fullName, setFullName] = useState("")
@@ -355,35 +351,6 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           variant: "destructive",
         })
       }
-    },
-    [getItems, setItems, toast],
-  )
-
-  // Handle when a price is estimated for an item
-  const handlePriceEstimated = useCallback(
-    (itemId: string, price: string) => {
-      setEstimatedPrices((prev) => ({
-        ...prev,
-        [itemId]: price,
-      }))
-
-      // Also update the item with the estimated price
-      const updatedItems = [...getItems()]
-      const itemIndex = updatedItems.findIndex((item) => item.id === itemId)
-
-      if (itemIndex !== -1) {
-        updatedItems[itemIndex] = {
-          ...updatedItems[itemIndex],
-          estimatedPrice: price, // Store the price in the item object
-        }
-        setItems(updatedItems)
-      }
-
-      toast({
-        title: "Price Estimated",
-        description: `The estimated value is ${price}`,
-        variant: "default",
-      })
     },
     [getItems, setItems, toast],
   )
@@ -797,7 +764,6 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
         imageUrl: item.imageUrl || "", // This will map to image_url in the database
         imagePaths: item.imagePaths || [],
         imageUrls: item.imageUrls || [],
-        estimatedPrice: item.estimatedPrice || estimatedPrices[item.id] || null,
       }))
 
       // Submit to Supabase
@@ -852,7 +818,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
         variant: "destructive",
       })
     }
-  }, [address, email, fullName, getItems, phone, pickupDate, scrollToTop, toast, uploadItemImages, estimatedPrices])
+  }, [address, email, fullName, getItems, phone, pickupDate, scrollToTop, toast, uploadItemImages])
 
   // Handle form submission
   const handleSubmit = useCallback(
@@ -1094,7 +1060,6 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
   )
 
   const [step, setStep] = useState(1)
-  const [isEstimating, setEstimating] = useState(false)
 
   useEffect(() => {
     // Create smooth entrance animation
@@ -1114,29 +1079,6 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       }
     }
   }, [])
-
-  // Replace the estimatePrice function with this:
-  const estimatePrice = async (item: any) => {
-    try {
-      setEstimating(true)
-
-      // Use the client-side price estimator instead of API call
-      const { estimateItemPrice } = await import("@/lib/client-price-estimator")
-
-      const result = estimateItemPrice(item.description || "", item.name || "", item.condition || "", item.issues || "")
-
-      return { price: result.price, source: "client" }
-    } catch (error) {
-      console.error("Error estimating price:", error)
-      // Return a fallback price on any error
-      return {
-        price: `$${Math.round((25 + Math.random() * 75) / 5) * 5}`,
-        source: "fallback",
-      }
-    } finally {
-      setEstimating(false)
-    }
-  }
 
   return (
     <div
@@ -1578,32 +1520,8 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
 
                                 <div className="transition-all duration-300 mt-4">
                                   <div className="flex justify-between items-center mb-2">
-                                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                                      <DollarSign className="h-4 w-4 text-[#6a5acd]" />
-                                      <span>Price Estimate</span>
-                                    </Label>
-
-                                    <PriceEstimatorDialog
-                                      description={`${item.name || ""} ${item.description || ""}`}
-                                      condition={item.condition || ""}
-                                      issues={item.issues || ""}
-                                      itemId={item.id}
-                                      name={item.name}
-                                      onPriceEstimated={(price) => handlePriceEstimated(item.id, price)}
-                                      buttonClassName="h-8 text-xs"
-                                    />
+                                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2"></Label>
                                   </div>
-
-                                  {estimatedPrices[item.id] && (
-                                    <div className="p-3 bg-[#6a5acd]/5 rounded-lg border border-[#6a5acd]/20">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                                          Estimated Value:
-                                        </span>
-                                        <span className="font-semibold text-lg">{estimatedPrices[item.id]}</span>
-                                      </div>
-                                    </div>
-                                  )}
                                 </div>
 
                                 <div className="transition-all duration-300">
@@ -1725,12 +1643,6 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                     <div className="flex items-center gap-2">
                                       <span className="font-medium">Photos:</span>
                                       <span className="text-muted-foreground">{item.photos.length}</span>
-                                    </div>
-                                  )}
-                                  {estimatedPrices[item.id] && (
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">Estimated Value:</span>
-                                      <span className="text-muted-foreground">{estimatedPrices[item.id]}</span>
                                     </div>
                                   )}
                                 </div>

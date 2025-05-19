@@ -30,10 +30,10 @@ export async function submitItemWithImage(formData: FormData) {
     const arrayBuffer = await imageFile.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Upload the image to Supabase
-    const { image_path, image_url } = await uploadImageToSupabase(buffer, imageFile.name)
+    // Upload the image to Supabase with signed URL
+    const { image_path, image_url, signedUrl } = await uploadImageToSupabase(buffer, imageFile.name)
 
-    console.log("Image uploaded successfully:", { image_path, image_url })
+    console.log("Image uploaded successfully:", { image_path, image_url, signedUrl })
 
     // Get Supabase client for database operations
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || ""
@@ -64,10 +64,28 @@ export async function submitItemWithImage(formData: FormData) {
       status: "pending",
       submission_date: new Date().toISOString(),
       image_path: image_path, // Store the path
-      image_url: image_url, // Store the URL - this should not be null
+      image_url: image_url, // Store the signed URL
     }
 
     console.log("Submitting item data to database:", itemData)
+
+    // Ensure the image_url column exists
+    try {
+      await supabase.rpc("ensure_image_url_column")
+    } catch (error) {
+      console.log("Error ensuring image_url column exists, attempting to create it manually:", error)
+
+      // Try to create the column manually if the RPC fails
+      try {
+        await supabase.query(`
+          ALTER TABLE sell_items 
+          ADD COLUMN IF NOT EXISTS image_url TEXT;
+        `)
+      } catch (alterError) {
+        console.error("Error creating image_url column:", alterError)
+        // Continue anyway, as the column might already exist
+      }
+    }
 
     // Insert data into Supabase
     const { data, error } = await supabase.from("sell_items").insert([itemData]).select()

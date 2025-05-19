@@ -5,13 +5,16 @@ import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, DollarSign, RefreshCw, AlertCircle, Database } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { generatePriceEstimate } from "@/lib/openai-browser"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 
 interface PriceEstimatorProps {
   initialDescription?: string
+  initialName?: string
   onPriceEstimated?: (price: string) => void
   className?: string
   itemId?: string
@@ -19,11 +22,15 @@ interface PriceEstimatorProps {
 
 export function PriceEstimator({
   initialDescription = "",
+  initialName = "",
   onPriceEstimated,
   className = "",
   itemId,
 }: PriceEstimatorProps) {
   const [description, setDescription] = useState(initialDescription)
+  const [itemName, setItemName] = useState(initialName)
+  const [condition, setCondition] = useState("Good")
+  const [defects, setDefects] = useState("")
   const [estimatedPrice, setEstimatedPrice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -33,8 +40,8 @@ export function PriceEstimator({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!description.trim()) {
-      setError("Please enter an item description")
+    if (!description.trim() && !itemName.trim()) {
+      setError("Please enter either an item name or description")
       return
     }
 
@@ -44,60 +51,39 @@ export function PriceEstimator({
     setPriceSource(null)
 
     try {
-      // First try the API
-      let price: string | null = null
-      let source: string | null = null
+      const res = await fetch("/api/price-item", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description,
+          itemName,
+          condition,
+          defects,
+          itemId,
+          item_id: itemId, // Include both formats for compatibility
+          item_name: itemName,
+          brief_description: description,
+        }),
+      })
 
-      try {
-        const res = await fetch("/api/price-item", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            description,
-            itemId,
-          }),
-        })
-
-        if (res.ok) {
-          const data = await res.json()
-          if (data.price) {
-            price = data.price
-            source = data.source || "algorithm"
-          }
-        }
-      } catch (apiError) {
-        console.error("API error:", apiError)
-        // Continue to fallback
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`)
       }
 
-      // If API failed, use local fallback
-      if (!price) {
-        price = await generatePriceEstimate(description)
-        source = "fallback"
+      const data = await res.json()
+
+      if (data.error) {
+        console.warn("API returned error:", data.error)
+        // Still use the fallback price if provided
       }
 
+      // Handle different response formats
+      const price = data.price || `$${data.estimated_price}` || "$25"
       setEstimatedPrice(price)
-      setPriceSource(source)
+      setPriceSource(data.source || "api")
 
       if (itemId) {
-        try {
-          // Try to save directly to Supabase
-          const saveRes = await fetch("/api/save-estimated-price", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              itemId,
-              price,
-            }),
-          })
-
-          if (saveRes.ok) {
-            setSavedToDatabase(true)
-          }
-        } catch (err) {
-          // Silently fail - the user still gets their estimate
-          console.error("Failed to save price to database:", err)
-        }
+        setSavedToDatabase(true)
       }
 
       if (onPriceEstimated) {
@@ -105,17 +91,16 @@ export function PriceEstimator({
       }
     } catch (err: any) {
       console.error("Error estimating price:", err)
+      setError("There was an issue with the pricing service, but we've provided an estimate.")
 
-      // Even if everything fails, still provide a price estimate
-      const fallbackPrice = "$20-$50"
+      // Set a fallback price even on error
+      const fallbackPrice = "$25"
       setEstimatedPrice(fallbackPrice)
-      setPriceSource("fallback")
+      setPriceSource("error_fallback")
 
       if (onPriceEstimated) {
         onPriceEstimated(fallbackPrice)
       }
-
-      setError("There was an issue with the pricing service, but we've provided an estimate.")
     } finally {
       setIsLoading(false)
     }
@@ -147,7 +132,13 @@ export function PriceEstimator({
 
             {priceSource && (
               <div className="mt-2 text-xs text-gray-500">
-                {priceSource === "openai" ? <span>Estimated by AI</span> : <span>Estimated using algorithm</span>}
+                {priceSource === "ai+ebay" ? (
+                  <span>Estimated using AI and eBay data</span>
+                ) : priceSource === "cache" ? (
+                  <span>Estimated from cached data</span>
+                ) : (
+                  <span>Estimated using algorithm</span>
+                )}
               </div>
             )}
 
@@ -159,7 +150,7 @@ export function PriceEstimator({
             )}
 
             <p className="text-xs text-gray-500 mt-4">
-              This is an estimate based on the provided description. Actual value may vary based on condition, market
+              This is an estimate based on the provided information. Actual value may vary based on condition, market
               demand, and other factors.
             </p>
             <Button variant="outline" size="sm" className="mt-4" onClick={resetEstimate}>
@@ -170,20 +161,61 @@ export function PriceEstimator({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="description" className="block text-sm font-medium mb-1">
+              <Label htmlFor="itemName" className="block text-sm font-medium mb-1">
+                Item Name
+              </Label>
+              <Input
+                id="itemName"
+                placeholder="Enter the name of your item"
+                value={itemName}
+                onChange={(e) => setItemName(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="description" className="block text-sm font-medium mb-1">
                 Item Description
-              </label>
+              </Label>
               <Textarea
                 id="description"
-                placeholder="Describe your item in detail (brand, condition, age, features, etc.)"
+                placeholder="Describe your item in detail (brand, features, etc.)"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={5}
+                rows={3}
                 className="resize-none"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                The more details you provide, the more accurate the estimate will be.
-              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="condition" className="block text-sm font-medium mb-1">
+                Condition
+              </Label>
+              <Select value={condition} onValueChange={setCondition}>
+                <SelectTrigger id="condition">
+                  <SelectValue placeholder="Select condition" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Like New">Like New</SelectItem>
+                  <SelectItem value="Excellent">Excellent</SelectItem>
+                  <SelectItem value="Good">Good</SelectItem>
+                  <SelectItem value="Fair">Fair</SelectItem>
+                  <SelectItem value="Poor">Poor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="defects" className="block text-sm font-medium mb-1">
+                Defects or Issues (if any)
+              </Label>
+              <Textarea
+                id="defects"
+                placeholder="Describe any defects, damage, or issues with the item"
+                value={defects}
+                onChange={(e) => setDefects(e.target.value)}
+                rows={2}
+                className="resize-none"
+              />
             </div>
 
             {error && (
@@ -196,7 +228,7 @@ export function PriceEstimator({
             <Button
               type="submit"
               className="w-full bg-gradient-to-r from-[#0066ff] to-[#6a5acd]"
-              disabled={isLoading || !description.trim()}
+              disabled={isLoading || (!description.trim() && !itemName.trim())}
             >
               {isLoading ? (
                 <>

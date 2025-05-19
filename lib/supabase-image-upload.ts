@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js"
 import type { Buffer } from "buffer"
 
 // Create a singleton client to avoid multiple instances
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 
@@ -51,16 +51,24 @@ export async function uploadImageClient(file: File, userId = "anonymous") {
       throw new Error("Upload failed - no path returned")
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage.from("images2").getPublicUrl(data.path)
+    // Generate a signed URL (valid for 7 days)
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from("images2")
+      .createSignedUrl(data.path, 60 * 60 * 24 * 7) // 7 days
+
+    if (signedUrlError) {
+      console.error("Signed URL error:", signedUrlError)
+      throw new Error("Failed to generate signed URL")
+    }
 
     console.log("Upload successful:", data.path)
-    console.log("Public URL:", urlData.publicUrl)
+    console.log("Signed URL:", signedUrlData.signedUrl)
 
     return {
       success: true,
       path: data.path,
-      url: urlData.publicUrl,
+      url: signedUrlData.signedUrl,
+      signedUrl: signedUrlData.signedUrl,
     }
   } catch (error) {
     console.error("Upload error:", error)
@@ -97,12 +105,48 @@ export async function checkSupabaseStorage() {
   }
 }
 
+// Server-side image upload function with signed URL (for use in Node.js)
+export async function uploadImageToSupabase(fileBuffer: Buffer, fileName: string, bucket = "images2") {
+  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+  const filePath = `uploads/${Date.now()}-${fileName}`
+
+  // Upload the file
+  const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
+    contentType: "image/jpeg", // Adjust if needed
+    upsert: false,
+  })
+
+  if (uploadError) {
+    console.error("Upload error:", uploadError)
+    throw new Error("Failed to upload image to Supabase Storage")
+  }
+
+  // Generate a signed URL (valid for 7 days = 604800 seconds)
+  const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(filePath, 60 * 60 * 24 * 7) // 7 days
+
+  if (signedUrlError) {
+    console.error("Signed URL error:", signedUrlError)
+    throw new Error("Failed to generate signed URL")
+  }
+
+  const imageUrl = signedUrlData?.signedUrl || null
+
+  return {
+    image_path: filePath,
+    image_url: imageUrl,
+    signedUrl: signedUrlData?.signedUrl,
+  }
+}
+
 // Additional browser-compatible functions
-export async function uploadImageToSupabase(
+export async function uploadImageToSupabaseBrowser(
   file: File,
   bucket = "images2",
   path = "",
-): Promise<{ url: string } | { error: string }> {
+): Promise<{ url: string; signedUrl?: string } | { error: string }> {
   try {
     // Generate a unique file name
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
@@ -116,37 +160,20 @@ export async function uploadImageToSupabase(
       return { error: error.message }
     }
 
-    // Get the public URL
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath)
-    const imageUrl = urlData?.publicUrl || null
+    // Generate a signed URL (valid for 7 days)
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(filePath, 60 * 60 * 24 * 7) // 7 days
 
-    return { url: imageUrl }
+    if (signedUrlError) {
+      return { error: signedUrlError.message }
+    }
+
+    return {
+      url: signedUrlData.signedUrl,
+      signedUrl: signedUrlData.signedUrl,
+    }
   } catch (error: any) {
     return { error: error.message || "Failed to upload image" }
-  }
-}
-
-// Server-side image upload function (for use in Node.js)
-export async function uploadImageServer(fileBuffer: Buffer, fileName: string, bucket = "images2") {
-  const filePath = `uploads/${Date.now()}-${fileName}`
-
-  // Upload the file
-  const { error: uploadError } = await supabaseServiceRole.storage.from(bucket).upload(filePath, fileBuffer, {
-    contentType: "image/jpeg", // adjust as needed
-    upsert: false,
-  })
-
-  if (uploadError) {
-    console.error("Upload error:", uploadError)
-    throw new Error("Failed to upload image to Supabase Storage")
-  }
-
-  // Get the public URL
-  const { data: publicUrlData } = supabaseServiceRole.storage.from(bucket).getPublicUrl(filePath)
-  const imageUrl = publicUrlData?.publicUrl || null
-
-  return {
-    image_path: filePath,
-    image_url: imageUrl,
   }
 }

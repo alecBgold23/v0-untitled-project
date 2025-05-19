@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Upload the image to Supabase
+    // Upload the image to Supabase with signed URL
     const result = await uploadImageToSupabase(buffer, file.name)
 
     return NextResponse.json({

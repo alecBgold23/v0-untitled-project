@@ -1,49 +1,52 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { generatePriceEstimate } from "@/lib/openai-browser"
+import { NextResponse } from "next/server"
+import { generatePriceEstimate } from "@/lib/openai-pricing"
 
-export async function POST(req: NextRequest) {
-  const body = await req.json()
-  const { itemName, briefDescription, condition, issues } = body
-
-  if (!itemName || !briefDescription || !condition) {
-    return NextResponse.json({ error: "Missing required fields." }, { status: 400 })
-  }
-
+export async function POST(req: Request) {
   try {
-    // Use our browser-compatible price estimation
-    const priceRange = await generatePriceEstimate(`${itemName} ${briefDescription} ${issues || ""}`, condition)
+    const body = await req.json()
+    const { itemName, briefDescription, condition, issues } = body
 
-    // Extract a numeric value from the price range
-    const priceMatch = priceRange.match(/\$(\d+)(?:-\$(\d+))?/)
-    let price = 0
+    if (!itemName || !briefDescription || !condition) {
+      return NextResponse.json(
+        { error: "Missing required fields: itemName, briefDescription, condition." },
+        { status: 400 },
+      )
+    }
+
+    // Combine fields into one string for pricing prompt
+    const itemDetails = `${itemName} ${briefDescription} ${issues || ""}`.trim()
+
+    // Call OpenAI to generate price range
+    const priceRange = await generatePriceEstimate(itemDetails, condition)
+
+    // Extract numeric price from response (e.g., "$20-$30" or "$25")
+    const priceMatch = priceRange.match(/\$(\d+)(?:-(\$(\d+)))?/)
+    let price = 25 // default fallback
 
     if (priceMatch) {
       if (priceMatch[2]) {
-        // If it's a range, take the average
-        price = (Number.parseInt(priceMatch[1]) + Number.parseInt(priceMatch[2])) / 2
+        // Range: average the two numbers
+        price = (Number(priceMatch[1]) + Number(priceMatch[3])) / 2
       } else {
-        // If it's a single value
-        price = Number.parseInt(priceMatch[1])
+        // Single value
+        price = Number(priceMatch[1])
       }
-    } else {
-      // Fallback if no match
-      price = 25
     }
 
     return NextResponse.json({
       price: price.toFixed(2),
       priceRange,
-      source: "algorithm",
+      source: "openai",
     })
   } catch (err) {
-    console.error("Unexpected error:", err)
+    console.error("Pricing API error:", err)
     return NextResponse.json(
       {
         error: "Internal server error.",
         price: "25.00",
         source: "fallback",
       },
-      { status: 200 },
+      { status: 500 },
     )
   }
 }

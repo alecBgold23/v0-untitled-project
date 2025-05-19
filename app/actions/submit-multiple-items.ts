@@ -11,7 +11,6 @@ interface ItemData {
   imageUrl?: string // This will map to image_url column
   imagePaths?: string[]
   imageUrls?: string[]
-  estimatedPrice?: string
   photos?: Array<{
     name: string
     type: string
@@ -68,7 +67,6 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
         pickup_date: contactInfo.pickupDate,
         status: "pending",
         submission_date: new Date().toISOString(),
-        estimated_price: item.estimatedPrice || null,
       }
 
       // Only add image_paths and image_urls if they have values
@@ -115,7 +113,6 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
             pickup_date: contactInfo.pickupDate,
             status: "pending",
             submission_date: new Date().toISOString(),
-            estimated_price: item.estimatedPrice || null,
           }))
 
           // Try insertion again with simplified data
@@ -191,7 +188,6 @@ async function initializeTable(supabase) {
           pickup_date TEXT,
           status TEXT DEFAULT 'pending',
           submission_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          estimated_price TEXT,
           image_paths TEXT[],
           image_urls TEXT[]
         );
