@@ -1,3 +1,5 @@
+"use client"
+
 import { UrlImageUploader } from "@/components/url-image-uploader"
 
 export default function UrlImageUploadPage() {
