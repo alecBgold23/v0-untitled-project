@@ -1,20 +1,16 @@
 import { NextResponse } from "next/server"
-import { isOpenAIKeyValid } from "@/lib/openai"
+import { hasOpenAIKey, getOpenAIKey } from "@/lib/env"
 
 export async function GET() {
-  try {
-    const isValid = await isOpenAIKeyValid()
+  const hasKey = hasOpenAIKey()
+  const key = getOpenAIKey()
 
-    return NextResponse.json({
-      valid: isValid,
-      message: isValid ? "OpenAI API key is valid" : "OpenAI API key is not configured or invalid",
-    })
-  } catch (error) {
-    console.error("Error checking OpenAI API key:", error)
+  // Mask the key for security
+  const maskedKey = key ? `${key.substring(0, 3)}...${key.substring(key.length - 4)}` : ""
 
-    return NextResponse.json({
-      valid: false,
-      message: "Error checking OpenAI API key",
-    })
-  }
+  return NextResponse.json({
+    hasKey,
+    keyLength: key.length,
+    maskedKey: hasKey ? maskedKey : "",
+  })
 }

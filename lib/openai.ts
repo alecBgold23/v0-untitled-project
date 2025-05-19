@@ -1,6 +1,6 @@
 import { hasOpenAIKey, getOpenAIKey } from "@/lib/env"
 
-// Constants for retry logic
+// Constants
 const MAX_RETRIES = 2
 const RETRY_DELAY = 1000 // 1 second
 
@@ -68,158 +68,6 @@ export async function openaiRequest(
 }
 
 /**
- * Safely extracts text from OpenAI API response
- * @param data The response data from OpenAI API
- * @returns The extracted text or empty string if not found
- */
-function safelyExtractText(data: any): string {
-  try {
-    // Check if we have a chat completion response
-    if (data?.choices && data.choices.length > 0 && data.choices[0]?.message?.content) {
-      return data.choices[0].message.content.trim()
-    }
-
-    // Check if we have a completion response
-    if (data?.choices && data.choices.length > 0 && data.choices[0]?.text) {
-      return data.choices[0].text.trim()
-    }
-
-    // If we can't find the expected format, log and return empty
-    console.warn("Unexpected OpenAI API response format:", JSON.stringify(data).substring(0, 200))
-    return ""
-  } catch (error) {
-    console.error("Error extracting text from OpenAI response:", error)
-    return ""
-  }
-}
-
-/**
- * Generates text using OpenAI's completion API with fallback to older models if needed
- * @param prompt The prompt to send to OpenAI
- * @param options Additional options
- * @returns Generated text
- */
-export async function generateText(
-  prompt: string,
-  options: {
-    model?: string
-    temperature?: number
-    max_tokens?: number
-    retries?: number
-  } = {},
-): Promise<string> {
-  // Default options
-  const { temperature = 0.7, max_tokens = 500, retries = MAX_RETRIES } = options
-
-  // Try different models in order of preference
-  // Start with more stable models first to avoid server errors
-  const models = [
-    "gpt-3.5-turbo-instruct", // More stable model
-    options.model || "gpt-3.5-turbo", // User-specified or default model
-    "text-davinci-003", // Fallback model
-  ]
-
-  // Track errors for logging
-  const errors: any[] = []
-
-  try {
-    // First, check if the API key is valid
-    if (!hasOpenAIKey()) {
-      console.warn("OpenAI API key is not configured, returning empty result")
-      return ""
-    }
-
-    // Try each model in sequence
-    for (const model of models) {
-      try {
-        console.log(`Attempting to generate text with model: ${model}`)
-
-        let response: Response
-        let data: any
-
-        // Different handling based on model type
-        if (model.includes("gpt-3.5-turbo") && !model.includes("instruct")) {
-          // Chat completion API
-          response = await openaiRequest(
-            "/chat/completions",
-            "POST",
-            {
-              model,
-              messages: [
-                {
-                  role: "system",
-                  content: "You are a helpful assistant that provides concise, accurate information.",
-                },
-                {
-                  role: "user",
-                  content: prompt,
-                },
-              ],
-              temperature,
-              max_tokens,
-            },
-            retries,
-          )
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(`OpenAI API error (${model}): ${errorData.error?.message || response.statusText}`)
-          }
-
-          data = await response.json()
-
-          // Extract text from chat completion response
-          if (data?.choices && data.choices.length > 0 && data.choices[0]?.message?.content) {
-            return data.choices[0].message.content.trim()
-          }
-        } else {
-          // Completion API (for older models)
-          response = await openaiRequest(
-            "/completions",
-            "POST",
-            {
-              model,
-              prompt,
-              temperature,
-              max_tokens,
-            },
-            retries,
-          )
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(`OpenAI API error (${model}): ${errorData.error?.message || response.statusText}`)
-          }
-
-          data = await response.json()
-
-          // Extract text from completion response
-          if (data?.choices && data.choices.length > 0 && data.choices[0]?.text) {
-            return data.choices[0].text.trim()
-          }
-        }
-
-        // If we got here but couldn't extract text, log and continue to next model
-        console.warn(`Failed to extract text from ${model} response:`, JSON.stringify(data).substring(0, 200))
-        errors.push(`No text found in ${model} response`)
-      } catch (modelError) {
-        console.error(`Error with model ${model}:`, modelError)
-        errors.push(modelError)
-        // Continue to next model
-      }
-    }
-
-    // If we've tried all models and none worked, log the errors and return empty string
-    console.error(`All OpenAI models failed: ${errors.map((e) => e.message || e).join("; ")}`)
-    return ""
-  } catch (error) {
-    console.error("Error generating text with OpenAI:", error)
-    // Return empty string instead of throwing to make the API more resilient
-    return ""
-  }
-}
-
-/**
  * Checks if the OpenAI API key is valid and working
  * @returns Boolean indicating if the key is valid
  */
@@ -239,69 +87,25 @@ export async function isOpenAIKeyValid(): Promise<boolean> {
 }
 
 /**
- * Generates a price estimate using OpenAI
+ * Generates a price estimate using algorithmic methods
  * @param description Item description
  * @param condition Item condition
  * @returns Estimated price range
  */
 export async function generatePriceEstimate(description: string, condition = "used"): Promise<string> {
-  const prompt = `
-    You are an expert in estimating the resale value of used items.
-    
-    Please estimate the current market value of the following item:
-    
-    Item Description: ${description}
-    Condition: ${condition}
-    
-    Provide only a price range in USD format (e.g., "$50-$75" or "$100-$150").
-    Do not include any explanations or additional text.
-  `
-
-  try {
-    // Try to get a price from OpenAI
-    const priceRange = await generateText(prompt, {
-      temperature: 0.3, // Lower temperature for more consistent results
-      max_tokens: 20, // Very short response needed
-    })
-
-    // If we got no response from OpenAI, use the fallback
-    if (!priceRange) {
-      console.log("OpenAI returned empty price, using fallback price generator")
-      return generateFallbackPrice(description)
-    }
-
-    // Clean up the response to ensure it's just a price range
-    const cleanedPrice = priceRange.replace(/[^$0-9\-\s.]/g, "").trim()
-
-    // If we got a valid-looking price range, return it
-    if (/\$\d+\s*-\s*\$\d+/.test(cleanedPrice)) {
-      return cleanedPrice
-    }
-
-    // If we just got a single price, convert to a range
-    if (/\$\d+/.test(cleanedPrice)) {
-      const price = Number.parseFloat(cleanedPrice.replace(/[^0-9.]/g, ""))
-      const min = Math.floor(price * 0.9)
-      const max = Math.ceil(price * 1.1)
-      return `$${min}-$${max}`
-    }
-
-    // Fallback if we couldn't parse the price
-    console.log("Couldn't parse OpenAI price response, using fallback price generator")
-    return generateFallbackPrice(description)
-  } catch (error) {
-    console.error("Error generating price estimate with OpenAI:", error)
-    return generateFallbackPrice(description)
-  }
+  // Use algorithmic pricing directly - skip OpenAI completely
+  return generateFallbackPrice(description, condition)
 }
 
 /**
  * Generates a fallback price estimate based on description length and keywords
  * @param description Item description
+ * @param condition Item condition
  * @returns Estimated price range
  */
-function generateFallbackPrice(description: string): string {
+function generateFallbackPrice(description: string, condition = "used"): string {
   const text = description.toLowerCase()
+  const conditionLower = condition.toLowerCase()
 
   // Base price factors
   let baseMin = 15
@@ -354,62 +158,99 @@ function generateFallbackPrice(description: string): string {
     baseMax *= 2
   }
 
+  // Adjust based on condition
+  const conditionMultipliers: Record<string, number> = {
+    new: 1.5,
+    "like new": 1.3,
+    excellent: 1.2,
+    "very good": 1.1,
+    good: 1.0,
+    fair: 0.8,
+    poor: 0.6,
+    "for parts": 0.4,
+  }
+
+  // Find the best matching condition
+  let conditionMultiplier = 1.0
+  for (const [conditionKey, multiplier] of Object.entries(conditionMultipliers)) {
+    if (conditionLower.includes(conditionKey)) {
+      conditionMultiplier = multiplier
+      break
+    }
+  }
+
+  // Apply condition multiplier
+  baseMin = Math.round(baseMin * conditionMultiplier)
+  baseMax = Math.round(baseMax * conditionMultiplier)
+
   // Add some randomness
-  const min = Math.floor(baseMin + Math.random() * 20)
-  const max = Math.floor(baseMax + min + Math.random() * 100)
+  const min = Math.floor(baseMin + Math.random() * 10)
+  const max = Math.floor(baseMax + Math.random() * 20)
 
   return `$${min}-$${max}`
 }
 
 /**
- * Generates a product description using OpenAI
+ * Generates a product description using algorithmic methods
  * @param title Item title
  * @param condition Item condition
  * @param extraDetails Additional details
  * @returns Generated description
  */
 export async function generateProductDescription(title: string, condition: string, extraDetails = ""): Promise<string> {
-  const prompt = `
-    Write a compelling, detailed product description for an online marketplace listing with the following details:
-    
-    Title: ${title}
-    Condition: ${condition}
-    Additional Details: ${extraDetails}
-    
-    The description should be 3-4 paragraphs, highlighting the item's features, condition, and benefits.
-    Use a professional, engaging tone that would appeal to potential buyers.
-  `
-
-  try {
-    const description = await generateText(prompt, {
-      temperature: 0.7,
-      max_tokens: 500,
-    })
-
-    // If we got no response from OpenAI, use the fallback
-    if (!description) {
-      console.log("OpenAI returned empty description, using fallback description generator")
-      return generateFallbackDescription(title, condition, extraDetails)
-    }
-
-    return description
-  } catch (error) {
-    console.error("Error generating product description with OpenAI:", error)
-    return generateFallbackDescription(title, condition, extraDetails)
-  }
+  // Skip OpenAI completely and use fallback
+  return generateFallbackDescription(title, condition, extraDetails)
 }
 
 /**
  * Generates a fallback description when OpenAI is unavailable
  */
 function generateFallbackDescription(title = "", condition = "", extraDetails = ""): string {
-  return `
-    ${title}
-    
-    This item is in ${condition || "used"} condition. ${extraDetails}
-    
-    Please contact the seller for more information about this item.
+  const conditionText = getConditionDescription(condition)
+  const titleText = title || "This item"
+
+  const description = `
+${titleText} is available for purchase in ${condition || "used"} condition. ${extraDetails}
+
+${conditionText}
+
+This would make a great addition to your collection or home. Please review all photos and details before purchasing.
   `.trim()
+
+  return description
+}
+
+/**
+ * Get a description of the condition
+ */
+function getConditionDescription(condition: string): string {
+  const conditionLower = condition.toLowerCase()
+
+  if (conditionLower.includes("new") || conditionLower.includes("mint")) {
+    return "The item is in pristine condition with no signs of wear or damage. All original packaging and accessories are included."
+  }
+
+  if (conditionLower.includes("like new") || conditionLower.includes("excellent")) {
+    return "The item shows minimal signs of use and is in excellent working condition. It has been well-maintained and cared for."
+  }
+
+  if (conditionLower.includes("very good")) {
+    return "The item shows minor signs of wear but is in very good condition overall. It functions perfectly as intended."
+  }
+
+  if (conditionLower.includes("good")) {
+    return "The item shows normal signs of wear consistent with regular use, but remains in good working condition."
+  }
+
+  if (conditionLower.includes("fair")) {
+    return "The item shows noticeable signs of wear and may have minor issues, but remains functional for its intended purpose."
+  }
+
+  if (conditionLower.includes("poor") || conditionLower.includes("for parts")) {
+    return "The item shows significant wear or damage and may have functional issues. It may be best suited for parts or restoration."
+  }
+
+  return "The item is in used condition with normal signs of wear. Please review all details and photos for a complete understanding of its condition."
 }
 
 /**
@@ -419,46 +260,15 @@ function generateFallbackDescription(title = "", condition = "", extraDetails = 
  * @returns Optimized title
  */
 export async function generateOptimizedTitle(description: string, platform = "eBay"): Promise<string> {
-  const prompt = `
-    Create an optimized product title for ${platform} based on this description:
-    
-    ${description}
-    
-    The title should:
-    - Be under 80 characters
-    - Include key product details (brand, model, size, color, etc.)
-    - Use popular search keywords
-    - NOT use all caps
-    - NOT include excessive punctuation
-    
-    Return ONLY the title, nothing else.
-  `
-
-  try {
-    const title = await generateText(prompt, {
-      temperature: 0.3,
-      max_tokens: 60,
-    })
-
-    // If we got no response from OpenAI, use the fallback
-    if (!title) {
-      console.log("OpenAI returned empty title, using fallback title generator")
-      return generateFallbackTitle(description)
-    }
-
-    // Ensure the title isn't too long
-    return title.slice(0, 80)
-  } catch (error) {
-    console.error("Error generating optimized title with OpenAI:", error)
-    return generateFallbackTitle(description)
-  }
+  // Skip OpenAI completely and use fallback
+  return generateFallbackTitle(description)
 }
 
 /**
  * Generates a fallback title when OpenAI is unavailable
  */
 function generateFallbackTitle(description: string): string {
-  // Create a simple title from the first few words
+  // Create a title from the first few words
   const words = description.split(/\s+/).filter(Boolean)
   return words.slice(0, 6).join(" ")
 }

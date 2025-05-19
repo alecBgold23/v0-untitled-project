@@ -1,44 +1,36 @@
-const EBAY_CLIENT_ID = process.env.EBAY_CLIENT_ID!
-const EBAY_CLIENT_SECRET = process.env.EBAY_CLIENT_SECRET!
-
-// Store token and expiry in memory
-let cachedToken: string | null = null
-let tokenExpiresAt = 0
+// This is a browser-compatible version of the ebay-auth utility
 
 /**
- * Gets a valid OAuth token for eBay API requests
- * Returns cached token if still valid, otherwise requests a new one
+ * Get an OAuth token for the eBay API
+ * @returns The OAuth token or null if an error occurs
  */
-export async function getEbayOAuthToken(): Promise<string> {
-  const now = Date.now()
+export async function getEbayOAuthToken(): Promise<string | null> {
+  try {
+    // In a browser environment, we'll use the API route instead
+    const response = await fetch("/api/ebay-auth", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
 
-  // If cached token is still valid, return it
-  if (cachedToken && now < tokenExpiresAt) {
-    return cachedToken
+    if (!response.ok) {
+      console.error("Error getting eBay OAuth token:", await response.text())
+      return null
+    }
+
+    const data = await response.json()
+    return data.token
+  } catch (error: any) {
+    console.error("Error getting eBay OAuth token:", error)
+    return null
   }
+}
 
-  // Otherwise request a new token from eBay
-  const basicAuth = Buffer.from(`${EBAY_CLIENT_ID}:${EBAY_CLIENT_SECRET}`).toString("base64")
-
-  const res = await fetch("https://api.ebay.com/identity/v1/oauth2/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: `Basic ${basicAuth}`,
-    },
-    body: "grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope",
-  })
-
-  if (!res.ok) {
-    const errorText = await res.text()
-    throw new Error(`Failed to get eBay OAuth token: ${errorText}`)
-  }
-
-  const data = await res.json()
-
-  cachedToken = data.access_token
-  // data.expires_in is in seconds, convert to ms and add to now
-  tokenExpiresAt = now + data.expires_in * 1000 - 60000 // minus 60 seconds to be safe
-
-  return cachedToken
+/**
+ * Check if the eBay API is configured
+ * @returns Boolean indicating if the eBay API is configured
+ */
+export function isEbayConfigured(): boolean {
+  return !!(process.env.EBAY_CLIENT_ID && process.env.EBAY_CLIENT_SECRET)
 }
