@@ -1,4 +1,4 @@
-import { hasOpenAIKey, getOpenAIKey } from "@/lib/env"
+import { getOpenAIKey } from "@/lib/env"
 import { isServiceAvailable, recordFailure, recordSuccess } from "@/lib/circuit-breaker"
 
 // Constants
@@ -87,88 +87,14 @@ export async function openaiRequest(
 }
 
 /**
- * Safely extracts text from OpenAI API response
- * @param data The response data from OpenAI API
- * @returns The extracted text or empty string if not found
- */
-function safelyExtractText(data: any): string {
-  try {
-    // Log the response for debugging
-    console.log("OpenAI API response structure:", JSON.stringify(Object.keys(data || {})))
-
-    if (data?.choices && Array.isArray(data.choices) && data.choices.length > 0) {
-      console.log("OpenAI choices structure:", JSON.stringify(Object.keys(data.choices[0] || {})))
-
-      // Check if we have a chat completion response
-      if (data.choices[0]?.message?.content) {
-        return data.choices[0].message.content.trim()
-      }
-
-      // Check if we have a completion response
-      if (data.choices[0]?.text) {
-        return data.choices[0].text.trim()
-      }
-    }
-
-    // If we can't find the expected format, log and return empty
-    console.warn("Unexpected OpenAI API response format:", JSON.stringify(data).substring(0, 200))
-    return ""
-  } catch (error) {
-    console.error("Error extracting text from OpenAI response:", error)
-    return ""
-  }
-}
-
-/**
- * Checks if the OpenAI API key is valid and working
- * @returns Boolean indicating if the key is valid
- */
-export async function isOpenAIKeyValid(): Promise<boolean> {
-  if (!hasOpenAIKey()) {
-    return false
-  }
-
-  // If the circuit breaker is open, return false
-  if (!isServiceAvailable(OPENAI_SERVICE)) {
-    return false
-  }
-
-  try {
-    // Make a simple models list request to verify the key
-    const response = await openaiRequest("/models", "GET")
-    return response.ok
-  } catch (error) {
-    console.error("Error validating OpenAI API key:", error)
-    return false
-  }
-}
-
-/**
- * Generates a price estimate using OpenAI or falls back to algorithmic estimation
+ * Generates a price estimate using algorithmic methods
  * @param description Item description
  * @param condition Item condition
  * @returns Estimated price range
  */
 export async function generatePriceEstimate(description: string, condition = "used"): Promise<string> {
-  // If OpenAI is not available according to the circuit breaker, use fallback immediately
-  if (!isServiceAvailable(OPENAI_SERVICE)) {
-    console.log("OpenAI circuit is open, using fallback price generator")
-    return generateFallbackPrice(description, condition)
-  }
-
-  // If no OpenAI key, use fallback
-  if (!hasOpenAIKey()) {
-    console.log("No OpenAI API key, using fallback price generator")
-    return generateFallbackPrice(description, condition)
-  }
-
-  try {
-    // Use algorithmic pricing directly - skip OpenAI completely
-    return generateFallbackPrice(description, condition)
-  } catch (error) {
-    console.error("Error generating price estimate:", error)
-    return generateFallbackPrice(description, condition)
-  }
+  // Use algorithmic pricing directly - skip OpenAI completely
+  return generateFallbackPrice(description, condition)
 }
 
 /**

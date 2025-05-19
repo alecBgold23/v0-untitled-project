@@ -1,18 +1,25 @@
 import { NextResponse } from "next/server"
-import { checkSupabaseConfig } from "@/lib/check-supabase"
 
 export async function GET() {
-  try {
-    const result = await checkSupabaseConfig()
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    return NextResponse.json(result)
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
-  }
+  // Mask the keys for security
+  const maskedAnonKey = supabaseAnonKey
+    ? `${supabaseAnonKey.substring(0, 3)}...${supabaseAnonKey.substring(supabaseAnonKey.length - 4)}`
+    : ""
+
+  const maskedServiceKey = supabaseServiceKey
+    ? `${supabaseServiceKey.substring(0, 3)}...${supabaseServiceKey.substring(supabaseServiceKey.length - 4)}`
+    : ""
+
+  return NextResponse.json({
+    hasUrl: !!supabaseUrl,
+    hasAnonKey: !!supabaseAnonKey,
+    hasServiceKey: !!supabaseServiceKey,
+    maskedAnonKey,
+    maskedServiceKey,
+    url: supabaseUrl,
+  })
 }

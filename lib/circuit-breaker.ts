@@ -1,95 +1,142 @@
+// Simple in-memory circuit breaker implementation
+// This is browser-compatible and doesn't use Node.js modules
+
+// Circuit breaker state
+type ServiceStatus = {
+  available: boolean
+  failureCount: number
+  lastFailure: number
+  successCount: number
+}
+
+// Configuration
+const MAX_FAILURES = 5 // Number of failures before opening the circuit
+const RESET_TIMEOUT = 60000 // 1 minute timeout before trying again
+const SUCCESS_THRESHOLD = 3 // Number of successes needed to close the circuit
+
+// Store service status
+const serviceStatus: Record<string, ServiceStatus> = {}
+
 /**
- * Simple in-memory circuit breaker to prevent repeated calls to failing services
- */
-
-// Track failures for different services
-const failures: Record<string, { count: number; lastFailure: number }> = {}
-
-// Circuit breaker settings
-const MAX_FAILURES = 3 // Number of failures before opening the circuit
-const RESET_TIMEOUT = 5 * 60 * 1000 // 5 minutes before resetting the circuit
-
-/**
- * Check if a service is available or if the circuit is open
- * @param service The service identifier
- * @returns Boolean indicating if the service should be used
+ * Check if a service is available
+ * @param service Service name
+ * @returns Boolean indicating if the service is available
  */
 export function isServiceAvailable(service: string): boolean {
-  const serviceFailures = failures[service]
-
-  // If no failures recorded, service is available
-  if (!serviceFailures) {
+  if (!serviceStatus[service]) {
+    // Initialize service status if it doesn't exist
+    serviceStatus[service] = {
+      available: true,
+      failureCount: 0,
+      lastFailure: 0,
+      successCount: 0,
+    }
     return true
   }
 
-  // Check if enough time has passed to reset the circuit
-  const timeSinceLastFailure = Date.now() - serviceFailures.lastFailure
-  if (timeSinceLastFailure > RESET_TIMEOUT) {
-    // Reset the circuit
-    delete failures[service]
-    return true
+  const status = serviceStatus[service]
+
+  // If the circuit is open, check if the reset timeout has passed
+  if (!status.available) {
+    const now = Date.now()
+    if (now - status.lastFailure > RESET_TIMEOUT) {
+      // Allow a single request through to test if the service is back
+      console.log(`Circuit breaker for ${service} is half-open, allowing test request`)
+      return true
+    }
+    return false
   }
 
-  // If we've had too many failures, circuit is open
-  return serviceFailures.count < MAX_FAILURES
+  return true
 }
 
 /**
  * Record a service failure
- * @param service The service identifier
+ * @param service Service name
  */
 export function recordFailure(service: string): void {
-  if (!failures[service]) {
-    failures[service] = { count: 0, lastFailure: 0 }
+  if (!serviceStatus[service]) {
+    serviceStatus[service] = {
+      available: true,
+      failureCount: 0,
+      lastFailure: 0,
+      successCount: 0,
+    }
   }
 
-  failures[service].count++
-  failures[service].lastFailure = Date.now()
+  const status = serviceStatus[service]
+  status.failureCount++
+  status.lastFailure = Date.now()
+  status.successCount = 0
 
-  console.warn(`Service ${service} failure recorded. Count: ${failures[service].count}`)
+  // Open the circuit if we've reached the failure threshold
+  if (status.failureCount >= MAX_FAILURES) {
+    status.available = false
+    console.log(`Circuit breaker for ${service} is now open after ${status.failureCount} failures`)
+  }
 }
 
 /**
  * Record a service success
- * @param service The service identifier
+ * @param service Service name
  */
 export function recordSuccess(service: string): void {
-  // If we have a success, reduce the failure count
-  if (failures[service]) {
-    failures[service].count = Math.max(0, failures[service].count - 1)
-
-    // If no more failures, remove the entry
-    if (failures[service].count === 0) {
-      delete failures[service]
+  if (!serviceStatus[service]) {
+    serviceStatus[service] = {
+      available: true,
+      failureCount: 0,
+      lastFailure: 0,
+      successCount: 0,
     }
+    return
+  }
+
+  const status = serviceStatus[service]
+
+  // If the circuit is open or half-open, increment success count
+  if (!status.available) {
+    status.successCount++
+
+    // Close the circuit if we've reached the success threshold
+    if (status.successCount >= SUCCESS_THRESHOLD) {
+      status.available = true
+      status.failureCount = 0
+      console.log(`Circuit breaker for ${service} is now closed after ${status.successCount} successes`)
+    }
+  } else {
+    // If the circuit is already closed, reset failure count
+    status.failureCount = Math.max(0, status.failureCount - 1)
   }
 }
 
 /**
  * Get the current status of a service
- * @param service The service identifier
- * @returns Object with service status information
+ * @param service Service name
+ * @returns Service status
  */
-export function getServiceStatus(service: string): {
-  available: boolean
-  failureCount: number
-  timeSinceLastFailure: number | null
-} {
-  const serviceFailures = failures[service]
-
-  if (!serviceFailures) {
-    return {
+export function getServiceStatus(service: string): ServiceStatus {
+  if (!serviceStatus[service]) {
+    serviceStatus[service] = {
       available: true,
       failureCount: 0,
-      timeSinceLastFailure: null,
+      lastFailure: 0,
+      successCount: 0,
     }
   }
 
-  const timeSinceLastFailure = Date.now() - serviceFailures.lastFailure
+  return { ...serviceStatus[service] }
+}
 
-  return {
-    available: serviceFailures.count < MAX_FAILURES || timeSinceLastFailure > RESET_TIMEOUT,
-    failureCount: serviceFailures.count,
-    timeSinceLastFailure,
+/**
+ * Reset the circuit breaker for a service
+ * @param service Service name
+ */
+export function resetCircuitBreaker(service: string): void {
+  serviceStatus[service] = {
+    available: true,
+    failureCount: 0,
+    lastFailure: 0,
+    successCount: 0,
   }
+  console.log(`Circuit breaker for ${service} has been manually reset`)
 }
