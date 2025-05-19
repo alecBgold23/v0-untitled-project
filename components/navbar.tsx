@@ -4,7 +4,6 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { Menu, X, SearchIcon, Settings } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { BluberryLogoSVG } from "@/components/blueberry-logo-svg"
 import SearchModal from "@/components/search"
 import { useAuth } from "@/contexts/auth-context"
@@ -112,7 +111,7 @@ export default function Navbar() {
             </button>
 
             {/* Theme toggle */}
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
 
             {user && (
               <DropdownMenu>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { getEbayOAuthToken } from "@/lib/ebay-auth"
 
 // Cache to store recent price estimates
 const priceCache: Record<string, { price: string; timestamp: number }> = {}
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
   try {
     // Parse the request body
     const body = await request.json()
-    const { description, itemId } = body
+    const { description, itemId, name, condition, issues } = body
 
     if (!description) {
       return NextResponse.json({ error: "Description is required" }, { status: 400 })
@@ -41,16 +42,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ price: cachedResult.price })
     }
 
-    // Generate an improved single price estimate
+    // Generate a fallback price in case API calls fail
     const fallbackPrice = generateSinglePrice(description)
-    console.log("Generated single price:", fallbackPrice)
+    console.log("Generated fallback price:", fallbackPrice)
 
-    // Check if we can make an API call (has API key and not rate limited)
-    const canMakeApiCall = process.env.PRICING_OPENAI_API_KEY && Date.now() - lastApiCallTime > API_CALL_INTERVAL
+    // Check if we can make an API call (not rate limited)
+    const canMakeApiCall = Date.now() - lastApiCallTime > API_CALL_INTERVAL
 
-    // If we can't make an API call, use the fallback price
     if (!canMakeApiCall) {
-      console.log("Using fallback price (API call skipped):", fallbackPrice)
+      console.log("Rate limited, using fallback price:", fallbackPrice)
 
       // Cache the fallback price
       priceCache[cacheKey] = { price: fallbackPrice, timestamp: Date.now() }
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
         try {
           const supabase = createServerSupabaseClient()
           await supabase.from("sell_items").update({ estimated_price: fallbackPrice }).eq("id", itemId)
-          console.log("Saved fallback price to database for item:", itemId)
+          console.log("Saved fallback price to database (rate limited)")
         } catch (dbError) {
           console.error("Failed to save fallback price to database:", dbError)
         }
@@ -69,161 +69,197 @@ export async function POST(request: Request) {
       return NextResponse.json({ price: fallbackPrice })
     }
 
-    // Try to use OpenAI for a better estimate
-    try {
-      console.log("Attempting OpenAI API call...")
-      lastApiCallTime = Date.now() // Update last API call time
+    // Update last API call time
+    lastApiCallTime = Date.now()
 
-      // Use a simple fetch to the OpenAI API
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.PRICING_OPENAI_API_KEY}`,
+    // Try to get price from eBay first
+    try {
+      console.log("Attempting eBay API call...")
+
+      // Create search query from available information
+      const query = `${name || ""} ${description} ${condition || ""} ${issues || ""}`.trim()
+      console.log("eBay search query:", query)
+
+      // Get eBay OAuth token
+      const ebayToken = await getEbayOAuthToken()
+
+      // Call eBay Browse API
+      const ebayRes = await fetch(
+        `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(query)}&limit=5`,
+        {
+          headers: {
+            Authorization: `Bearer ${ebayToken}`,
+            "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+            "Content-Type": "application/json",
+          },
         },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
-              content: `You are an expert in estimating the resale value of used items.
+      )
+
+      if (!ebayRes.ok) {
+        const errText = await ebayRes.text()
+        console.error(`eBay API error (${ebayRes.status}):`, errText)
+        throw new Error(`eBay API error: ${ebayRes.status}`)
+      }
+
+      const ebayData = await ebayRes.json()
+
+      // Extract prices from eBay results
+      const prices =
+        ebayData.itemSummaries
+          ?.map((item: any) => Number.parseFloat(item.price?.value))
+          .filter((price: number) => !isNaN(price) && price > 0) || []
+
+      if (prices.length > 0) {
+        // Calculate average price from eBay results
+        const avgPrice = (prices.reduce((a: number, b: number) => a + b, 0) / prices.length).toFixed(2)
+        const finalPrice = `$${avgPrice}`
+        console.log("eBay average price:", finalPrice, "from", prices.length, "items")
+
+        // Cache the eBay price
+        priceCache[cacheKey] = { price: finalPrice, timestamp: Date.now() }
+
+        // Save to database if we have an itemId
+        if (itemId) {
+          try {
+            const supabase = createServerSupabaseClient()
+            await supabase.from("sell_items").update({ estimated_price: finalPrice }).eq("id", itemId)
+            console.log("Saved eBay price to database for item:", itemId)
+          } catch (dbError) {
+            console.error("Failed to save eBay price to database:", dbError)
+          }
+        }
+
+        return NextResponse.json({ price: finalPrice, source: "ebay", itemCount: prices.length })
+      } else {
+        console.log("No eBay results found, falling back to OpenAI")
+      }
+    } catch (ebayError) {
+      console.error("Error during eBay API call:", ebayError)
+      console.log("Falling back to OpenAI after eBay error")
+    }
+
+    // Try to use OpenAI as fallback
+    if (process.env.PRICING_OPENAI_API_KEY) {
+      try {
+        console.log("Attempting OpenAI API call...")
+
+        // Use a simple fetch to the OpenAI API
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.PRICING_OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content: `You are an expert in estimating the resale value of used items.
 Only respond with a single price in USD like "$75". No ranges, no explanations.
 Consider condition, brand, age, demand, depreciation.
 Be realistic about the value - don't overestimate.
 For common household items, prices should typically be $5-$100.
 For electronics, consider age and condition heavily.
 For collectibles, consider rarity and condition.`,
-            },
-            { role: "user", content: `Estimate the resale value of this item with a single price: ${description}` },
-          ],
-          max_tokens: 10,
-          temperature: 0.3,
-        }),
-      })
+              },
+              {
+                role: "user",
+                content: `Estimate the resale value of this item with a single price:
+Name: ${name || "Unknown"}
+Description: ${description}
+Condition: ${condition || "Used"}
+Issues: ${issues || "None"}`,
+              },
+            ],
+            max_tokens: 10,
+            temperature: 0.3,
+          }),
+        })
 
-      // Check if the response is OK
-      if (!response.ok) {
-        console.log(`OpenAI API error (${response.status}), using fallback price`)
+        // Check if the response is OK
+        if (!response.ok) {
+          console.log(`OpenAI API error (${response.status}), using fallback price`)
+          throw new Error(`OpenAI API error: ${response.status}`)
+        }
 
-        // Cache the fallback price
-        priceCache[cacheKey] = { price: fallbackPrice, timestamp: Date.now() }
+        // Parse the response data
+        const data = await response.json()
 
-        // Save to database if we have an itemId
+        // Check for error in the response
+        if (data.error) {
+          console.log("OpenAI API returned an error, using fallback price")
+          throw new Error(`OpenAI error: ${data.error.message}`)
+        }
+
+        // Validate the response structure
+        if (
+          !data ||
+          !data.choices ||
+          !Array.isArray(data.choices) ||
+          data.choices.length === 0 ||
+          !data.choices[0].message ||
+          typeof data.choices[0].message.content !== "string"
+        ) {
+          console.log("Invalid OpenAI API response format, using fallback price")
+          throw new Error("Invalid OpenAI response format")
+        }
+
+        // Extract the price from the response
+        const aiPrice = data.choices[0].message.content.trim()
+        console.log("OpenAI price estimate generated:", aiPrice)
+
+        // Validate the AI price format (should be $X)
+        const priceRegex = /\$\d+/
+        const finalPrice = priceRegex.test(aiPrice) ? aiPrice : fallbackPrice
+
+        if (finalPrice !== aiPrice) {
+          console.log("AI price didn't match expected format, using fallback price")
+        }
+
+        // Cache the final price
+        priceCache[cacheKey] = { price: finalPrice, timestamp: Date.now() }
+
+        // Update the price in the database with the final price
         if (itemId) {
           try {
             const supabase = createServerSupabaseClient()
-            await supabase.from("sell_items").update({ estimated_price: fallbackPrice }).eq("id", itemId)
-            console.log("Saved fallback price to database after API error")
+            await supabase.from("sell_items").update({ estimated_price: finalPrice }).eq("id", itemId)
+            console.log("Updated with OpenAI price in database for item:", itemId)
           } catch (dbError) {
-            console.error("Failed to save fallback price to database:", dbError)
+            console.error("Failed to update OpenAI price in database:", dbError)
           }
         }
 
-        return NextResponse.json({ price: fallbackPrice })
+        return NextResponse.json({ price: finalPrice, source: "openai" })
+      } catch (apiError) {
+        console.error("Error during OpenAI API call:", apiError)
+        console.log("Using fallback price after OpenAI error:", fallbackPrice)
       }
-
-      // Parse the response data
-      const data = await response.json()
-
-      // Check for error in the response
-      if (data.error) {
-        console.log("OpenAI API returned an error, using fallback price")
-
-        // Cache the fallback price
-        priceCache[cacheKey] = { price: fallbackPrice, timestamp: Date.now() }
-
-        // Save to database if we have an itemId
-        if (itemId) {
-          try {
-            const supabase = createServerSupabaseClient()
-            await supabase.from("sell_items").update({ estimated_price: fallbackPrice }).eq("id", itemId)
-            console.log("Saved fallback price to database after API response error")
-          } catch (dbError) {
-            console.error("Failed to save fallback price to database:", dbError)
-          }
-        }
-
-        return NextResponse.json({ price: fallbackPrice })
-      }
-
-      // Validate the response structure
-      if (
-        !data ||
-        !data.choices ||
-        !Array.isArray(data.choices) ||
-        data.choices.length === 0 ||
-        !data.choices[0].message ||
-        typeof data.choices[0].message.content !== "string"
-      ) {
-        console.log("Invalid OpenAI API response format, using fallback price")
-
-        // Cache the fallback price
-        priceCache[cacheKey] = { price: fallbackPrice, timestamp: Date.now() }
-
-        // Save to database if we have an itemId
-        if (itemId) {
-          try {
-            const supabase = createServerSupabaseClient()
-            await supabase.from("sell_items").update({ estimated_price: fallbackPrice }).eq("id", itemId)
-            console.log("Saved fallback price to database after invalid API response")
-          } catch (dbError) {
-            console.error("Failed to save fallback price to database:", dbError)
-          }
-        }
-
-        return NextResponse.json({ price: fallbackPrice })
-      }
-
-      // Extract the price from the response
-      const aiPrice = data.choices[0].message.content.trim()
-      console.log("OpenAI price estimate generated:", aiPrice)
-
-      // Validate the AI price format (should be $X)
-      const priceRegex = /\$\d+/
-      const finalPrice = priceRegex.test(aiPrice) ? aiPrice : fallbackPrice
-
-      if (finalPrice !== aiPrice) {
-        console.log("AI price didn't match expected format, using fallback price")
-      }
-
-      // Cache the final price
-      priceCache[cacheKey] = { price: finalPrice, timestamp: Date.now() }
-
-      // Update the price in the database with the final price
-      if (itemId) {
-        try {
-          const supabase = createServerSupabaseClient()
-          await supabase.from("sell_items").update({ estimated_price: finalPrice }).eq("id", itemId)
-          console.log("Updated with final price in database for item:", itemId)
-        } catch (dbError) {
-          console.error("Failed to update final price in database:", dbError)
-        }
-      }
-
-      return NextResponse.json({ price: finalPrice })
-    } catch (apiError) {
-      console.error("Error during API call:", apiError)
-
-      // Cache the fallback price
-      priceCache[cacheKey] = { price: fallbackPrice, timestamp: Date.now() }
-
-      // Save to database if we have an itemId
-      if (itemId) {
-        try {
-          const supabase = createServerSupabaseClient()
-          await supabase.from("sell_items").update({ estimated_price: fallbackPrice }).eq("id", itemId)
-          console.log("Saved fallback price to database after API exception")
-        } catch (dbError) {
-          console.error("Failed to save fallback price to database:", dbError)
-        }
-      }
-
-      return NextResponse.json({ price: fallbackPrice })
+    } else {
+      console.log("No OpenAI API key available, using fallback price")
     }
+
+    // If we get here, both eBay and OpenAI failed or weren't available
+    // Cache the fallback price
+    priceCache[cacheKey] = { price: fallbackPrice, timestamp: Date.now() }
+
+    // Save to database if we have an itemId
+    if (itemId) {
+      try {
+        const supabase = createServerSupabaseClient()
+        await supabase.from("sell_items").update({ estimated_price: fallbackPrice }).eq("id", itemId)
+        console.log("Saved fallback price to database after API failures")
+      } catch (dbError) {
+        console.error("Failed to save fallback price to database:", dbError)
+      }
+    }
+
+    return NextResponse.json({ price: fallbackPrice, source: "algorithm" })
   } catch (error: any) {
     console.error("Error estimating price:", error)
     // Return a default fallback price in case of any error
-    return NextResponse.json({ price: "$50" })
+    return NextResponse.json({ price: "$50", source: "default" })
   }
 }
 
