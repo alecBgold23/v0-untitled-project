@@ -13,7 +13,6 @@ export function PriceEstimationStatus() {
   const [message, setMessage] = useState("")
   const [testPrice, setTestPrice] = useState<string | null>(null)
   const [testSource, setTestSource] = useState<string | null>(null)
-  const [openaiStatus, setOpenaiStatus] = useState<any>(null)
   const [testLoading, setTestLoading] = useState(false)
 
   useEffect(() => {
@@ -23,11 +22,19 @@ export function PriceEstimationStatus() {
   const checkStatus = async () => {
     setLoading(true)
     try {
-      // Test the price estimation directly
-      await testPriceEstimation()
+      const response = await fetch("/api/check-openai-key")
+      const data = await response.json()
+
+      if (data.valid) {
+        setStatus("available")
+        setMessage("OpenAI API is configured and working")
+      } else {
+        setStatus("fallback")
+        setMessage("Using fallback price estimation (OpenAI API not available)")
+      }
     } catch (error) {
       setStatus("error")
-      setMessage("Error checking price estimation service")
+      setMessage("Error checking OpenAI API status")
     } finally {
       setLoading(false)
     }
@@ -37,7 +44,6 @@ export function PriceEstimationStatus() {
     setTestLoading(true)
     setTestPrice(null)
     setTestSource(null)
-    setOpenaiStatus(null)
 
     try {
       const response = await fetch("/api/price-item", {
@@ -55,22 +61,12 @@ export function PriceEstimationStatus() {
       setTestPrice(data.price)
       setTestSource(data.source)
 
-      if (data.openaiStatus) {
-        setOpenaiStatus(data.openaiStatus)
-      }
-
       if (data.source === "openai") {
         setStatus("available")
         setMessage("OpenAI API is configured and working")
-      } else if (data.source === "ai-fallback") {
-        setStatus("fallback")
-        setMessage("Using algorithmic price estimation (OpenAI API not responding correctly)")
       } else if (data.source === "fallback") {
         setStatus("fallback")
-        setMessage("Using algorithmic price estimation (OpenAI API not available)")
-      } else if (data.source === "cache") {
-        setStatus("available")
-        setMessage("Using cached price estimation")
+        setMessage("Using fallback price estimation (OpenAI API not available)")
       }
     } catch (error) {
       setStatus("error")
@@ -81,7 +77,7 @@ export function PriceEstimationStatus() {
   }
 
   return (
-    <Card className="mb-6">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {loading ? (
@@ -95,7 +91,7 @@ export function PriceEstimationStatus() {
           )}
           Price Estimation Status
         </CardTitle>
-        <CardDescription>Current status of the price estimation service</CardDescription>
+        <CardDescription>Check the status of the price estimation service</CardDescription>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -119,12 +115,6 @@ export function PriceEstimationStatus() {
                   <div className="mt-2">
                     <div className="font-medium">Estimated Price: {testPrice}</div>
                     <div className="text-sm text-muted-foreground">Source: {testSource}</div>
-                    {openaiStatus && (
-                      <div className="text-sm text-muted-foreground mt-1">
-                        OpenAI Status: {openaiStatus.available ? "Available" : "Unavailable"}
-                        {openaiStatus.failureCount > 0 && ` (${openaiStatus.failureCount} recent failures)`}
-                      </div>
-                    )}
                   </div>
                 </AlertDescription>
               </Alert>

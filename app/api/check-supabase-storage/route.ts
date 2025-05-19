@@ -1,28 +1,22 @@
 import { NextResponse } from "next/server"
-import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { checkSupabaseStorage } from "@/lib/check-supabase-storage"
 
 export async function GET() {
   try {
-    const supabase = createServerSupabaseClient()
+    const result = await checkSupabaseStorage()
 
-    // List buckets to check if storage is working
-    const { data: buckets, error } = await supabase.storage.listBuckets()
-
-    if (error) {
-      return NextResponse.json({
-        success: false,
-        error: `Error listing buckets: ${error.message}`,
-      })
+    if (!result.success) {
+      return NextResponse.json(result, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      buckets: buckets.map((bucket) => bucket.name),
-    })
-  } catch (error: any) {
-    return NextResponse.json({
-      success: false,
-      error: `Error checking Supabase storage: ${error.message}`,
-    })
+    return NextResponse.json(result)
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
+      },
+      { status: 500 },
+    )
   }
 }
