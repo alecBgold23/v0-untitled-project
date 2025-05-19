@@ -1,26 +1,34 @@
-/**
- * Upload an image to the server
- * @param file File to upload
- * @returns Object with the uploaded image URL or an error
- */
-export async function uploadImage(file: File): Promise<{ url: string } | { error: string }> {
+import supabase from "@/lib/supabase"
+import { v4 as uuidv4 } from "uuid"
+
+export async function uploadImage(file: File): Promise<string | null> {
   try {
-    const formData = new FormData()
-    formData.append("file", file)
-
-    const response = await fetch("/api/upload-image", {
-      method: "POST",
-      body: formData,
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      return { error: errorText || "Failed to upload image" }
+    if (!file) {
+      console.error("No file provided")
+      return null
     }
 
-    const data = await response.json()
-    return { url: data.url }
-  } catch (error: any) {
-    return { error: error.message || "Failed to upload image" }
+    // Create a unique file name with UUID for better uniqueness than timestamp
+    const fileExt = file.name.split(".").pop()
+    const fileName = `${uuidv4()}.${fileExt}`
+    const filePath = `uploads/${fileName}`
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from("item-images") // Make sure this bucket exists in your Supabase project
+      .upload(filePath, file)
+
+    if (error) {
+      console.error("Error uploading file:", error.message)
+      return null
+    }
+
+    // Get the public URL
+    const { data: publicUrlData } = supabase.storage.from("item-images").getPublicUrl(filePath)
+
+    return publicUrlData.publicUrl
+  } catch (error) {
+    console.error("Unexpected error during file upload:", error)
+    return null
   }
 }

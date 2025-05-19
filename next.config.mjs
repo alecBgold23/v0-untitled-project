@@ -12,41 +12,19 @@ const nextConfig = {
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Ensure these Node.js modules are not included in the client bundle
+      // Don't resolve 'fs', 'stream', etc. on the client to prevent errors
       config.resolve.fallback = {
         fs: false,
-        path: false,
-        crypto: false,
         stream: false,
+        crypto: false,
+        path: false,
+        process: false,
         util: false,
         buffer: false,
         os: false,
-        zlib: false,
-        http: false,
-        https: false,
-        net: false,
-        tls: false,
-        child_process: false,
-        dns: false,
-        tty: false,
-        constants: false,
-        vm: false,
-        dgram: false,
-        readline: false,
-        events: require.resolve('events/'),
-        assert: false,
-        url: false,
-        querystring: false,
-        string_decoder: false,
-        punycode: false,
-        process: false,
       };
     }
     return config;
-  },
-  // Disable server components to avoid Node.js module issues
-  experimental: {
-    serverComponents: false,
   },
 };
 

@@ -91,31 +91,3 @@ export async function checkSupabaseStorage() {
     }
   }
 }
-
-// Additional browser-compatible functions
-export async function uploadImageToSupabase(
-  file: File,
-  bucket = "images2",
-  path = "",
-): Promise<{ url: string } | { error: string }> {
-  try {
-    // Generate a unique file name
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
-    const fileExt = file.name.split(".").pop()
-    const filePath = path ? `${path}/${fileName}.${fileExt}` : `${fileName}.${fileExt}`
-
-    // Upload the file
-    const { data, error } = await supabase.storage.from(bucket).upload(filePath, file)
-
-    if (error) {
-      return { error: error.message }
-    }
-
-    // Get the public URL
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath)
-
-    return { url: urlData.publicUrl }
-  } catch (error: any) {
-    return { error: error.message || "Failed to upload image" }
-  }
-}
