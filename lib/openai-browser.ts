@@ -93,37 +93,6 @@ export async function openaiRequest(
 }
 
 /**
- * Get a price estimate for an item using the OpenAI API
- * @param description Item description
- * @param condition Item condition
- * @returns Price estimate as a string (e.g., "$50-$75")
- */
-export async function getPriceEstimate(description: string, condition: string): Promise<string> {
-  try {
-    const response = await fetch("/api/estimate-price", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        description,
-        condition,
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`Price estimation failed with status: ${response.status}`)
-    }
-
-    const data = await response.json()
-    return data.priceEstimate
-  } catch (error) {
-    console.error("Error getting price estimate:", error)
-    return generateFallbackPrice(description, condition)
-  }
-}
-
-/**
  * Generates a price estimate using algorithmic methods
  * @param description Item description
  * @param condition Item condition

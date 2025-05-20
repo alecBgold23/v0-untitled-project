@@ -35,21 +35,6 @@ export interface EbayComparable {
 }
 
 /**
- * Get the base eBay API endpoint
- * This function handles different endpoint formats
- */
-function getEbayBaseEndpoint(): string {
-  const configuredEndpoint = process.env.EBAY_BROWSE_API_ENDPOINT || "https://api.ebay.com/buy/browse/v1"
-
-  // If the endpoint already includes item_summary/search, extract the base part
-  if (configuredEndpoint.includes("/item_summary/search")) {
-    return configuredEndpoint.split("/item_summary/search")[0]
-  }
-
-  return configuredEndpoint
-}
-
-/**
  * Search for items on eBay
  * @param params Search parameters
  * @returns Search results
@@ -71,9 +56,8 @@ export async function searchItems(params: SearchParams, retryOnAuthError = true)
       }
     })
 
-    // Get the base endpoint and construct the full URL
-    const baseEndpoint = getEbayBaseEndpoint()
-    const url = `${baseEndpoint}/item_summary/search?${queryParams.toString()}`
+    const apiEndpoint = process.env.EBAY_BROWSE_API_ENDPOINT || "https://api.ebay.com/buy/browse/v1"
+    const url = `${apiEndpoint}/item_summary/search?${queryParams.toString()}`
 
     console.log("eBay API request to:", url.replace(/\?.+/, "?[query-params]")) // Log without the actual query params for security
 
@@ -117,9 +101,7 @@ export async function getItem(params: GetItemParams, retryOnAuthError = true) {
   try {
     const token = await getEbayOAuthToken()
 
-    // Get the base endpoint and construct the full URL
-    const baseEndpoint = getEbayBaseEndpoint()
-    let url = `${baseEndpoint}/item/${params.itemId}`
+    let url = `${process.env.EBAY_BROWSE_API_ENDPOINT || "https://api.ebay.com/buy/browse/v1"}/item/${params.itemId}`
 
     if (params.fieldgroups) {
       url += `?fieldgroups=${params.fieldgroups}`

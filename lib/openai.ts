@@ -16,20 +16,9 @@ const getOpenAIClient = () => {
 }
 
 /**
- * Helper function to make OpenAI API requests with a callback
- * @param callback Function that uses the OpenAI client
- * @returns The result of the callback
- */
-export async function openaiRequest<T>(callback: (openai: any) => Promise<T>): Promise<T> {
-  // This is a server-side function that will be implemented separately
-  // For now, we'll throw an error if it's called on the client
-  throw new Error("openaiRequest can only be used on the server")
-}
-
-/**
  * Makes a request to the OpenAI API
  */
-export async function serverOpenaiRequest<T>(callback: (openai: OpenAI) => Promise<T>): Promise<T> {
+export async function openaiRequest<T>(callback: (openai: OpenAI) => Promise<T>): Promise<T> {
   try {
     const openai = getOpenAIClient()
     return await callback(openai)
@@ -99,10 +88,3 @@ export async function generatePriceEstimate(
     throw error
   }
 }
-
-// Re-export client-side functions
-export {
-  generatePriceEstimate as getPriceEstimate,
-  generateProductDescription,
-  generateOptimizedTitle,
-} from "./openai-browser"

@@ -1,33 +1,5 @@
-import OpenAI from "openai"
+import { openaiRequest } from "@/lib/openai"
 import type { EbayComparable } from "@/lib/ebay-api"
-
-const openai = new OpenAI({
-  apiKey: process.env.PRICING_OPENAI_API_KEY,
-})
-
-/**
- * Generates a price estimate using OpenAI
- * @param itemDetails Item description
- * @param condition Item condition
- * @returns Estimated price range
- */
-export async function generatePriceEstimate(itemDetails: string, condition: string): Promise<string> {
-  const prompt = `You are an expert pricing assistant. Given the following item details and condition, provide a price range in USD with the format "$xx-$yy" or a single price "$xx". 
- 
-Item Details: ${itemDetails}
-Condition: ${condition}
-
-Please respond only with the price range or single price.`
-
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.3,
-    max_tokens: 30,
-  })
-
-  return completion.choices[0].message.content.trim()
-}
 
 /**
  * Generate a price estimate using OpenAI with eBay comparables
@@ -61,20 +33,22 @@ export async function generatePriceEstimateWithComparables(
       Format your response as JSON with keys: estimatedPrice, confidence, reasoning
     `
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a pricing expert who specializes in estimating the value of items based on market comparables.",
-        },
-        { role: "user", content: prompt },
-      ],
-      response_format: { type: "json_object" },
-    })
+    const response = await openaiRequest((openai) =>
+      openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a pricing expert who specializes in estimating the value of items based on market comparables.",
+          },
+          { role: "user", content: prompt },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    )
 
-    const content = completion.choices[0]?.message?.content
+    const content = response.choices[0]?.message?.content
     if (!content) {
       throw new Error("No response from OpenAI")
     }
@@ -123,19 +97,21 @@ export async function fallbackPriceEstimation(
       Format your response as JSON with keys: estimatedPrice, confidence, reasoning
     `
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are a pricing expert who specializes in estimating the value of secondhand items.",
-        },
-        { role: "user", content: prompt },
-      ],
-      response_format: { type: "json_object" },
-    })
+    const response = await openaiRequest((openai) =>
+      openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a pricing expert who specializes in estimating the value of secondhand items.",
+          },
+          { role: "user", content: prompt },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    )
 
-    const content = completion.choices[0]?.message?.content
+    const content = response.choices[0]?.message?.content
     if (!content) {
       throw new Error("No response from OpenAI")
     }
