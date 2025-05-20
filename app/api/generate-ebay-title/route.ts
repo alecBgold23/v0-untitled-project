@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
-// Fallback title generator
-function generateFallbackTitle(title: string, condition?: string, extraDetails?: string): string {
+// Simple title generator without any API dependencies
+function generateTitle(title: string, condition?: string, extraDetails?: string): string {
   const conditionText = condition ? `${condition.charAt(0).toUpperCase() + condition.slice(1)} ` : ""
 
   // Clean up the title
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     // Generate a title without using OpenAI
-    const shortTitle = generateFallbackTitle(title, condition, extraDetails)
+    const shortTitle = generateTitle(title, condition, extraDetails)
 
     return NextResponse.json({ shortTitle })
   } catch (error: any) {
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error: "Server error",
-        shortTitle: generateFallbackTitle("Unknown Item", "used"),
+        shortTitle: generateTitle("Unknown Item", "used"),
       },
       { status: 500 },
     )

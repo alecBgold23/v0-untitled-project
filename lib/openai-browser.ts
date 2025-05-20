@@ -93,14 +93,57 @@ export async function openaiRequest(
 }
 
 /**
- * Generates a price estimate using algorithmic methods
+ * Gets a price estimate for an item
  * @param description Item description
  * @param condition Item condition
- * @returns Estimated price range
+ * @param category Optional category
+ * @returns Price estimate with min and max values
  */
-export async function generatePriceEstimate(description: string, condition = "used"): Promise<string> {
-  // Use algorithmic pricing directly - skip OpenAI completely
-  return generateFallbackPrice(description, condition)
+export async function getPriceEstimate(
+  description: string,
+  condition: string,
+  category?: string,
+): Promise<{ min: number; max: number; currency: string }> {
+  try {
+    // Extract price range from the generated estimate
+    const priceText = await generateFallbackPrice(description, condition)
+
+    // Parse the price range
+    const priceMatch = priceText.match(/\$(\d+(?:\.\d+)?)-\$(\d+(?:\.\d+)?)/)
+
+    if (priceMatch) {
+      return {
+        min: Number.parseFloat(priceMatch[1]),
+        max: Number.parseFloat(priceMatch[2]),
+        currency: "USD",
+      }
+    }
+
+    // Check for single price format
+    const singlePriceMatch = priceText.match(/\$(\d+(?:\.\d+)?)/)
+    if (singlePriceMatch) {
+      const price = Number.parseFloat(singlePriceMatch[1])
+      return {
+        min: price * 0.9, // 10% below the single price
+        max: price * 1.1, // 10% above the single price
+        currency: "USD",
+      }
+    }
+
+    // Fallback to a default range
+    return {
+      min: 20,
+      max: 100,
+      currency: "USD",
+    }
+  } catch (error) {
+    console.error("Error getting price estimate:", error)
+    return {
+      min: 20,
+      max: 100,
+      currency: "USD",
+    }
+  }
 }
 
 /**
@@ -336,218 +379,4 @@ function generateFallbackPrice(description: string, condition = "used"): string 
   const max = Math.floor(baseMax + Math.random() * 20)
 
   return `$${min}-$${max}`
-}
-
-/**
- * Gets a price estimate for an item
- * @param description Item description
- * @param condition Item condition
- * @param category Optional category
- * @returns Price estimate with min and max values
- */
-export async function getPriceEstimate(
-  description: string,
-  condition: string,
-  category?: string,
-): Promise<{ min: number; max: number; currency: string }> {
-  try {
-    // Extract price range from the generated estimate
-    const priceText = await generatePriceEstimate(description, condition)
-
-    // Parse the price range
-    const priceMatch = priceText.match(/\$(\d+(?:\.\d+)?)-\$(\d+(?:\.\d+)?)/)
-
-    if (priceMatch) {
-      return {
-        min: Number.parseFloat(priceMatch[1]),
-        max: Number.parseFloat(priceMatch[2]),
-        currency: "USD",
-      }
-    }
-
-    // Check for single price format
-    const singlePriceMatch = priceText.match(/\$(\d+(?:\.\d+)?)/)
-    if (singlePriceMatch) {
-      const price = Number.parseFloat(singlePriceMatch[1])
-      return {
-        min: price * 0.9, // 10% below the single price
-        max: price * 1.1, // 10% above the single price
-        currency: "USD",
-      }
-    }
-
-    // Fallback to a default range
-    return {
-      min: 20,
-      max: 100,
-      currency: "USD",
-    }
-  } catch (error) {
-    console.error("Error getting price estimate:", error)
-    return {
-      min: 20,
-      max: 100,
-      currency: "USD",
-    }
-  }
-}
-
-/**
- * Generates a product description using algorithmic methods
- * @param title Item title
- * @param condition Item condition
- * @param extraDetails Additional details
- * @returns Generated description
- */
-export async function generateProductDescription(title: string, condition: string, extraDetails = ""): Promise<string> {
-  // Skip OpenAI completely and use fallback
-  return generateFallbackDescription(title, condition, extraDetails)
-}
-
-/**
- * Generates a fallback description when OpenAI is unavailable
- */
-function generateFallbackDescription(title = "", condition = "", extraDetails = ""): string {
-  const conditionText = getConditionDescription(condition)
-  const titleText = title || "This item"
-
-  const description = `
-${titleText} is available for purchase in ${condition || "used"} condition. ${extraDetails}
-
-${conditionText}
-
-This would make a great addition to your collection or home. Please review all photos and details before purchasing.
-  `.trim()
-
-  return description
-}
-
-/**
- * Get a description of the condition
- */
-function getConditionDescription(condition: string): string {
-  const conditionLower = condition.toLowerCase()
-
-  if (conditionLower.includes("new") || conditionLower.includes("mint")) {
-    return "The item is in pristine condition with no signs of wear or damage. All original packaging and accessories are included."
-  }
-
-  if (conditionLower.includes("like new") || conditionLower.includes("excellent")) {
-    return "The item shows minimal signs of use and is in excellent working condition. It has been well-maintained and cared for."
-  }
-
-  if (conditionLower.includes("very good")) {
-    return "The item shows minor signs of wear but is in very good condition overall. It functions perfectly as intended."
-  }
-
-  if (conditionLower.includes("good")) {
-    return "The item shows normal signs of wear consistent with regular use, but remains in good working condition."
-  }
-
-  if (conditionLower.includes("fair")) {
-    return "The item shows noticeable signs of wear and may have minor issues, but remains functional for its intended purpose."
-  }
-
-  if (conditionLower.includes("poor") || conditionLower.includes("for parts")) {
-    return "The item shows significant wear or damage and may have functional issues. It may be best suited for parts or restoration."
-  }
-
-  return "The item is in used condition with normal signs of wear. Please review all details and photos for a complete understanding of its condition."
-}
-
-/**
- * Generates an optimized title for a marketplace listing
- * @param description Item description
- * @param platform Platform (e.g., "eBay", "Facebook Marketplace")
- * @returns Optimized title
- */
-export async function generateOptimizedTitle(description: string, platform = "eBay"): Promise<string> {
-  // Skip OpenAI completely and use fallback
-  return generateFallbackTitle(description)
-}
-
-/**
- * Generates a fallback title when OpenAI is unavailable
- */
-function generateFallbackTitle(description: string): string {
-  // Create a title from the first few words, but try to make it more intelligent
-  const words = description.split(/\s+/).filter(Boolean)
-
-  // Extract key information
-  const brandKeywords = ["brand", "by", "from", "made"]
-  const sizeKeywords = ["size", "sized", "inches", "cm", "mm", "ft", "meter"]
-  const colorKeywords = [
-    "color",
-    "colored",
-    "black",
-    "white",
-    "red",
-    "blue",
-    "green",
-    "yellow",
-    "purple",
-    "pink",
-    "brown",
-    "gray",
-    "grey",
-    "silver",
-    "gold",
-  ]
-
-  // Try to identify important parts of the description
-  let brand = ""
-  let size = ""
-  let color = ""
-  let itemType = ""
-
-  // Extract the first 2-3 words as the item type
-  itemType = words.slice(0, Math.min(3, words.length)).join(" ")
-
-  // Look for brand indicators
-  for (let i = 0; i < words.length - 1; i++) {
-    if (brandKeywords.includes(words[i].toLowerCase())) {
-      brand = words[i + 1]
-      if (i + 2 < words.length && words[i + 2].length > 1 && !words[i + 2].includes(",")) {
-        brand += " " + words[i + 2]
-      }
-    }
-  }
-
-  // Look for size indicators
-  for (let i = 0; i < words.length - 1; i++) {
-    if (sizeKeywords.includes(words[i].toLowerCase())) {
-      size = words[i + 1]
-    }
-  }
-
-  // Look for color indicators
-  for (let i = 0; i < words.length - 1; i++) {
-    if (colorKeywords.includes(words[i].toLowerCase())) {
-      color = words[i]
-      break
-    }
-  }
-
-  // Construct a title
-  let title = itemType
-
-  if (brand) {
-    title = brand + " " + title
-  }
-
-  if (color) {
-    title += " " + color
-  }
-
-  if (size) {
-    title += " Size " + size
-  }
-
-  // If the title is too short, add more words from the description
-  if (title.split(" ").length < 4 && words.length > 5) {
-    title += " " + words.slice(3, 6).join(" ")
-  }
-
-  // Ensure the title isn't too long
-  return title.slice(0, 80)
 }
