@@ -1,134 +1,89 @@
-import { openaiRequest } from "@/lib/openai"
-import type { EbayComparable } from "@/lib/ebay-api"
+import OpenAI from "openai"
+import { getPriceEstimates, calculateAveragePrice } from "./ebay-api"
+
+const openai = new OpenAI({
+  apiKey: process.env.PRICING_OPENAI_API_KEY,
+})
+
+export async function generatePriceEstimate(itemDetails: string, condition: string): Promise<string> {
+  const prompt = `You are an expert pricing assistant. Given the following item details and condition, provide a price range in USD with the format "$xx-$yy" or a single price "$xx". 
+  
+Item Details: ${itemDetails}
+Condition: ${condition}
+
+Please respond only with the price range or single price.`
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.3,
+    max_tokens: 30,
+  })
+
+  return completion.choices[0].message.content.trim()
+}
 
 /**
- * Generate a price estimate using OpenAI with eBay comparables
+ * Generates a price estimate with comparable items from eBay
  * @param description Item description
  * @param condition Item condition
- * @param comparables eBay comparable items
- * @returns Price estimate with confidence and reasoning
+ * @param category Optional category
+ * @returns Price estimate with comparable items
  */
 export async function generatePriceEstimateWithComparables(
   description: string,
   condition: string,
-  comparables: EbayComparable[],
-): Promise<{ estimatedPrice: number; confidence: string; reasoning: string }> {
+  category?: string,
+): Promise<{
+  estimatedPrice: string
+  comparableItems: any[]
+  aiEstimate: string
+}> {
   try {
-    console.log(`Generating price estimate with ${comparables.length} eBay comparables`)
+    // Get AI-generated price estimate
+    const aiEstimate = await generatePriceEstimate(description, condition)
 
-    const prompt = `
-      I need to estimate the resale value of the following item:
-      
-      Item Description: ${description}
-      Condition: ${condition}
-      
-      Here are ${comparables.length} similar items from eBay:
-      ${JSON.stringify(comparables, null, 2)}
-      
-      Based on these comparable items and the description, please provide:
-      1. An estimated price in USD (just the number)
-      2. Your confidence level (low, medium, high)
-      3. Brief reasoning for your estimate
-      
-      Format your response as JSON with keys: estimatedPrice, confidence, reasoning
-    `
+    // Get comparable items from eBay
+    const comparableItems = await getPriceEstimates(description, category, condition)
 
-    const response = await openaiRequest((openai) =>
-      openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a pricing expert who specializes in estimating the value of items based on market comparables.",
-          },
-          { role: "user", content: prompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    )
+    // Calculate average price from eBay data
+    const averagePrice = calculateAveragePrice(comparableItems)
 
-    const content = response.choices[0]?.message?.content
-    if (!content) {
-      throw new Error("No response from OpenAI")
+    let estimatedPrice = aiEstimate
+
+    // If we have eBay data, combine it with AI estimate
+    if (averagePrice) {
+      // Extract min and max from AI estimate
+      const aiMatch = aiEstimate.match(/\$(\d+(?:\.\d+)?)-\$(\d+(?:\.\d+)?)/)
+
+      if (aiMatch) {
+        const aiMin = Number.parseFloat(aiMatch[1])
+        const aiMax = Number.parseFloat(aiMatch[2])
+        const ebayPrice = Number.parseFloat(averagePrice.value)
+
+        // Blend AI and eBay prices (60% AI, 40% eBay)
+        const blendedMin = Math.round(aiMin * 0.6 + ebayPrice * 0.4)
+        const blendedMax = Math.round(aiMax * 0.6 + ebayPrice * 0.4)
+
+        estimatedPrice = `$${blendedMin}-$${blendedMax}`
+      }
     }
 
-    try {
-      const result = JSON.parse(content)
-      return {
-        estimatedPrice: Number.parseFloat(result.estimatedPrice),
-        confidence: result.confidence,
-        reasoning: result.reasoning,
-      }
-    } catch (parseError) {
-      console.error("Failed to parse OpenAI response:", parseError)
-      throw new Error("Invalid response format from price estimation service")
+    return {
+      estimatedPrice,
+      comparableItems: comparableItems.slice(0, 5),
+      aiEstimate,
     }
   } catch (error) {
-    console.error("Price estimation with comparables failed:", error)
-    throw error
-  }
-}
+    console.error("Error generating price estimate with comparables:", error)
 
-/**
- * Fallback price estimation when eBay data is not available
- * @param description Item description
- * @param condition Item condition
- * @returns Price estimate
- */
-export async function fallbackPriceEstimation(
-  description: string,
-  condition: string,
-): Promise<{ estimatedPrice: number; confidence: string; reasoning: string }> {
-  try {
-    console.log("Using fallback price estimation without eBay data")
+    // Fallback to AI estimate only
+    const aiEstimate = await generatePriceEstimate(description, condition)
 
-    const prompt = `
-      I need to estimate the resale value of the following item without market comparables:
-      
-      Item Description: ${description}
-      Condition: ${condition}
-      
-      Please provide:
-      1. An estimated price in USD (just the number)
-      2. Your confidence level (low, medium, high)
-      3. Brief reasoning for your estimate
-      
-      Format your response as JSON with keys: estimatedPrice, confidence, reasoning
-    `
-
-    const response = await openaiRequest((openai) =>
-      openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are a pricing expert who specializes in estimating the value of secondhand items.",
-          },
-          { role: "user", content: prompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    )
-
-    const content = response.choices[0]?.message?.content
-    if (!content) {
-      throw new Error("No response from OpenAI")
+    return {
+      estimatedPrice: aiEstimate,
+      comparableItems: [],
+      aiEstimate,
     }
-
-    try {
-      const result = JSON.parse(content)
-      return {
-        estimatedPrice: Number.parseFloat(result.estimatedPrice),
-        confidence: result.confidence,
-        reasoning: result.reasoning,
-      }
-    } catch (parseError) {
-      console.error("Failed to parse OpenAI response:", parseError)
-      throw new Error("Invalid response format from price estimation service")
-    }
-  } catch (error) {
-    console.error("Fallback price estimation failed:", error)
-    throw error
   }
 }

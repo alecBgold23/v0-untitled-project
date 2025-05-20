@@ -775,8 +775,6 @@ export function parsePriceRange(priceRange: string): { min: number; max: number 
 
 /**
  * Calculate the average price from a price range
- * @param priceRange Price range string or object
- * @returns Average price
  */
 export function calculateAveragePrice(priceRange: string | { min: number; max: number }): number {
   try {

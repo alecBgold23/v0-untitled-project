@@ -339,6 +339,60 @@ function generateFallbackPrice(description: string, condition = "used"): string 
 }
 
 /**
+ * Gets a price estimate for an item
+ * @param description Item description
+ * @param condition Item condition
+ * @param category Optional category
+ * @returns Price estimate with min and max values
+ */
+export async function getPriceEstimate(
+  description: string,
+  condition: string,
+  category?: string,
+): Promise<{ min: number; max: number; currency: string }> {
+  try {
+    // Extract price range from the generated estimate
+    const priceText = await generatePriceEstimate(description, condition)
+
+    // Parse the price range
+    const priceMatch = priceText.match(/\$(\d+(?:\.\d+)?)-\$(\d+(?:\.\d+)?)/)
+
+    if (priceMatch) {
+      return {
+        min: Number.parseFloat(priceMatch[1]),
+        max: Number.parseFloat(priceMatch[2]),
+        currency: "USD",
+      }
+    }
+
+    // Check for single price format
+    const singlePriceMatch = priceText.match(/\$(\d+(?:\.\d+)?)/)
+    if (singlePriceMatch) {
+      const price = Number.parseFloat(singlePriceMatch[1])
+      return {
+        min: price * 0.9, // 10% below the single price
+        max: price * 1.1, // 10% above the single price
+        currency: "USD",
+      }
+    }
+
+    // Fallback to a default range
+    return {
+      min: 20,
+      max: 100,
+      currency: "USD",
+    }
+  } catch (error) {
+    console.error("Error getting price estimate:", error)
+    return {
+      min: 20,
+      max: 100,
+      currency: "USD",
+    }
+  }
+}
+
+/**
  * Generates a product description using algorithmic methods
  * @param title Item title
  * @param condition Item condition

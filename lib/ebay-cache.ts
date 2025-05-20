@@ -1,57 +1,53 @@
 /**
- * Simple in-memory cache for eBay results
- * In a production environment, this should be replaced with Redis or another distributed cache
+ * In-memory cache for eBay API responses
+ * This helps reduce API calls and improve performance
  */
+const cache: Record<string, { data: any; timestamp: number }> = {}
 
-interface CacheEntry {
-  data: any
-  timestamp: number
-}
-
-// Cache storage
-const cache: Record<string, CacheEntry> = {}
-
-// Cache TTL in milliseconds (6 hours)
-const CACHE_TTL = 6 * 60 * 60 * 1000
+// Cache expiration time (24 hours in milliseconds)
+const CACHE_EXPIRATION = 24 * 60 * 60 * 1000
 
 /**
- * Generate a cache key from search parameters
- * @param params Search parameters
+ * Generates a cache key from the request parameters
+ * @param type Request type (e.g., 'search', 'item')
+ * @param params Request parameters
  * @returns Cache key
  */
 export function generateCacheKey(type: string, params: Record<string, any>): string {
-  const sortedParams = Object.entries(params)
-    .filter(([_, value]) => value !== undefined)
-    .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-    .map(([key, value]) => `${key}=${value}`)
-    .join("&")
+  const sortedParams = Object.keys(params)
+    .sort()
+    .map((key) => `${key}:${params[key]}`)
+    .join("|")
 
-  return `ebay:${type}:${sortedParams}`
+  return `${type}:${sortedParams}`
 }
 
 /**
- * Get data from cache
+ * Gets cached data if available and not expired
  * @param key Cache key
  * @returns Cached data or null if not found or expired
  */
 export function getCachedData(key: string): any | null {
-  const entry = cache[key]
+  const cachedItem = cache[key]
 
-  if (!entry) {
+  if (!cachedItem) {
     return null
   }
 
-  // Check if entry is expired
-  if (Date.now() - entry.timestamp > CACHE_TTL) {
+  const now = Date.now()
+
+  // Check if cache is expired
+  if (now - cachedItem.timestamp > CACHE_EXPIRATION) {
+    // Remove expired cache
     delete cache[key]
     return null
   }
 
-  return entry.data
+  return cachedItem.data
 }
 
 /**
- * Store data in cache
+ * Caches data with the given key
  * @param key Cache key
  * @param data Data to cache
  */
@@ -60,13 +56,22 @@ export function cacheData(key: string, data: any): void {
     data,
     timestamp: Date.now(),
   }
+
+  // Clean up old cache entries periodically
+  if (Object.keys(cache).length > 100) {
+    cleanupCache()
+  }
 }
 
 /**
- * Clear all cached data
+ * Cleans up expired cache entries
  */
-export function clearCache(): void {
+function cleanupCache(): void {
+  const now = Date.now()
+
   Object.keys(cache).forEach((key) => {
-    delete cache[key]
+    if (now - cache[key].timestamp > CACHE_EXPIRATION) {
+      delete cache[key]
+    }
   })
 }
