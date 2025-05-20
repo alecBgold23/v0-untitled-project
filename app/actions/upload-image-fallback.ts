@@ -58,8 +58,11 @@ export async function uploadImageFallback(file: File, userId: string) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Try multiple buckets in order of preference
-    const bucketNames = ["uploads", "images", "itemimages", "default"]
+    // Try item_images first, then fallback to others
+    const primaryBucket = "item_images"
+    const fallbackBuckets = ["itemimages", "uploads", "images", "default"]
+    const bucketNames = [primaryBucket, ...fallbackBuckets]
+
     let uploadResult = null
     let uploadError = null
     let successBucket = null

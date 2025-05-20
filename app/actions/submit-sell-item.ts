@@ -19,6 +19,8 @@ export async function submitSellItemToSupabase(formData: {
   photoCount?: number
   imageUrl?: string
   imagePath?: string
+  estimatedPrice?: string
+  estimatedPriceNumeric?: number
 }) {
   try {
     console.log("Starting submission process with data:", JSON.stringify(formData, null, 2))
@@ -40,7 +42,7 @@ export async function submitSellItemToSupabase(formData: {
     }
 
     // Ensure itemIssues is never null - use empty string as fallback
-    const itemIssues = formData.itemIssues || "None"
+    const itemIssues = formData.itemIssues?.trim() ? formData.itemIssues : "None"
     console.log("Item issues value:", itemIssues)
 
     // Ensure imageUrl is never null - use empty string as fallback
@@ -63,8 +65,13 @@ export async function submitSellItemToSupabase(formData: {
       submission_date: new Date().toISOString(),
       image_url: imageUrl, // Using the non-null value
       image_path: formData.imagePath || "",
+      estimated_price: formData.estimatedPrice || null,
+      estimated_price_numeric: formData.estimatedPriceNumeric || null,
     }
 
+    console.log("Final item_issues value being sent to Supabase:", itemData.item_issues)
+    console.log("Estimated price being sent to Supabase:", itemData.estimated_price)
+    console.log("Numeric price being sent to Supabase:", itemData.estimated_price_numeric)
     console.log("Prepared item data for Supabase:", JSON.stringify(itemData, null, 2))
 
     // Store in temporary memory as a fallback
@@ -133,6 +140,7 @@ export async function submitSellItemToSupabase(formData: {
         address: formData.address || "",
         pickupDate: formData.pickupDate || "",
         imageUrl: formData.imageUrl || "",
+        estimatedPrice: formData.estimatedPrice || "",
       })
 
       if (!emailResult.success) {

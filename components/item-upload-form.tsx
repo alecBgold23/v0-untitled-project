@@ -110,7 +110,7 @@ export default function ItemUploadForm() {
         itemName: formData.itemName,
         itemDescription: formData.itemDescription,
         itemCondition: formData.itemCondition,
-        itemIssues: formData.itemIssues || "None", // Ensure this is never null
+        itemIssues: formData.itemIssues?.trim() ? formData.itemIssues : "None", // Ensure this is never null or empty
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,

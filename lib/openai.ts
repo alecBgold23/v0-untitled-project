@@ -2,17 +2,34 @@ import { OpenAI } from "openai"
 
 // Initialize OpenAI client
 const getOpenAIClient = () => {
-  const apiKey = process.env.OPENAI_API_KEY
+  // First try to get the pricing-specific key
+  const apiKey = process.env.PRICING_OPENAI_API_KEY || process.env.OPENAI_API_KEY
+
   if (!apiKey) {
     throw new Error("OpenAI API key is not set")
   }
+
+  // Log when the key is being used (without exposing the actual key)
+  console.log(`OpenAI API key being used at: ${new Date().toISOString()}`)
+
   return new OpenAI({ apiKey })
+}
+
+/**
+ * Helper function to make OpenAI API requests with a callback
+ * @param callback Function that uses the OpenAI client
+ * @returns The result of the callback
+ */
+export async function openaiRequest<T>(callback: (openai: any) => Promise<T>): Promise<T> {
+  // This is a server-side function that will be implemented separately
+  // For now, we'll throw an error if it's called on the client
+  throw new Error("openaiRequest can only be used on the server")
 }
 
 /**
  * Makes a request to the OpenAI API
  */
-export async function openaiRequest<T>(callback: (openai: OpenAI) => Promise<T>): Promise<T> {
+export async function serverOpenaiRequest<T>(callback: (openai: OpenAI) => Promise<T>): Promise<T> {
   try {
     const openai = getOpenAIClient()
     return await callback(openai)
@@ -32,6 +49,7 @@ export async function generatePriceEstimate(
 ): Promise<{ estimatedPrice: number; confidence: string; reasoning: string }> {
   try {
     const openai = getOpenAIClient()
+    console.log(`Generating price estimate for item: ${itemName} at ${new Date().toISOString()}`)
 
     const prompt = `
       I need to estimate the resale value of the following item:
@@ -81,3 +99,10 @@ export async function generatePriceEstimate(
     throw error
   }
 }
+
+// Re-export client-side functions
+export {
+  generatePriceEstimate as getPriceEstimate,
+  generateProductDescription,
+  generateOptimizedTitle,
+} from "./openai-browser"

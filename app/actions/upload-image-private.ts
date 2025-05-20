@@ -85,8 +85,11 @@ export async function uploadImagePrivate(file: File, userId: string) {
     const buffer = Buffer.from(arrayBuffer)
     console.log(`Successfully converted file to buffer, size: ${buffer.length} bytes`)
 
-    // Try multiple buckets in order of preference
-    const bucketNames = ["itemimages", "uploads", "images", "default"]
+    // Use item_images as the primary bucket, with fallbacks if needed
+    const primaryBucket = "item_images"
+    const fallbackBuckets = ["itemimages", "uploads", "images", "default"]
+    const bucketNames = [primaryBucket, ...fallbackBuckets]
+
     let uploadResult = null
     let uploadError = null
 

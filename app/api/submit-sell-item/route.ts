@@ -10,14 +10,19 @@ export async function POST(req: Request) {
       item_name,
       item_description,
       item_condition,
-      item_issues,
+      item_issues: rawItemIssues,
       full_name,
       email,
       phone,
       address,
       pickup_date,
       photo_count,
+      estimated_price,
+      estimated_price_numeric,
     } = body
+
+    // Ensure item_issues is never null or empty
+    const item_issues = rawItemIssues?.trim() ? rawItemIssues : "None"
 
     const { data, error } = await supabase
       .from("sell_items")
@@ -33,6 +38,8 @@ export async function POST(req: Request) {
           address,
           pickup_date,
           photo_count,
+          estimated_price,
+          estimated_price_numeric,
         },
       ])
       .select()

@@ -11,6 +11,7 @@ export default function Home() {
   const router = useRouter()
   const [showInitialLine, setShowInitialLine] = useState(true)
   const isMobile = useIsMobile()
+  const [scrollY, setScrollY] = useState(0)
 
   // Function to navigate to sell item page with smooth transition
   const navigateToSellItem = () => {
@@ -29,6 +30,15 @@ export default function Home() {
       setShowInitialLine(false)
     }, 100)
     return () => clearTimeout(hideTimer)
+  }, [])
+
+  // Track scroll position for parallax effects
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
   // Add this useEffect after the existing useEffect
@@ -178,9 +188,7 @@ export default function Home() {
           {/* Why Choose BluBerry */}
           <ContentAnimation delay={0.4}>
             <h3 className="text-xl font-medium mb-6 text-center">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
-                Why Choose BluBerry
-              </span>
+              <span className={`${isMobile ? "text-white" : "text-foreground"} font-medium`}>Why Choose BluBerry</span>
             </h3>
             <p
               className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} mb-8 text-center max-w-2xl mx-auto text-xs`}

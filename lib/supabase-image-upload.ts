@@ -36,7 +36,41 @@ export async function uploadImageClient(file: File, userId = "anonymous") {
 
     console.log("Uploading file:", fileName)
 
-    // Upload file
+    // Try to upload to item_images bucket first
+    try {
+      const { data, error } = await supabase.storage.from("item_images").upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+      })
+
+      if (!error) {
+        // Generate a signed URL (valid for 7 days)
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from("item_images")
+          .createSignedUrl(data.path, 60 * 60 * 24 * 7) // 7 days
+
+        if (signedUrlError) {
+          console.error("Signed URL error:", signedUrlError)
+          throw new Error("Failed to generate signed URL")
+        }
+
+        console.log("Upload successful to item_images:", data.path)
+        console.log("Signed URL:", signedUrlData.signedUrl)
+
+        return {
+          success: true,
+          path: data.path,
+          url: signedUrlData.signedUrl,
+          signedUrl: signedUrlData.signedUrl,
+          bucket: "item_images",
+        }
+      }
+    } catch (itemImagesError) {
+      console.error("Error uploading to item_images bucket:", itemImagesError)
+      // Continue to fallback bucket
+    }
+
+    // Fallback to images2 bucket
     const { data, error } = await supabase.storage.from("images2").upload(fileName, file, {
       cacheControl: "3600",
       upsert: false,
@@ -61,7 +95,7 @@ export async function uploadImageClient(file: File, userId = "anonymous") {
       throw new Error("Failed to generate signed URL")
     }
 
-    console.log("Upload successful:", data.path)
+    console.log("Upload successful to fallback bucket:", data.path)
     console.log("Signed URL:", signedUrlData.signedUrl)
 
     return {
@@ -69,6 +103,7 @@ export async function uploadImageClient(file: File, userId = "anonymous") {
       path: data.path,
       url: signedUrlData.signedUrl,
       signedUrl: signedUrlData.signedUrl,
+      bucket: "images2",
     }
   } catch (error) {
     console.error("Upload error:", error)
@@ -82,7 +117,23 @@ export async function uploadImageClient(file: File, userId = "anonymous") {
 // Function to check if Supabase storage is configured correctly
 export async function checkSupabaseStorage() {
   try {
-    // Try to list files in the images bucket
+    // Try to list files in the item_images bucket first
+    try {
+      const { data, error } = await supabase.storage.from("item_images").list()
+
+      if (!error) {
+        return {
+          success: true,
+          message: "item_images bucket is configured correctly",
+          files: data?.length || 0,
+          bucket: "item_images",
+        }
+      }
+    } catch (itemImagesError) {
+      console.error("Error checking item_images bucket:", itemImagesError)
+    }
+
+    // Fallback to images2 bucket
     const { data, error } = await supabase.storage.from("images2").list()
 
     if (error) {
@@ -96,6 +147,7 @@ export async function checkSupabaseStorage() {
       success: true,
       message: "Supabase storage is configured correctly",
       files: data?.length || 0,
+      bucket: "images2",
     }
   } catch (error) {
     return {
@@ -106,7 +158,7 @@ export async function checkSupabaseStorage() {
 }
 
 // Server-side image upload function with signed URL (for use in Node.js)
-export async function uploadImageToSupabase(fileBuffer: Buffer, fileName: string, bucket = "images2") {
+export async function uploadImageToSupabase(fileBuffer: Buffer, fileName: string, bucket = "item_images") {
   const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
   const filePath = `uploads/${Date.now()}-${fileName}`
@@ -144,7 +196,7 @@ export async function uploadImageToSupabase(fileBuffer: Buffer, fileName: string
 // Additional browser-compatible functions
 export async function uploadImageToSupabaseBrowser(
   file: File,
-  bucket = "images2",
+  bucket = "item_images",
   path = "",
 ): Promise<{ url: string; signedUrl?: string } | { error: string }> {
   try {

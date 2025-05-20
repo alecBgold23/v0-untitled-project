@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
 interface PriceEstimatorProps {
   initialDescription?: string
   initialName?: string
-  onPriceEstimated?: (price: string) => void
+  onPriceEstimated?: (price: string, numericPrice: number) => void
   className?: string
   itemId?: string
 }
@@ -32,10 +32,12 @@ export function PriceEstimator({
   const [condition, setCondition] = useState("Good")
   const [defects, setDefects] = useState("")
   const [estimatedPrice, setEstimatedPrice] = useState<string | null>(null)
+  const [numericPrice, setNumericPrice] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [savedToDatabase, setSavedToDatabase] = useState(false)
   const [priceSource, setPriceSource] = useState<string | null>(null)
+  const [category, setCategory] = useState("Auto-detect")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,7 +62,8 @@ export function PriceEstimator({
           condition,
           defects,
           itemId,
-          item_id: itemId, // Include both formats for compatibility
+          category,
+          item_id: itemId,
           item_name: itemName,
           brief_description: description,
         }),
@@ -82,12 +85,16 @@ export function PriceEstimator({
       setEstimatedPrice(price)
       setPriceSource(data.source || "api")
 
+      // Extract numeric price for database storage
+      const numericValue = extractNumericPrice(price)
+      setNumericPrice(numericValue)
+
       if (itemId) {
         setSavedToDatabase(true)
       }
 
       if (onPriceEstimated) {
-        onPriceEstimated(price)
+        onPriceEstimated(price, numericValue)
       }
     } catch (err: any) {
       console.error("Error estimating price:", err)
@@ -97,17 +104,31 @@ export function PriceEstimator({
       const fallbackPrice = "$25"
       setEstimatedPrice(fallbackPrice)
       setPriceSource("error_fallback")
+      setNumericPrice(25)
 
       if (onPriceEstimated) {
-        onPriceEstimated(fallbackPrice)
+        onPriceEstimated(fallbackPrice, 25)
       }
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Helper function to extract numeric price from string (e.g., "$1,200" -> 1200)
+  const extractNumericPrice = (priceString: string): number => {
+    try {
+      // Remove currency symbol, commas, and any other non-numeric characters except decimal point
+      const numericString = priceString.replace(/[^0-9.]/g, "")
+      return Number.parseFloat(numericString) || 0
+    } catch (error) {
+      console.error("Error extracting numeric price:", error)
+      return 0
+    }
+  }
+
   const resetEstimate = () => {
     setEstimatedPrice(null)
+    setNumericPrice(null)
     setSavedToDatabase(false)
     setPriceSource(null)
   }
@@ -195,11 +216,44 @@ export function PriceEstimator({
                   <SelectValue placeholder="Select condition" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Brand New">Brand New</SelectItem>
                   <SelectItem value="Like New">Like New</SelectItem>
                   <SelectItem value="Excellent">Excellent</SelectItem>
                   <SelectItem value="Good">Good</SelectItem>
                   <SelectItem value="Fair">Fair</SelectItem>
                   <SelectItem value="Poor">Poor</SelectItem>
+                  <SelectItem value="For Parts">For Parts/Not Working</SelectItem>
+                  {/* Vehicle-specific conditions */}
+                  <SelectItem value="Low Mileage">Low Mileage</SelectItem>
+                  <SelectItem value="High Mileage">High Mileage</SelectItem>
+                  <SelectItem value="Certified Pre-Owned">Certified Pre-Owned</SelectItem>
+                  <SelectItem value="Salvage Title">Salvage Title</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="category" className="block text-sm font-medium mb-1">
+                Category (Optional)
+              </Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Auto-detect">Auto-detect</SelectItem>
+                  <SelectItem value="vehicle">Vehicle</SelectItem>
+                  <SelectItem value="vehicle_luxury">Luxury Vehicle</SelectItem>
+                  <SelectItem value="vehicle_suv">SUV/Truck</SelectItem>
+                  <SelectItem value="vehicle_electric">Electric Vehicle</SelectItem>
+                  <SelectItem value="vehicle_motorcycle">Motorcycle</SelectItem>
+                  <SelectItem value="jewelry">Jewelry</SelectItem>
+                  <SelectItem value="watch_luxury">Luxury Watch</SelectItem>
+                  <SelectItem value="art">Art/Collectible</SelectItem>
+                  <SelectItem value="electronics">Electronics</SelectItem>
+                  <SelectItem value="furniture">Furniture</SelectItem>
+                  <SelectItem value="clothing">Clothing</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>

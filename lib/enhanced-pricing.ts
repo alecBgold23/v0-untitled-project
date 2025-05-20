@@ -125,6 +125,212 @@ export function detectCategory(
     }
   }
 
+  // Cars and Vehicles
+  if (
+    text.includes("car") ||
+    text.includes("vehicle") ||
+    text.includes("auto") ||
+    text.includes("truck") ||
+    text.includes("suv") ||
+    text.includes("sedan") ||
+    text.includes("coupe") ||
+    text.includes("convertible") ||
+    text.includes("motorcycle") ||
+    text.includes("bike")
+  ) {
+    // Luxury car brands
+    if (
+      text.includes("mercedes") ||
+      text.includes("bmw") ||
+      text.includes("audi") ||
+      text.includes("lexus") ||
+      text.includes("porsche") ||
+      text.includes("tesla") ||
+      text.includes("ferrari") ||
+      text.includes("lamborghini") ||
+      text.includes("maserati") ||
+      text.includes("bentley") ||
+      text.includes("rolls royce")
+    ) {
+      return { category: "vehicle_luxury", basePrice: 50000, confidence: 0.9 }
+    }
+
+    // Sports cars
+    if (
+      text.includes("sports car") ||
+      text.includes("performance") ||
+      text.includes("turbo") ||
+      text.includes("supercharged") ||
+      text.includes("v8") ||
+      text.includes("v12")
+    ) {
+      return { category: "vehicle_sports", basePrice: 35000, confidence: 0.9 }
+    }
+
+    // Electric vehicles
+    if (
+      text.includes("electric") ||
+      text.includes("ev") ||
+      text.includes("hybrid") ||
+      text.includes("tesla") ||
+      text.includes("leaf") ||
+      text.includes("bolt") ||
+      text.includes("prius")
+    ) {
+      return { category: "vehicle_electric", basePrice: 30000, confidence: 0.9 }
+    }
+
+    // SUVs
+    if (
+      text.includes("suv") ||
+      text.includes("crossover") ||
+      text.includes("4x4") ||
+      text.includes("off-road") ||
+      text.includes("all-wheel drive") ||
+      text.includes("awd")
+    ) {
+      return { category: "vehicle_suv", basePrice: 25000, confidence: 0.9 }
+    }
+
+    // Trucks
+    if (
+      text.includes("truck") ||
+      text.includes("pickup") ||
+      text.includes("f-150") ||
+      text.includes("silverado") ||
+      text.includes("ram") ||
+      text.includes("tacoma") ||
+      text.includes("tundra")
+    ) {
+      return { category: "vehicle_truck", basePrice: 28000, confidence: 0.9 }
+    }
+
+    // Motorcycles
+    if (
+      text.includes("motorcycle") ||
+      text.includes("bike") ||
+      text.includes("harley") ||
+      text.includes("honda") ||
+      text.includes("yamaha") ||
+      text.includes("kawasaki") ||
+      text.includes("ducati") ||
+      text.includes("triumph")
+    ) {
+      return { category: "vehicle_motorcycle", basePrice: 8000, confidence: 0.9 }
+    }
+
+    // Sedan/standard cars
+    if (
+      text.includes("sedan") ||
+      text.includes("toyota") ||
+      text.includes("honda") ||
+      text.includes("nissan") ||
+      text.includes("ford") ||
+      text.includes("chevrolet") ||
+      text.includes("hyundai") ||
+      text.includes("kia")
+    ) {
+      return { category: "vehicle_sedan", basePrice: 18000, confidence: 0.9 }
+    }
+
+    // Generic vehicle
+    return { category: "vehicle", basePrice: 15000, confidence: 0.8 }
+  }
+
+  // Watches and Jewelry (high-value items)
+  if (
+    text.includes("watch") ||
+    text.includes("jewelry") ||
+    text.includes("ring") ||
+    text.includes("necklace") ||
+    text.includes("bracelet") ||
+    text.includes("earrings") ||
+    text.includes("diamond") ||
+    text.includes("gold") ||
+    text.includes("silver") ||
+    text.includes("platinum")
+  ) {
+    // Luxury watches
+    if (
+      text.includes("rolex") ||
+      text.includes("omega") ||
+      text.includes("tag heuer") ||
+      text.includes("breitling") ||
+      text.includes("patek philippe") ||
+      text.includes("audemars piguet") ||
+      text.includes("cartier") ||
+      text.includes("iwc") ||
+      text.includes("hublot") ||
+      text.includes("tudor")
+    ) {
+      return { category: "watch_luxury", basePrice: 8000, confidence: 0.9 }
+    }
+
+    // Diamond jewelry
+    if (
+      text.includes("diamond") ||
+      text.includes("engagement ring") ||
+      text.includes("wedding ring") ||
+      text.includes("carat")
+    ) {
+      return { category: "jewelry_diamond", basePrice: 3000, confidence: 0.9 }
+    }
+
+    // Gold jewelry
+    if (text.includes("gold") || text.includes("14k") || text.includes("18k") || text.includes("24k")) {
+      return { category: "jewelry_gold", basePrice: 1000, confidence: 0.9 }
+    }
+
+    // Standard watches
+    if (text.includes("watch")) {
+      return { category: "watch", basePrice: 200, confidence: 0.8 }
+    }
+
+    // Generic jewelry
+    return { category: "jewelry", basePrice: 300, confidence: 0.8 }
+  }
+
+  // Art and Collectibles
+  if (
+    text.includes("art") ||
+    text.includes("painting") ||
+    text.includes("sculpture") ||
+    text.includes("collectible") ||
+    text.includes("antique") ||
+    text.includes("vintage") ||
+    text.includes("rare") ||
+    text.includes("limited edition")
+  ) {
+    // Fine art
+    if (
+      text.includes("original") ||
+      text.includes("signed") ||
+      text.includes("artist") ||
+      text.includes("gallery") ||
+      text.includes("museum")
+    ) {
+      return { category: "art_fine", basePrice: 5000, confidence: 0.8 }
+    }
+
+    // Antiques
+    if (text.includes("antique") || text.includes("century") || text.includes("vintage") || text.includes("period")) {
+      return { category: "collectible_antique", basePrice: 2000, confidence: 0.8 }
+    }
+
+    // Collectibles
+    if (
+      text.includes("collectible") ||
+      text.includes("limited edition") ||
+      text.includes("rare") ||
+      text.includes("memorabilia")
+    ) {
+      return { category: "collectible", basePrice: 500, confidence: 0.8 }
+    }
+
+    // Generic art
+    return { category: "art", basePrice: 300, confidence: 0.7 }
+  }
+
   // Gaming Consoles
   if (
     text.includes("playstation") ||

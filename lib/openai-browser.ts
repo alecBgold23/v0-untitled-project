@@ -36,6 +36,9 @@ export async function openaiRequest(
     throw new Error("OpenAI API key is not configured")
   }
 
+  // Log API key usage (without exposing the key)
+  console.log(`OpenAI API request to ${endpoint} at ${new Date().toISOString()}`)
+
   const url = `https://api.openai.com/v1${endpoint}`
 
   const headers = {
@@ -66,15 +69,18 @@ export async function openaiRequest(
     // If the response is not OK, record a failure
     if (!response.ok) {
       recordFailure(OPENAI_SERVICE)
+      console.error(`OpenAI API request failed with status: ${response.status}`)
     } else {
       // Record a success to help reset the circuit breaker
       recordSuccess(OPENAI_SERVICE)
+      console.log(`OpenAI API request succeeded at ${new Date().toISOString()}`)
     }
 
     return response
   } catch (error) {
     // Record a failure for network errors
     recordFailure(OPENAI_SERVICE)
+    console.error("OpenAI API network error:", error)
 
     // For network errors, retry if we have retries left
     if (retries > 0) {
@@ -83,6 +89,37 @@ export async function openaiRequest(
       return openaiRequest(endpoint, method, body, retries - 1)
     }
     throw error
+  }
+}
+
+/**
+ * Get a price estimate for an item using the OpenAI API
+ * @param description Item description
+ * @param condition Item condition
+ * @returns Price estimate as a string (e.g., "$50-$75")
+ */
+export async function getPriceEstimate(description: string, condition: string): Promise<string> {
+  try {
+    const response = await fetch("/api/estimate-price", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        description,
+        condition,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Price estimation failed with status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.priceEstimate
+  } catch (error) {
+    console.error("Error getting price estimate:", error)
+    return generateFallbackPrice(description, condition)
   }
 }
 
@@ -179,19 +216,137 @@ function generateFallbackPrice(description: string, condition = "used"): string 
     }
   }
 
-  // Apply condition multiplier
+  // Check for specific high-value categories first
+
+  // Cars and vehicles
+  if (
+    text.includes("car") ||
+    text.includes("vehicle") ||
+    text.includes("truck") ||
+    text.includes("suv") ||
+    text.includes("sedan") ||
+    text.includes("motorcycle")
+  ) {
+    let vehicleBasePrice = 10000
+
+    // Luxury brands
+    if (
+      text.includes("mercedes") ||
+      text.includes("bmw") ||
+      text.includes("audi") ||
+      text.includes("lexus") ||
+      text.includes("porsche") ||
+      text.includes("tesla") ||
+      text.includes("ferrari") ||
+      text.includes("lamborghini")
+    ) {
+      vehicleBasePrice = 50000
+    }
+    // Electric vehicles
+    else if (text.includes("electric") || text.includes("ev") || text.includes("hybrid") || text.includes("tesla")) {
+      vehicleBasePrice = 30000
+    }
+    // SUVs and trucks
+    else if (text.includes("suv") || text.includes("truck") || text.includes("pickup") || text.includes("4x4")) {
+      vehicleBasePrice = 25000
+    }
+    // Motorcycles
+    else if (text.includes("motorcycle") || text.includes("bike") || text.includes("harley")) {
+      vehicleBasePrice = 8000
+    }
+
+    // Apply condition multiplier
+    baseMin = Math.round(vehicleBasePrice * 0.8 * conditionMultiplier)
+    baseMax = Math.round(vehicleBasePrice * 1.2 * conditionMultiplier)
+
+    // Add some randomness
+    const min = Math.floor(baseMin + Math.random() * 1000)
+    const max = Math.floor(baseMax + Math.random() * 2000)
+
+    return `$${min}-$${max}`
+  }
+
+  // Watches and jewelry
+  if (
+    text.includes("watch") ||
+    text.includes("jewelry") ||
+    text.includes("ring") ||
+    text.includes("diamond") ||
+    text.includes("gold")
+  ) {
+    let jewelryBasePrice = 200
+
+    // Luxury watches
+    if (
+      text.includes("rolex") ||
+      text.includes("omega") ||
+      text.includes("tag heuer") ||
+      text.includes("breitling") ||
+      text.includes("patek")
+    ) {
+      jewelryBasePrice = 8000
+    }
+    // Diamond jewelry
+    else if (text.includes("diamond") || text.includes("engagement ring")) {
+      jewelryBasePrice = 3000
+    }
+    // Gold jewelry
+    else if (text.includes("gold") || text.includes("14k") || text.includes("18k")) {
+      jewelryBasePrice = 1000
+    }
+
+    // Apply condition multiplier
+    baseMin = Math.round(jewelryBasePrice * 0.8 * conditionMultiplier)
+    baseMax = Math.round(jewelryBasePrice * 1.2 * conditionMultiplier)
+
+    // Add some randomness
+    const min = Math.floor(baseMin + Math.random() * 100)
+    const max = Math.floor(baseMax + Math.random() * 500)
+
+    return `$${min}-$${max}`
+  }
+
+  // Art and collectibles
+  if (
+    text.includes("art") ||
+    text.includes("painting") ||
+    text.includes("collectible") ||
+    text.includes("antique") ||
+    text.includes("rare")
+  ) {
+    let artBasePrice = 300
+
+    // Fine art
+    if (text.includes("original") || text.includes("signed") || text.includes("artist")) {
+      artBasePrice = 2000
+    }
+    // Antiques
+    else if (text.includes("antique") || text.includes("century")) {
+      artBasePrice = 1000
+    }
+
+    // Apply condition multiplier
+    baseMin = Math.round(artBasePrice * 0.8 * conditionMultiplier)
+    baseMax = Math.round(artBasePrice * 1.5 * conditionMultiplier)
+
+    // Add some randomness
+    const min = Math.floor(baseMin + Math.random() * 100)
+    const max = Math.floor(baseMax + Math.random() * 500)
+
+    return `$${min}-$${max}`
+  }
+
+  // Apply condition multiplier to base prices
   baseMin = Math.round(baseMin * conditionMultiplier)
   baseMax = Math.round(baseMax * conditionMultiplier)
 
-  // Check for specific categories
+  // Check for standard categories
   const categories = [
     { keywords: ["electronics", "computer", "laptop", "phone", "tablet", "camera"], basePrice: 100 },
     { keywords: ["furniture", "sofa", "chair", "table", "desk", "bed"], basePrice: 80 },
     { keywords: ["clothing", "shirt", "pants", "dress", "jacket", "coat"], basePrice: 25 },
-    { keywords: ["jewelry", "gold", "silver", "diamond", "ring", "necklace"], basePrice: 150 },
     { keywords: ["toy", "game", "puzzle", "lego", "action figure"], basePrice: 20 },
     { keywords: ["book", "novel", "textbook", "comic"], basePrice: 10 },
-    { keywords: ["art", "painting", "sculpture", "print"], basePrice: 75 },
     { keywords: ["sports", "equipment", "bicycle", "golf", "tennis"], basePrice: 50 },
   ]
 

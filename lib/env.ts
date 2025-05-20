@@ -6,11 +6,15 @@ export function getOpenAIKey(): string {
   // Try to get the pricing-specific key first
   const pricingKey = process.env.PRICING_OPENAI_API_KEY || ""
   if (pricingKey.trim()) {
+    console.log(`Using PRICING_OPENAI_API_KEY at: ${new Date().toISOString()}`)
     return pricingKey.trim()
   }
 
   // Fall back to the general OpenAI key
   const openaiKey = process.env.OPENAI_API_KEY || ""
+  if (openaiKey.trim()) {
+    console.log(`Using OPENAI_API_KEY at: ${new Date().toISOString()}`)
+  }
   return openaiKey.trim()
 }
 
