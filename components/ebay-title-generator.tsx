@@ -57,7 +57,7 @@ export function EbayDescriptionGenerator() {
         title: "Success",
         description: "Title generated successfully",
       })
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error generating title:", err)
       setError(err.message || "Failed to generate title")
       toast({

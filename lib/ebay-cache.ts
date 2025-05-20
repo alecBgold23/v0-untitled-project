@@ -1,77 +1,46 @@
 /**
- * In-memory cache for eBay API responses
- * This helps reduce API calls and improve performance
+ * Generate a cache key for eBay API requests
  */
-const cache: Record<string, { data: any; timestamp: number }> = {}
-
-// Cache expiration time (24 hours in milliseconds)
-const CACHE_EXPIRATION = 24 * 60 * 60 * 1000
-
-/**
- * Generates a cache key from the request parameters
- * @param type Request type (e.g., 'search', 'item')
- * @param params Request parameters
- * @returns Cache key
- */
-export function generateCacheKey(type: string, params: Record<string, any>): string {
-  const sortedParams = Object.keys(params)
-    .sort()
-    .map((key) => `${key}:${params[key]}`)
-    .join("|")
-
-  return `${type}:${sortedParams}`
+export function generateCacheKey(query: string, filters?: Record<string, any>): string {
+  const filterString = filters ? JSON.stringify(filters) : ""
+  return `ebay_${query}_${filterString}`.replace(/\s+/g, "_").toLowerCase()
 }
 
 /**
- * Gets cached data if available and not expired
- * @param key Cache key
- * @returns Cached data or null if not found or expired
+ * Get cached data for eBay API requests
  */
-export function getCachedData(key: string): any | null {
-  const cachedItem = cache[key]
+export function getCachedData<T>(key: string): T | null {
+  try {
+    if (typeof window === "undefined") return null
 
-  if (!cachedItem) {
-    return null
-  }
+    const cachedData = localStorage.getItem(key)
+    if (!cachedData) return null
 
-  const now = Date.now()
+    const { data, expiry } = JSON.parse(cachedData)
 
-  // Check if cache is expired
-  if (now - cachedItem.timestamp > CACHE_EXPIRATION) {
-    // Remove expired cache
-    delete cache[key]
-    return null
-  }
-
-  return cachedItem.data
-}
-
-/**
- * Caches data with the given key
- * @param key Cache key
- * @param data Data to cache
- */
-export function cacheData(key: string, data: any): void {
-  cache[key] = {
-    data,
-    timestamp: Date.now(),
-  }
-
-  // Clean up old cache entries periodically
-  if (Object.keys(cache).length > 100) {
-    cleanupCache()
-  }
-}
-
-/**
- * Cleans up expired cache entries
- */
-function cleanupCache(): void {
-  const now = Date.now()
-
-  Object.keys(cache).forEach((key) => {
-    if (now - cache[key].timestamp > CACHE_EXPIRATION) {
-      delete cache[key]
+    // Check if cache is expired
+    if (expiry < Date.now()) {
+      localStorage.removeItem(key)
+      return null
     }
-  })
+
+    return data as T
+  } catch (error) {
+    console.error("Error getting cached data:", error)
+    return null
+  }
+}
+
+/**
+ * Cache data for eBay API requests
+ */
+export function cacheData<T>(key: string, data: T, ttlMinutes = 60): void {
+  try {
+    if (typeof window === "undefined") return
+
+    const expiry = Date.now() + ttlMinutes * 60 * 1000
+    localStorage.setItem(key, JSON.stringify({ data, expiry }))
+  } catch (error) {
+    console.error("Error caching data:", error)
+  }
 }

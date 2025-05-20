@@ -1,41 +1,53 @@
 import { NextResponse } from "next/server"
-import { generateOptimizedTitle } from "@/lib/openai-browser"
 
 // Fallback title generator
-function generateFallbackTitle(description: string): string {
-  const words = description.split(/\s+/).filter(Boolean)
-  return words.slice(0, 6).join(" ")
+function generateFallbackTitle(title: string, condition?: string, extraDetails?: string): string {
+  const conditionText = condition ? `${condition.charAt(0).toUpperCase() + condition.slice(1)} ` : ""
+
+  // Clean up the title
+  let cleanTitle = title.trim()
+
+  // Add brand if it seems to be missing
+  if (cleanTitle.toLowerCase().includes("iphone") && !cleanTitle.toLowerCase().includes("apple")) {
+    cleanTitle = `Apple ${cleanTitle}`
+  } else if (cleanTitle.toLowerCase().includes("galaxy") && !cleanTitle.toLowerCase().includes("samsung")) {
+    cleanTitle = `Samsung ${cleanTitle}`
+  } else if (cleanTitle.toLowerCase().includes("pixel") && !cleanTitle.toLowerCase().includes("google")) {
+    cleanTitle = `Google ${cleanTitle}`
+  }
+
+  // Add extra details if provided and not already in the title
+  if (extraDetails && !cleanTitle.toLowerCase().includes(extraDetails.toLowerCase())) {
+    cleanTitle = `${cleanTitle} ${extraDetails}`
+  }
+
+  // Add condition if provided
+  const formattedTitle = `${conditionText}${cleanTitle}`
+
+  // Truncate if too long
+  return formattedTitle.length > 80 ? formattedTitle.substring(0, 77) + "..." : formattedTitle
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    // Parse the request body
-    const body = await request.json()
-    const { description, platform = "eBay" } = body
+    const { title, condition, extraDetails } = await req.json()
 
-    if (!description) {
-      return NextResponse.json({ error: "Description is required" }, { status: 400 })
+    if (!title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 })
     }
 
-    // Generate optimized title using our fallback mechanism
-    const title = await generateOptimizedTitle(description, platform)
+    // Generate a title without using OpenAI
+    const shortTitle = generateFallbackTitle(title, condition, extraDetails)
 
-    return NextResponse.json({
-      title,
-      source: "algorithm",
-    })
+    return NextResponse.json({ shortTitle })
   } catch (error: any) {
-    console.error("Error generating title:", error)
-
-    // Return a fallback title
-    const body = await request.json() // Declare the body variable here
+    console.error("Server error:", error)
     return NextResponse.json(
       {
-        error: error.message || "Error generating title",
-        title: generateFallbackTitle(body?.description || ""),
-        source: "fallback",
+        error: "Server error",
+        shortTitle: generateFallbackTitle("Unknown Item", "used"),
       },
-      { status: 200 },
+      { status: 500 },
     )
   }
 }

@@ -184,36 +184,43 @@ export function getEbayConditionId(condition: string): string {
   const conditionLower = condition.toLowerCase()
 
   // eBay condition IDs
-  // 1000 = New
-  // 1500 = New other (see details)
-  // 1750 = New with defects
-  // 2000 = Certified refurbished
-  // 2500 = Seller refurbished
-  // 2750 = Like New
-  // 3000 = Used
-  // 4000 = Very Good
-  // 5000 = Good
-  // 6000 = Acceptable
-  // 7000 = For parts or not working
-
-  if (conditionLower.includes("new") && !conditionLower.includes("like new")) {
-    return "1000"
-  } else if (conditionLower.includes("like new") || conditionLower.includes("excellent")) {
-    return "2750"
-  } else if (conditionLower.includes("very good")) {
-    return "4000"
-  } else if (conditionLower.includes("good")) {
-    return "5000"
-  } else if (conditionLower.includes("acceptable") || conditionLower.includes("fair")) {
-    return "6000"
-  } else if (
-    conditionLower.includes("parts") ||
-    conditionLower.includes("not working") ||
-    conditionLower.includes("poor")
-  ) {
-    return "7000"
+  // https://developer.ebay.com/api-docs/sell/inventory/types/slr:ConditionEnum
+  if (conditionLower.includes("new") && conditionLower.includes("sealed")) {
+    return "1000" // New
   }
 
-  // Default to used if no match
+  if (conditionLower.includes("new")) {
+    return "1000" // New
+  }
+
+  if (conditionLower.includes("like new") || conditionLower.includes("open box")) {
+    return "1500" // New - Open box
+  }
+
+  if (conditionLower.includes("excellent") || conditionLower.includes("mint")) {
+    return "1750" // New - Other
+  }
+
+  if (conditionLower.includes("very good")) {
+    return "2000" // Certified Refurbished
+  }
+
+  if (conditionLower.includes("good")) {
+    return "2500" // Excellent - Refurbished
+  }
+
+  if (conditionLower.includes("fair") || conditionLower.includes("acceptable")) {
+    return "3000" // Very Good - Refurbished
+  }
+
+  if (conditionLower.includes("poor")) {
+    return "4000" // Good - Refurbished
+  }
+
+  if (conditionLower.includes("parts") || conditionLower.includes("not working")) {
+    return "7000" // For parts or not working
+  }
+
+  // Default to used
   return "3000"
 }
