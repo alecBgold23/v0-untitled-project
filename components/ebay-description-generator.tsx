@@ -124,11 +124,12 @@ export function EbayDescriptionGenerator() {
 
         <div className="space-y-2">
           <Label htmlFor="extra-details">Extra Details (Optional)</Label>
-          <Input
+          <Textarea
             id="extra-details"
-            placeholder="e.g., Unlocked, With Original Box, etc."
+            placeholder="e.g., Unlocked, With Original Box, No scratches or dents, etc."
             value={extraDetails}
             onChange={(e) => setExtraDetails(e.target.value)}
+            className="min-h-[100px]"
           />
         </div>
 

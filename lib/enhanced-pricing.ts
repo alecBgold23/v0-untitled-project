@@ -1,5 +1,4 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server"
-import { generatePriceEstimate } from "@/lib/openai"
 
 // Types for price data
 type PriceData = {
@@ -45,33 +44,33 @@ export async function getMarketData(category: string): Promise<PriceData | null>
       return cachedData
     }
 
-    // Check if we have API key
-    if (!process.env.PRICING_OPENAI_API_KEY) {
-      throw new Error("PRICING_OPENAI_API_KEY is not set")
-    }
-
     // Try to get data from our database
-    const supabase = createServerSupabaseClient()
-    const { data, error } = await supabase.from("market_prices").select("*").eq("category", category).single()
+    try {
+      const supabase = createServerSupabaseClient()
+      const { data, error } = await supabase.from("market_prices").select("*").eq("category", category).single()
 
-    if (data && !error) {
-      const priceData: PriceData = {
-        min: data.min_price,
-        max: data.max_price,
-        avg: data.avg_price,
-        count: data.data_points,
+      if (data && !error) {
+        const priceData: PriceData = {
+          min: data.min_price,
+          max: data.max_price,
+          avg: data.avg_price,
+          count: data.data_points,
+        }
+
+        // Cache the data
+        cacheMarketData(category, priceData)
+        return priceData
       }
-
-      // Cache the data
-      cacheMarketData(category, priceData)
-      return priceData
+    } catch (error) {
+      console.error("Error fetching market data from database:", error)
+      // Continue to return null
     }
 
     // If no data in database, return null
     return null
   } catch (error) {
     console.error("Error fetching market data:", error)
-    throw error // Re-throw to propagate the error
+    return null // Return null instead of throwing
   }
 }
 
@@ -290,322 +289,6 @@ export function detectCategory(
     return { category: "jewelry", basePrice: 300, confidence: 0.8 }
   }
 
-  // Art and Collectibles
-  if (
-    text.includes("art") ||
-    text.includes("painting") ||
-    text.includes("sculpture") ||
-    text.includes("collectible") ||
-    text.includes("antique") ||
-    text.includes("vintage") ||
-    text.includes("rare") ||
-    text.includes("limited edition")
-  ) {
-    // Fine art
-    if (
-      text.includes("original") ||
-      text.includes("signed") ||
-      text.includes("artist") ||
-      text.includes("gallery") ||
-      text.includes("museum")
-    ) {
-      return { category: "art_fine", basePrice: 5000, confidence: 0.8 }
-    }
-
-    // Antiques
-    if (text.includes("antique") || text.includes("century") || text.includes("vintage") || text.includes("period")) {
-      return { category: "collectible_antique", basePrice: 2000, confidence: 0.8 }
-    }
-
-    // Collectibles
-    if (
-      text.includes("collectible") ||
-      text.includes("limited edition") ||
-      text.includes("rare") ||
-      text.includes("memorabilia")
-    ) {
-      return { category: "collectible", basePrice: 500, confidence: 0.8 }
-    }
-
-    // Generic art
-    return { category: "art", basePrice: 300, confidence: 0.7 }
-  }
-
-  // Gaming Consoles
-  if (
-    text.includes("playstation") ||
-    text.includes("ps5") ||
-    text.includes("ps4") ||
-    text.includes("xbox") ||
-    text.includes("nintendo") ||
-    text.includes("switch") ||
-    text.includes("steam deck")
-  ) {
-    if (text.includes("ps5") || text.includes("playstation 5")) {
-      return { category: "console_ps5", basePrice: 499, confidence: 0.9 }
-    } else if (text.includes("ps4") || text.includes("playstation 4")) {
-      return { category: "console_ps4", basePrice: 299, confidence: 0.9 }
-    } else if (text.includes("xbox series x")) {
-      return { category: "console_xbox_series_x", basePrice: 499, confidence: 0.9 }
-    } else if (text.includes("xbox series s")) {
-      return { category: "console_xbox_series_s", basePrice: 299, confidence: 0.9 }
-    } else if (text.includes("xbox one")) {
-      return { category: "console_xbox_one", basePrice: 249, confidence: 0.9 }
-    } else if (text.includes("switch") && text.includes("nintendo")) {
-      return { category: "console_switch", basePrice: 299, confidence: 0.9 }
-    } else if (text.includes("steam deck")) {
-      return { category: "console_steam_deck", basePrice: 399, confidence: 0.9 }
-    } else {
-      return { category: "gaming_console", basePrice: 299, confidence: 0.7 }
-    }
-  }
-
-  // Smartphones with better model detection
-  if (
-    text.includes("iphone") ||
-    text.includes("samsung") ||
-    text.includes("pixel") ||
-    text.includes("android phone") ||
-    text.includes("smartphone")
-  ) {
-    // iPhone models
-    if (text.includes("iphone 15 pro max") || text.includes("iphone 15 pro max")) {
-      return { category: "phone_iphone_15_pro_max", basePrice: 1199, confidence: 0.9 }
-    } else if (text.includes("iphone 15 pro")) {
-      return { category: "phone_iphone_15_pro", basePrice: 999, confidence: 0.9 }
-    } else if (text.includes("iphone 15")) {
-      return { category: "phone_iphone_15", basePrice: 799, confidence: 0.9 }
-    } else if (text.includes("iphone 14 pro max")) {
-      return { category: "phone_iphone_14_pro_max", basePrice: 999, confidence: 0.9 }
-    } else if (text.includes("iphone 14 pro")) {
-      return { category: "phone_iphone_14_pro", basePrice: 899, confidence: 0.9 }
-    } else if (text.includes("iphone 14")) {
-      return { category: "phone_iphone_14", basePrice: 699, confidence: 0.9 }
-    } else if (text.includes("iphone 13")) {
-      return { category: "phone_iphone_13", basePrice: 599, confidence: 0.9 }
-    } else if (text.includes("iphone 12")) {
-      return { category: "phone_iphone_12", basePrice: 499, confidence: 0.9 }
-    } else if (text.includes("iphone")) {
-      return { category: "phone_iphone", basePrice: 399, confidence: 0.8 }
-    }
-
-    // Samsung models
-    if (text.includes("samsung") && text.includes("s23 ultra")) {
-      return { category: "phone_samsung_s23_ultra", basePrice: 1199, confidence: 0.9 }
-    } else if (text.includes("samsung") && text.includes("s23")) {
-      return { category: "phone_samsung_s23", basePrice: 799, confidence: 0.9 }
-    } else if (text.includes("samsung") && text.includes("s22")) {
-      return { category: "phone_samsung_s22", basePrice: 699, confidence: 0.9 }
-    } else if (text.includes("samsung") && text.includes("fold")) {
-      return { category: "phone_samsung_fold", basePrice: 1799, confidence: 0.9 }
-    } else if (text.includes("samsung") && text.includes("flip")) {
-      return { category: "phone_samsung_flip", basePrice: 999, confidence: 0.9 }
-    } else if (text.includes("samsung")) {
-      return { category: "phone_samsung", basePrice: 499, confidence: 0.8 }
-    }
-
-    // Google Pixel
-    if (text.includes("pixel 7 pro")) {
-      return { category: "phone_pixel_7_pro", basePrice: 899, confidence: 0.9 }
-    } else if (text.includes("pixel 7")) {
-      return { category: "phone_pixel_7", basePrice: 599, confidence: 0.9 }
-    } else if (text.includes("pixel")) {
-      return { category: "phone_pixel", basePrice: 499, confidence: 0.8 }
-    }
-
-    // Generic smartphone
-    return { category: "smartphone", basePrice: 299, confidence: 0.7 }
-  }
-
-  // Laptops with better model detection
-  if (text.includes("laptop") || text.includes("macbook") || text.includes("notebook") || text.includes("chromebook")) {
-    // MacBooks
-    if (text.includes("macbook pro") && text.includes("m2")) {
-      return { category: "laptop_macbook_pro_m2", basePrice: 1999, confidence: 0.9 }
-    } else if (text.includes("macbook pro") && text.includes("m1")) {
-      return { category: "laptop_macbook_pro_m1", basePrice: 1499, confidence: 0.9 }
-    } else if (text.includes("macbook pro")) {
-      return { category: "laptop_macbook_pro", basePrice: 1299, confidence: 0.9 }
-    } else if (text.includes("macbook air") && text.includes("m2")) {
-      return { category: "laptop_macbook_air_m2", basePrice: 1199, confidence: 0.9 }
-    } else if (text.includes("macbook air") && text.includes("m1")) {
-      return { category: "laptop_macbook_air_m1", basePrice: 899, confidence: 0.9 }
-    } else if (text.includes("macbook air")) {
-      return { category: "laptop_macbook_air", basePrice: 799, confidence: 0.9 }
-    } else if (text.includes("macbook")) {
-      return { category: "laptop_macbook", basePrice: 899, confidence: 0.8 }
-    }
-
-    // Gaming laptops
-    if (
-      text.includes("gaming laptop") ||
-      (text.includes("laptop") &&
-        (text.includes("gaming") ||
-          text.includes("rtx") ||
-          text.includes("nvidia") ||
-          text.includes("amd") ||
-          text.includes("radeon")))
-    ) {
-      return { category: "laptop_gaming", basePrice: 1299, confidence: 0.8 }
-    }
-
-    // Chromebooks
-    if (text.includes("chromebook")) {
-      return { category: "laptop_chromebook", basePrice: 299, confidence: 0.9 }
-    }
-
-    // Generic laptop
-    return { category: "laptop", basePrice: 599, confidence: 0.7 }
-  }
-
-  // Tablets
-  if (
-    text.includes("ipad") ||
-    text.includes("tablet") ||
-    text.includes("surface") ||
-    text.includes("galaxy tab") ||
-    text.includes("kindle")
-  ) {
-    // iPads
-    if (text.includes("ipad pro")) {
-      return { category: "tablet_ipad_pro", basePrice: 799, confidence: 0.9 }
-    } else if (text.includes("ipad air")) {
-      return { category: "tablet_ipad_air", basePrice: 599, confidence: 0.9 }
-    } else if (text.includes("ipad mini")) {
-      return { category: "tablet_ipad_mini", basePrice: 499, confidence: 0.9 }
-    } else if (text.includes("ipad")) {
-      return { category: "tablet_ipad", basePrice: 329, confidence: 0.9 }
-    }
-
-    // Surface
-    if (text.includes("surface pro")) {
-      return { category: "tablet_surface_pro", basePrice: 899, confidence: 0.9 }
-    } else if (text.includes("surface")) {
-      return { category: "tablet_surface", basePrice: 599, confidence: 0.9 }
-    }
-
-    // Samsung tablets
-    if (text.includes("galaxy tab s")) {
-      return { category: "tablet_galaxy_tab_s", basePrice: 649, confidence: 0.9 }
-    } else if (text.includes("galaxy tab")) {
-      return { category: "tablet_galaxy_tab", basePrice: 349, confidence: 0.9 }
-    }
-
-    // Kindle
-    if (text.includes("kindle")) {
-      return { category: "tablet_kindle", basePrice: 139, confidence: 0.9 }
-    }
-
-    // Generic tablet
-    return { category: "tablet", basePrice: 199, confidence: 0.7 }
-  }
-
-  // TVs
-  if (
-    text.includes("tv") ||
-    text.includes("television") ||
-    text.includes("smart tv") ||
-    text.includes("4k") ||
-    text.includes("oled") ||
-    text.includes("qled")
-  ) {
-    // OLED TVs
-    if (text.includes("oled")) {
-      return { category: "tv_oled", basePrice: 1299, confidence: 0.9 }
-    }
-
-    // QLED TVs
-    if (text.includes("qled")) {
-      return { category: "tv_qled", basePrice: 899, confidence: 0.9 }
-    }
-
-    // 4K TVs
-    if (text.includes("4k")) {
-      return { category: "tv_4k", basePrice: 499, confidence: 0.9 }
-    }
-
-    // Smart TVs
-    if (text.includes("smart tv") || text.includes("smart television")) {
-      return { category: "tv_smart", basePrice: 399, confidence: 0.9 }
-    }
-
-    // Generic TV
-    return { category: "tv", basePrice: 299, confidence: 0.7 }
-  }
-
-  // Cameras
-  if (
-    text.includes("camera") ||
-    text.includes("dslr") ||
-    text.includes("mirrorless") ||
-    text.includes("canon") ||
-    text.includes("nikon") ||
-    (text.includes("sony") && (text.includes("alpha") || text.includes("a7")))
-  ) {
-    // Mirrorless cameras
-    if (text.includes("mirrorless")) {
-      return { category: "camera_mirrorless", basePrice: 899, confidence: 0.9 }
-    }
-
-    // DSLR cameras
-    if (text.includes("dslr")) {
-      return { category: "camera_dslr", basePrice: 699, confidence: 0.9 }
-    }
-
-    // Sony Alpha
-    if (text.includes("sony") && (text.includes("alpha") || text.includes("a7"))) {
-      return { category: "camera_sony_alpha", basePrice: 1799, confidence: 0.9 }
-    }
-
-    // Generic camera
-    return { category: "camera", basePrice: 399, confidence: 0.7 }
-  }
-
-  // Audio Equipment
-  if (
-    text.includes("headphones") ||
-    text.includes("earbuds") ||
-    text.includes("speaker") ||
-    text.includes("soundbar") ||
-    text.includes("airpods") ||
-    text.includes("beats")
-  ) {
-    // AirPods
-    if (text.includes("airpods pro")) {
-      return { category: "audio_airpods_pro", basePrice: 249, confidence: 0.9 }
-    } else if (text.includes("airpods")) {
-      return { category: "audio_airpods", basePrice: 159, confidence: 0.9 }
-    }
-
-    // Beats
-    if (text.includes("beats")) {
-      return { category: "audio_beats", basePrice: 199, confidence: 0.9 }
-    }
-
-    // Headphones
-    if (text.includes("headphones")) {
-      return { category: "audio_headphones", basePrice: 149, confidence: 0.8 }
-    }
-
-    // Earbuds
-    if (text.includes("earbuds")) {
-      return { category: "audio_earbuds", basePrice: 99, confidence: 0.8 }
-    }
-
-    // Speakers
-    if (text.includes("speaker")) {
-      return { category: "audio_speaker", basePrice: 129, confidence: 0.8 }
-    }
-
-    // Soundbars
-    if (text.includes("soundbar")) {
-      return { category: "audio_soundbar", basePrice: 199, confidence: 0.9 }
-    }
-
-    // Generic audio
-    return { category: "audio_equipment", basePrice: 99, confidence: 0.7 }
-  }
-
   // Default for other categories
   return { category: "general", basePrice: 49, confidence: 0.5 }
 }
@@ -683,17 +366,18 @@ export async function generateAccuratePrice(
   condition?: string,
   issues?: string,
 ): Promise<{ price: string; source: string; confidence: number }> {
-  // Check if pricing API key is available
-  if (!process.env.PRICING_OPENAI_API_KEY) {
-    throw new Error("PRICING_OPENAI_API_KEY is not set")
-  }
-
   try {
     // Detect category
     const { category, basePrice, confidence } = detectCategory(description, name)
 
     // Try to get market data
-    const marketData = await getMarketData(category)
+    let marketData = null
+    try {
+      marketData = await getMarketData(category)
+    } catch (error) {
+      console.error("Error getting market data:", error)
+      // Continue with null marketData
+    }
 
     // If we have market data, use it
     if (marketData) {
@@ -719,80 +403,11 @@ export async function generateAccuratePrice(
     }
   } catch (error) {
     console.error("Error generating accurate price:", error)
-    throw error // Re-throw to propagate the error
-  }
-}
-
-/**
- * Get a price estimate for an item
- * @param description Item description
- * @param condition Item condition
- * @returns Price estimate
- */
-export async function getPriceEstimate(description: string, condition = "used"): Promise<string> {
-  try {
-    return await generatePriceEstimate(description, condition)
-  } catch (error) {
-    console.error("Error getting price estimate:", error)
-    return generateFallbackPrice(description, condition)
-  }
-}
-
-/**
- * Generate a fallback price estimate
- * @param description Item description
- * @param condition Item condition
- * @returns Price estimate
- */
-function generateFallbackPrice(description: string, condition = "used"): string {
-  // Very simple fallback
-  return "$20-$50"
-}
-
-/**
- * Parse a price range string into min and max values
- * @param priceRange Price range string (e.g., "$10-$20")
- * @returns Object with min and max values
- */
-export function parsePriceRange(priceRange: string): { min: number; max: number } {
-  try {
-    // Extract numbers from the price range
-    const matches = priceRange.match(/\$(\d+(?:\.\d+)?)-\$(\d+(?:\.\d+)?)/i)
-
-    if (matches && matches.length >= 3) {
-      const min = Number.parseFloat(matches[1])
-      const max = Number.parseFloat(matches[2])
-      return { min, max }
+    // Return a fallback price instead of throwing
+    return {
+      price: "$20-$100",
+      source: "error_fallback",
+      confidence: 0.3,
     }
-
-    // If we can't parse the range, return default values
-    return { min: 20, max: 50 }
-  } catch (error) {
-    console.error("Error parsing price range:", error)
-    return { min: 20, max: 50 }
-  }
-}
-
-/**
- * Calculate the average price from a price range
- */
-export function calculateAveragePrice(priceRange: string | { min: number; max: number }): number {
-  try {
-    let min: number
-    let max: number
-
-    if (typeof priceRange === "string") {
-      const parsed = parsePriceRange(priceRange)
-      min = parsed.min
-      max = parsed.max
-    } else {
-      min = priceRange.min
-      max = priceRange.max
-    }
-
-    return (min + max) / 2
-  } catch (error) {
-    console.error("Error calculating average price:", error)
-    return 35 // Default average between $20-$50
   }
 }

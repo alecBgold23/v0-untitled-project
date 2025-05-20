@@ -69,21 +69,18 @@ export function PriceEstimator({
         }),
       })
 
-      if (!res.ok) {
-        throw new Error(`API error: ${res.status}`)
-      }
-
-      const data = await res.json()
+      // Even if we get a non-200 response, try to parse the JSON
+      const data = await res.json().catch(() => ({ error: "Failed to parse response" }))
 
       if (data.error) {
         console.warn("API returned error:", data.error)
-        // Still use the fallback price if provided
+        setError(`${data.error}. Using fallback price.`)
       }
 
-      // Handle different response formats
-      const price = data.price || `$${data.estimated_price}` || "$25"
+      // Handle different response formats, with fallbacks at each step
+      const price = data.price || `$${data.estimated_price}` || "$25-$100"
       setEstimatedPrice(price)
-      setPriceSource(data.source || "api")
+      setPriceSource(data.source || "fallback")
 
       // Extract numeric price for database storage
       const numericValue = extractNumericPrice(price)
@@ -101,7 +98,7 @@ export function PriceEstimator({
       setError("There was an issue with the pricing service, but we've provided an estimate.")
 
       // Set a fallback price even on error
-      const fallbackPrice = "$25"
+      const fallbackPrice = "$25-$100"
       setEstimatedPrice(fallbackPrice)
       setPriceSource("error_fallback")
       setNumericPrice(25)
@@ -117,6 +114,14 @@ export function PriceEstimator({
   // Helper function to extract numeric price from string (e.g., "$1,200" -> 1200)
   const extractNumericPrice = (priceString: string): number => {
     try {
+      // Handle price ranges by taking the average
+      if (priceString.includes("-")) {
+        const [minStr, maxStr] = priceString.split("-")
+        const min = Number.parseFloat(minStr.replace(/[^0-9.]/g, "")) || 0
+        const max = Number.parseFloat(maxStr.replace(/[^0-9.]/g, "")) || 0
+        return (min + max) / 2
+      }
+
       // Remove currency symbol, commas, and any other non-numeric characters except decimal point
       const numericString = priceString.replace(/[^0-9.]/g, "")
       return Number.parseFloat(numericString) || 0
@@ -157,6 +162,8 @@ export function PriceEstimator({
                   <span>Estimated using AI and eBay data</span>
                 ) : priceSource === "cache" ? (
                   <span>Estimated from cached data</span>
+                ) : priceSource === "error_fallback" ? (
+                  <span>Fallback estimate (service unavailable)</span>
                 ) : (
                   <span>Estimated using algorithm</span>
                 )}

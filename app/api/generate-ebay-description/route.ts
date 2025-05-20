@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import OpenAI from "openai"
 
-// Initialize OpenAI client
+// Initialize OpenAI client with the specific API key for eBay descriptions
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
@@ -12,6 +12,14 @@ export async function POST(request: Request) {
 
     if (!itemName) {
       return NextResponse.json({ error: "Item name is required" }, { status: 400 })
+    }
+
+    // Check if OpenAI API key is configured
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "OpenAI API key is not configured", description: generateFallbackDescription(itemName, condition) },
+        { status: 400 },
+      )
     }
 
     // Create prompt for OpenAI
@@ -52,8 +60,8 @@ Keep the description between 150-250 words.`
 }
 
 // Generate a fallback description if the API call fails
-function generateFallbackDescription(): string {
-  return `This item is in used condition and has been well maintained. It shows normal signs of wear consistent with regular use but remains fully functional. Please review all photos carefully to assess the condition for yourself. 
+function generateFallbackDescription(itemName = "This item", condition = "used"): string {
+  return `${itemName} is in ${condition} condition and has been well maintained. It shows normal signs of wear consistent with regular use but remains fully functional. Please review all photos carefully to assess the condition for yourself. 
 
 Features:
 • Authentic product

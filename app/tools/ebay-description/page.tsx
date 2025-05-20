@@ -7,22 +7,12 @@ export const metadata = {
 
 export default function EbayDescriptionPage() {
   return (
-    <div className="container max-w-4xl py-8 md:py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">eBay Description Generator</h1>
-        <p className="text-muted-foreground">
-          Create professional, detailed descriptions for your eBay listings with AI assistance.
-        </p>
-      </div>
-
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-6">eBay Description Generator</h1>
+      <p className="text-muted-foreground mb-8">
+        Enter your item details below to generate a professional eBay listing description.
+      </p>
       <EbayDescriptionGenerator />
-
-      <div className="mt-8 text-sm text-muted-foreground">
-        <p>
-          This tool uses AI to generate professional eBay-style descriptions based on your item details. You can edit
-          the generated description before using it in your listing.
-        </p>
-      </div>
     </div>
   )
 }

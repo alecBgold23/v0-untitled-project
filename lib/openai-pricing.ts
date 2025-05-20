@@ -1,18 +1,63 @@
+import { OpenAI } from "openai"
+
 /**
  * Generates a price estimate based on item details and condition
  */
-export function generatePriceEstimate(itemDetails: string, condition: string): Promise<string> {
-  // Generate a simple price range based on the description
-  const basePrice = getBasePrice(itemDetails)
-  const adjustedPrice = adjustPriceForCondition(basePrice, condition)
+export async function generatePriceEstimate(itemDetails: string, condition: string): Promise<string> {
+  try {
+    console.log("Generating price estimate for:", itemDetails, condition)
 
-  const min = Math.floor(adjustedPrice * 0.8)
-  const max = Math.floor(adjustedPrice * 1.2)
+    // Get the API key from environment variables
+    const apiKey = process.env.OPENAI_API_KEY || process.env.PRICING_OPENAI_API_KEY
 
-  const priceRange = `$${min}-$${max}`
+    if (!apiKey) {
+      console.error("OpenAI API key is not set")
+      return generateFallbackPrice(itemDetails, condition)
+    }
 
-  // Return a promise to match the expected interface
-  return Promise.resolve(priceRange)
+    console.log("API key found, initializing OpenAI client...")
+
+    // Initialize the OpenAI client
+    const openai = new OpenAI({
+      apiKey,
+    })
+
+    console.log("Making request to OpenAI API for price estimate...")
+
+    const prompt = `
+You are a professional appraiser for used consumer items. Estimate a fair market resale price in USD for the following item. 
+Be concise and return only the number, no dollar sign or explanation.
+
+Item description: ${itemDetails}
+Condition: ${condition}
+`
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert in pricing used consumer goods. Only return a price estimate as a number.",
+        },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 10,
+    })
+
+    console.log("OpenAI API response received:", response)
+
+    const priceText = response.choices[0]?.message?.content?.trim() || "0"
+    const priceNumber = Number.parseFloat(priceText.replace(/[^0-9.]/g, ""))
+
+    const formattedPrice = `$${priceNumber.toFixed(2)}`
+
+    console.log("Generated price estimate:", formattedPrice)
+
+    return formattedPrice
+  } catch (error) {
+    console.error("Error generating price estimate:", error)
+    return generateFallbackPrice(itemDetails, condition)
+  }
 }
 
 /**
@@ -28,13 +73,17 @@ export async function generatePriceEstimateWithComparables(
   aiEstimate: string
 }> {
   try {
+    console.log("Generating price estimate with comparables for:", description, condition)
+
     // Get AI-generated price estimate
     const aiEstimate = await generatePriceEstimate(description, condition)
 
+    console.log("AI estimate received:", aiEstimate)
+
     // Generate mock comparable items
-    const basePrice = getBasePrice(description, category)
-    const adjustedPrice = adjustPriceForCondition(basePrice, condition)
-    const comparableItems = generateMockComparables(description, adjustedPrice, condition)
+    const priceText = aiEstimate.replace(/[^0-9.]/g, "")
+    const basePrice = Number.parseFloat(priceText) || 50
+    const comparableItems = generateMockComparables(description, basePrice, condition)
 
     return {
       estimatedPrice: aiEstimate,
@@ -44,70 +93,131 @@ export async function generatePriceEstimateWithComparables(
   } catch (error) {
     console.error("Error generating price estimate with comparables:", error)
 
-    // Fallback to AI estimate only
-    const aiEstimate = await generatePriceEstimate(description, condition)
-
+    // Fallback to a default estimate
+    const fallbackPrice = generateFallbackPrice(description, condition)
     return {
-      estimatedPrice: aiEstimate,
+      estimatedPrice: fallbackPrice,
       comparableItems: [],
-      aiEstimate: aiEstimate,
+      aiEstimate: fallbackPrice,
     }
   }
 }
 
 /**
- * Get a base price based on the description and category
+ * Generates a fallback price estimate based on description length and keywords
  */
-function getBasePrice(description: string, category?: string): number {
+function generateFallbackPrice(description: string, condition = "used"): string {
+  console.log("Using fallback price generator for:", description, condition)
+
   const text = description.toLowerCase()
-
-  // Electronics
-  if (text.includes("iphone") || text.includes("samsung") || text.includes("laptop") || text.includes("computer")) {
-    return 500
-  }
-
-  // Furniture
-  if (text.includes("sofa") || text.includes("chair") || text.includes("table") || text.includes("desk")) {
-    return 200
-  }
-
-  // Clothing
-  if (text.includes("shirt") || text.includes("pants") || text.includes("dress") || text.includes("jacket")) {
-    return 40
-  }
-
-  // Default
-  return 50
-}
-
-/**
- * Adjust price based on condition
- */
-function adjustPriceForCondition(basePrice: number, condition: string): number {
   const conditionLower = condition.toLowerCase()
 
-  if (conditionLower.includes("new")) {
-    return basePrice
+  // Base price factors
+  let baseMin = 15
+  let baseMax = 50
+
+  // Adjust based on description length
+  const words = text.split(/\s+/).filter(Boolean)
+  if (words.length > 20) {
+    baseMin += 20
+    baseMax += 100
+  } else if (words.length > 10) {
+    baseMin += 10
+    baseMax += 50
   }
 
-  if (conditionLower.includes("like new") || conditionLower.includes("excellent")) {
-    return basePrice * 0.9
+  // Check for premium keywords
+  const premiumKeywords = [
+    "vintage",
+    "antique",
+    "rare",
+    "limited",
+    "edition",
+    "collector",
+    "brand new",
+    "unopened",
+    "sealed",
+    "mint",
+    "perfect",
+    "excellent",
+    "designer",
+    "luxury",
+    "premium",
+    "high-end",
+    "professional",
+  ]
+
+  let premiumCount = 0
+  premiumKeywords.forEach((keyword) => {
+    if (text.includes(keyword)) {
+      premiumCount++
+    }
+  })
+
+  // Adjust for premium items
+  if (premiumCount > 3) {
+    baseMin *= 3
+    baseMax *= 4
+  } else if (premiumCount > 0) {
+    baseMin *= 1.5
+    baseMax *= 2
   }
 
-  if (conditionLower.includes("good")) {
-    return basePrice * 0.7
+  // Adjust based on condition
+  const conditionMultipliers: Record<string, number> = {
+    new: 1.5,
+    "like new": 1.3,
+    excellent: 1.2,
+    "very good": 1.1,
+    good: 1.0,
+    fair: 0.8,
+    poor: 0.6,
+    "for parts": 0.4,
   }
 
-  if (conditionLower.includes("fair")) {
-    return basePrice * 0.5
+  // Find the best matching condition
+  let conditionMultiplier = 1.0
+  for (const [conditionKey, multiplier] of Object.entries(conditionMultipliers)) {
+    if (conditionLower.includes(conditionKey)) {
+      conditionMultiplier = multiplier
+      break
+    }
   }
 
-  if (conditionLower.includes("poor") || conditionLower.includes("parts")) {
-    return basePrice * 0.3
+  // Apply condition multiplier to base prices
+  baseMin = Math.round(baseMin * conditionMultiplier)
+  baseMax = Math.round(baseMax * conditionMultiplier)
+
+  // Check for standard categories
+  const categories = [
+    { keywords: ["electronics", "computer", "laptop", "phone", "tablet", "camera"], basePrice: 100 },
+    { keywords: ["furniture", "sofa", "chair", "table", "desk", "bed"], basePrice: 80 },
+    { keywords: ["clothing", "shirt", "pants", "dress", "jacket", "coat"], basePrice: 25 },
+    { keywords: ["toy", "game", "puzzle", "lego", "action figure"], basePrice: 20 },
+    { keywords: ["book", "novel", "textbook", "comic"], basePrice: 10 },
+    { keywords: ["sports", "equipment", "bicycle", "golf", "tennis"], basePrice: 50 },
+  ]
+
+  // Check if the description matches any category
+  for (const category of categories) {
+    for (const keyword of category.keywords) {
+      if (text.includes(keyword)) {
+        // Adjust the base price based on the category
+        baseMin = Math.max(baseMin, Math.round(category.basePrice * 0.7 * conditionMultiplier))
+        baseMax = Math.max(baseMax, Math.round(category.basePrice * 1.3 * conditionMultiplier))
+        break
+      }
+    }
   }
 
-  // Default to used condition
-  return basePrice * 0.6
+  // Add some randomness
+  const min = Math.floor(baseMin + Math.random() * 10)
+  const max = Math.floor(baseMax + Math.random() * 20)
+
+  const result = `$${min}-$${max}`
+  console.log("Generated fallback price:", result)
+
+  return result
 }
 
 /**

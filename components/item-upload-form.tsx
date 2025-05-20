@@ -1,8 +1,8 @@
 "use client"
 
-import React from "react"
+import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { uploadImagePrivate } from "@/app/actions/upload-image-private"
 import { submitSellItemToSupabase } from "@/app/actions/submit-sell-item"
@@ -36,6 +36,8 @@ export default function ItemUploadForm() {
   const [formSuccess, setFormSuccess] = useState(false)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
   const [priceEstimate, setPriceEstimate] = useState<PriceEstimateResult | null>(null)
+  const [isEstimating, setIsEstimating] = useState(false)
+  const [estimateError, setEstimateError] = useState<string | null>(null)
 
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -163,7 +165,7 @@ export default function ItemUploadForm() {
   }
 
   // Clean up object URL when component unmounts or when preview changes
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (imagePreview) {
         URL.revokeObjectURL(imagePreview)
@@ -171,8 +173,61 @@ export default function ItemUploadForm() {
     }
   }, [imagePreview])
 
+  // Get AI price estimate
+  const getAIPriceEstimate = async () => {
+    if (!formData.itemName && !formData.itemDescription) {
+      setEstimateError("Please provide an item name or description first")
+      return
+    }
+
+    setIsEstimating(true)
+    setEstimateError(null)
+
+    try {
+      const response = await fetch("/api/price-item", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          description: `${formData.itemName} ${formData.itemDescription}`.trim(),
+          condition: formData.itemCondition || "used",
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      // Format the price estimate
+      const formattedEstimate = {
+        price: data.estimatedPrice || "$0",
+        minPrice: data.minPrice || "0",
+        maxPrice: data.maxPrice || "0",
+        confidence: data.confidence || "low",
+      }
+
+      setPriceEstimate(formattedEstimate)
+    } catch (error) {
+      console.error("Error estimating price:", error)
+      setEstimateError(`Error estimating price: ${error instanceof Error ? error.message : "Unknown error"}`)
+
+      // Set fallback estimate
+      setPriceEstimate({
+        price: "$0-$100",
+        minPrice: "0",
+        maxPrice: "100",
+        confidence: "low",
+      })
+    } finally {
+      setIsEstimating(false)
+    }
+  }
+
   // Update price estimate when relevant form fields change
-  React.useEffect(() => {
+  useEffect(() => {
     if (formData.itemName || formData.itemDescription || formData.itemCondition || formData.itemIssues) {
       const estimate = estimateItemPrice(
         formData.itemDescription,
@@ -364,9 +419,30 @@ export default function ItemUploadForm() {
           </div>
 
           {/* Price Estimate Section */}
-          {priceEstimate && (
-            <div className="p-4 border rounded-md bg-muted/30">
-              <h3 className="font-medium mb-2">Estimated Value</h3>
+          <div className="p-4 border rounded-md bg-muted/30">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium">Estimated Value</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={getAIPriceEstimate}
+                disabled={isEstimating || (!formData.itemName && !formData.itemDescription)}
+              >
+                {isEstimating ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Estimating...
+                  </>
+                ) : (
+                  "Get AI Estimate"
+                )}
+              </Button>
+            </div>
+
+            {estimateError ? (
+              <p className="text-sm text-red-500">{estimateError}</p>
+            ) : priceEstimate ? (
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-2xl font-bold">{priceEstimate.price}</p>
@@ -389,11 +465,13 @@ export default function ItemUploadForm() {
                   <p className="text-xs text-muted-foreground mt-1">Based on provided details</p>
                 </div>
               </div>
-              <p className="text-sm mt-2 text-muted-foreground">
-                This is an automated estimate. Add more details for a more accurate estimate.
-              </p>
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-muted-foreground">Add item details above to see an estimated value</p>
+            )}
+            <p className="text-xs mt-2 text-muted-foreground">
+              Click "Get AI Estimate" for a more accurate price based on current market data
+            </p>
+          </div>
 
           <Button type="submit" disabled={isSubmitting || !imageFile} className="w-full">
             {isSubmitting ? (
