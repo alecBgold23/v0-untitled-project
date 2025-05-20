@@ -1,53 +1,65 @@
-import { OpenAI } from "openai"
 import { NextResponse } from "next/server"
+import OpenAI from "openai"
 
+// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { title, condition, extraDetails } = await req.json()
+    const { itemName, condition = "used", extraDetails = "" } = await request.json()
 
-    if (!title) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 })
+    if (!itemName) {
+      return NextResponse.json({ error: "Item name is required" }, { status: 400 })
     }
 
-    // Generate a title without using OpenAI
-    const shortTitle = generateFallbackTitle(title, condition, extraDetails)
+    // Create prompt for OpenAI
+    const prompt = `Generate a professional eBay listing description for the following item:
+    
+Item: ${itemName}
+Condition: ${condition}
+Additional Details: ${extraDetails}
 
-    return NextResponse.json({ shortTitle })
+The description should be detailed, highlight key features, mention the condition accurately, and be optimized for eBay search. 
+Format the description with proper paragraphs and bullet points for features.
+Do not include pricing information or shipping details.
+Keep the description between 150-250 words.`
+
+    // Call OpenAI API
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 500,
+    })
+
+    const description = completion.choices[0].message.content.trim()
+
+    return NextResponse.json({ description })
   } catch (error: any) {
-    console.error("Server error:", error)
+    console.error("Error generating description:", error)
+
+    // Return a fallback description if there's an error
     return NextResponse.json(
       {
-        error: "Server error",
-        shortTitle: generateFallbackTitle("Unknown Item", "used"),
+        error: error.message || "Failed to generate description",
+        description: generateFallbackDescription(),
       },
       { status: 500 },
     )
   }
 }
 
-// Fallback function to generate a title without OpenAI
-function generateFallbackTitle(title: string, condition?: string, extraDetails?: string): string {
-  const conditionText = condition ? `${condition.charAt(0).toUpperCase() + condition.slice(1)} ` : ""
+// Generate a fallback description if the API call fails
+function generateFallbackDescription(): string {
+  return `This item is in used condition and has been well maintained. It shows normal signs of wear consistent with regular use but remains fully functional. Please review all photos carefully to assess the condition for yourself. 
 
-  // Clean up the title
-  let cleanTitle = title.trim()
+Features:
+• Authentic product
+• Fully functional
+• Well maintained
+• Great value
 
-  // Add brand if it seems to be missing
-  if (cleanTitle.toLowerCase().includes("iphone") && !cleanTitle.toLowerCase().includes("apple")) {
-    cleanTitle = `Apple ${cleanTitle}`
-  } else if (cleanTitle.toLowerCase().includes("galaxy") && !cleanTitle.toLowerCase().includes("samsung")) {
-    cleanTitle = `Samsung ${cleanTitle}`
-  } else if (cleanTitle.toLowerCase().includes("pixel") && !cleanTitle.toLowerCase().includes("google")) {
-    cleanTitle = `Google ${cleanTitle}`
-  }
-
-  // Add condition if provided
-  const formattedTitle = `${conditionText}${cleanTitle}`
-
-  // Truncate if too long
-  return formattedTitle.length > 80 ? formattedTitle.substring(0, 77) + "..." : formattedTitle
+This would make a great addition to your collection or for everyday use. Please feel free to ask any questions before purchasing.`
 }
