@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, DollarSign, RefreshCw, AlertCircle, Database } from "lucide-react"
+import { Loader2, DollarSign, RefreshCw, AlertCircle, Check } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
@@ -63,9 +63,6 @@ export function PriceEstimator({
           defects,
           itemId,
           category,
-          item_id: itemId,
-          item_name: itemName,
-          brief_description: description,
         }),
       })
 
@@ -78,17 +75,16 @@ export function PriceEstimator({
       }
 
       // Handle different response formats, with fallbacks at each step
-      const price = data.price || `$${data.estimated_price}` || "$25-$100"
+      const price = data.price || data.estimatedPrice || "$25-$100"
       setEstimatedPrice(price)
       setPriceSource(data.source || "fallback")
+
+      // Check if the price was saved to Supabase
+      setSavedToDatabase(data.savedToSupabase || false)
 
       // Extract numeric price for database storage
       const numericValue = extractNumericPrice(price)
       setNumericPrice(numericValue)
-
-      if (itemId) {
-        setSavedToDatabase(true)
-      }
 
       if (onPriceEstimated) {
         onPriceEstimated(price, numericValue)
@@ -158,12 +154,12 @@ export function PriceEstimator({
 
             {priceSource && (
               <div className="mt-2 text-xs text-gray-500">
-                {priceSource === "ai+ebay" ? (
-                  <span>Estimated using AI and eBay data</span>
-                ) : priceSource === "cache" ? (
-                  <span>Estimated from cached data</span>
-                ) : priceSource === "error_fallback" ? (
-                  <span>Fallback estimate (service unavailable)</span>
+                {priceSource === "openai" ? (
+                  <span>Estimated using AI</span>
+                ) : priceSource === "fallback_api_error" ? (
+                  <span>Fallback estimate (API error)</span>
+                ) : priceSource === "fallback_no_api_key" ? (
+                  <span>Fallback estimate (no API key)</span>
                 ) : (
                   <span>Estimated using algorithm</span>
                 )}
@@ -172,7 +168,7 @@ export function PriceEstimator({
 
             {savedToDatabase && (
               <div className="flex items-center justify-center gap-2 mt-3 text-green-600 text-sm">
-                <Database className="h-4 w-4" />
+                <Check className="h-4 w-4" />
                 <span>Saved to database</span>
               </div>
             )}

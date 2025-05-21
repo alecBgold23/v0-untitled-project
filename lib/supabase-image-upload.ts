@@ -229,3 +229,175 @@ export async function uploadImageToSupabaseBrowser(
     return { error: error.message || "Failed to upload image" }
   }
 }
+
+// NEW: Function to save an external image URL to Supabase database
+export async function saveImageUrlToSupabase(
+  imageUrl: string,
+  itemId: string | null = null,
+  tableName = "items",
+  userId = "anonymous",
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    if (!imageUrl) {
+      return { success: false, error: "No image URL provided" }
+    }
+
+    // Create a timestamp for the update
+    const timestamp = new Date().toISOString()
+
+    // If itemId is provided, update the existing record
+    if (itemId) {
+      const { data, error } = await supabase
+        .from(tableName)
+        .update({
+          image_url: imageUrl,
+          updated_at: timestamp,
+        })
+        .eq("id", itemId)
+        .select()
+
+      if (error) {
+        console.error("Error updating image URL in Supabase:", error)
+        return { success: false, error: error.message }
+      }
+
+      return { success: true, data }
+    }
+    // Otherwise, create a new record
+    else {
+      const { data, error } = await supabase
+        .from(tableName)
+        .insert({
+          image_url: imageUrl,
+          user_id: userId,
+          created_at: timestamp,
+          updated_at: timestamp,
+        })
+        .select()
+
+      if (error) {
+        console.error("Error inserting image URL in Supabase:", error)
+        return { success: false, error: error.message }
+      }
+
+      return { success: true, data }
+    }
+  } catch (error: any) {
+    console.error("Error saving image URL to Supabase:", error)
+    return { success: false, error: error.message || "Failed to save image URL" }
+  }
+}
+
+// NEW: Function to upload an image from a URL to Supabase storage
+export async function uploadImageFromUrl(
+  url: string,
+  bucket = "item_images",
+  path = "",
+): Promise<{ url: string; path: string } | { error: string }> {
+  try {
+    if (!url) {
+      return { error: "No URL provided" }
+    }
+
+    // Fetch the image
+    const response = await fetch(url)
+    if (!response.ok) {
+      return { error: `Failed to fetch image: ${response.statusText}` }
+    }
+
+    // Get the content type and determine file extension
+    const contentType = response.headers.get("content-type") || "image/jpeg"
+    const fileExt = contentType.split("/").pop() || "jpg"
+
+    // Convert to blob
+    const blob = await response.blob()
+
+    // Generate a unique file name
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
+    const filePath = path ? `${path}/${fileName}.${fileExt}` : `${fileName}.${fileExt}`
+
+    // Upload the file
+    const { data, error } = await supabase.storage.from(bucket).upload(filePath, blob, {
+      contentType,
+      cacheControl: "3600",
+      upsert: false,
+    })
+
+    if (error) {
+      console.error("Error uploading image from URL:", error)
+      return { error: error.message }
+    }
+
+    // Get the public URL
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePath)
+
+    return {
+      url: publicUrlData.publicUrl,
+      path: filePath,
+    }
+  } catch (error: any) {
+    console.error("Error uploading image from URL:", error)
+    return { error: error.message || "Failed to upload image from URL" }
+  }
+}
+
+// NEW: Function to store an image URL in Supabase database with metadata
+export async function storeImageUrlWithMetadata(
+  imageUrl: string,
+  metadata: {
+    itemName?: string
+    description?: string
+    price?: number | string
+    condition?: string
+    category?: string
+    userId?: string
+    itemId?: string
+    [key: string]: any // Allow any additional metadata
+  },
+  tableName = "item_images",
+): Promise<{ success: boolean; data?: any; error?: string; id?: string }> {
+  try {
+    if (!imageUrl) {
+      return { success: false, error: "No image URL provided" }
+    }
+
+    // Create a timestamp for the record
+    const timestamp = new Date().toISOString()
+
+    // Prepare the data to insert
+    const insertData = {
+      image_url: imageUrl,
+      item_name: metadata.itemName || null,
+      description: metadata.description || null,
+      price: metadata.price || null,
+      condition: metadata.condition || null,
+      category: metadata.category || null,
+      user_id: metadata.userId || "anonymous",
+      item_id: metadata.itemId || null,
+      created_at: timestamp,
+      updated_at: timestamp,
+      ...Object.entries(metadata)
+        .filter(
+          ([key]) => !["itemName", "description", "price", "condition", "category", "userId", "itemId"].includes(key),
+        )
+        .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {}),
+    }
+
+    // Insert the record
+    const { data, error } = await supabase.from(tableName).insert(insertData).select()
+
+    if (error) {
+      console.error("Error storing image URL with metadata:", error)
+      return { success: false, error: error.message }
+    }
+
+    return {
+      success: true,
+      data,
+      id: data && data[0] ? data[0].id : undefined,
+    }
+  } catch (error: any) {
+    console.error("Error storing image URL with metadata:", error)
+    return { success: false, error: error.message || "Failed to store image URL with metadata" }
+  }
+}

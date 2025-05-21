@@ -25,6 +25,10 @@ import {
   Copy,
   Wand2,
   DollarSign,
+  Camera,
+  Upload,
+  LinkIcon,
+  ExternalLink,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import { useToast } from "@/hooks/use-toast"
@@ -32,10 +36,15 @@ import AddressAutocomplete from "@/components/address-autocomplete"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { uploadImagePrivate } from "@/app/actions/upload-image-private"
 import { uploadImageFallback } from "@/app/actions/upload-image-fallback"
 import { sellMultipleItems } from "../app/actions/sell-multiple-items"
 import { detectCategory, adjustForCondition } from "@/lib/enhanced-pricing"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 
 interface SellMultipleItemsFormProps {
   onError?: (error: Error) => void
@@ -49,6 +58,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState(null)
+  const [activeTab, setActiveTab] = useState("upload")
 
   // Call onLoad when component is mounted
   useEffect(() => {
@@ -96,6 +106,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       lastProcessedName: "",
       imagePath: "",
       imageUrl: "",
+      imageUrlInput: "",
     },
   ])
 
@@ -180,10 +191,13 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     (item, index) => {
       if (!item) return false
 
+      // Check if there are photos or an image URL
+      const hasImages = item.photos?.length > 0 || (item.imageUrl && item.imageUrl.trim() !== "")
+
       const isValid =
         item.name?.trim() !== "" &&
         item.description?.trim() !== "" &&
-        item.photos?.length >= 3 &&
+        hasImages &&
         item.condition !== "" &&
         item.issues?.trim() !== ""
 
@@ -313,6 +327,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
         lastProcessedName: "",
         imagePath: "",
         imageUrl: "",
+        imageUrlInput: "",
       }
 
       setItems([...getItems(), newItem])
@@ -393,6 +408,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           lastProcessedName: "",
           imagePath: "",
           imageUrl: "",
+          imageUrlInput: "",
         }
 
         const updatedItems = [...items]
@@ -522,7 +538,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           // Show success toast
           toast({
             title: "Files Added",
-            description: `Successfully added ${newPhotos.length} file${newPhotos.length > 1 ? "s" : ""} to item ${index + 1}`,
+            description: `Successfully added ${newPhotos.length} file${newPhotos.length > 1 ? "s" : ""} to item ${index + 1}. Images will be uploaded to the "item_images" bucket when you submit the form.`,
             variant: "default",
           })
         }
@@ -536,6 +552,96 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       }
     },
     [getItems, setItems, toast, validateItem],
+  )
+
+  // Handle image URL input for a specific item
+  const handleImageUrlInput = useCallback(
+    (e, index) => {
+      const value = e.target.value
+      updateItemField(index, "imageUrlInput", value)
+    },
+    [updateItemField],
+  )
+
+  // Add image URL to an item
+  const addImageUrl = useCallback(
+    (index) => {
+      try {
+        const items = getItems()
+        const item = items[index]
+        if (!item) return
+
+        const imageUrl = item.imageUrlInput?.trim()
+        if (!imageUrl) {
+          toast({
+            title: "Empty URL",
+            description: "Please enter a valid image URL.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        // Basic URL validation
+        try {
+          new URL(imageUrl)
+        } catch (e) {
+          toast({
+            title: "Invalid URL",
+            description: "Please enter a valid URL including http:// or https://",
+            variant: "destructive",
+          })
+          return
+        }
+
+        // Update the item with the image URL
+        const updatedItems = [...items]
+        updatedItems[index] = {
+          ...updatedItems[index],
+          imageUrl: imageUrl,
+          imageUrlInput: "", // Clear the input field
+        }
+        setItems(updatedItems)
+
+        // Validate the item after adding the image URL
+        setTimeout(() => validateItem(updatedItems[index], index), 100)
+
+        toast({
+          title: "Image URL Added",
+          description: "The image URL has been added to your item.",
+          variant: "default",
+        })
+      } catch (error) {
+        console.error("Error adding image URL:", error)
+        toast({
+          title: "Error",
+          description: "There was a problem adding the image URL. Please try again.",
+          variant: "destructive",
+        })
+      }
+    },
+    [getItems, setItems, toast, validateItem],
+  )
+
+  // Remove image URL from an item
+  const removeImageUrl = useCallback(
+    (index) => {
+      try {
+        const updatedItems = [...getItems()]
+        if (!updatedItems[index]) return
+
+        updatedItems[index] = {
+          ...updatedItems[index],
+          imageUrl: "",
+        }
+        setItems(updatedItems)
+
+        // Validate the item after removing the image URL
+        setTimeout(() => validateItem(updatedItems[index], index), 100)
+      } catch (error) {
+        console.error("Error removing image URL:", error)
+      }
+    },
+    [getItems, setItems, validateItem],
   )
 
   // Remove photo from an item
@@ -696,15 +802,23 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
         const item = items[i]
         if (!item) continue
 
-        // Skip if no photos
-        if (!item.photos || item.photos.length === 0) continue
-
         // Create arrays to store image paths and URLs
         const imagePaths = []
         const imageUrls = []
 
+        // If the item has an image URL, add it directly
+        if (item.imageUrl && item.imageUrl.trim() !== "") {
+          imagePaths.push(item.imageUrl)
+          imageUrls.push(item.imageUrl)
+        }
+
+        // Skip if no photos and no image URL
+        if ((!item.photos || item.photos.length === 0) && (!item.imageUrl || item.imageUrl.trim() === "")) {
+          continue
+        }
+
         // Upload all photos for this item
-        for (let j = 0; j < item.photos.length; j++) {
+        for (let j = 0; j < (item.photos || []).length; j++) {
           const photo = item.photos[j]
           if (!photo || !photo.file) {
             console.warn(`Photo ${j + 1} for item ${i + 1} is missing a file property`)
@@ -739,14 +853,26 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
               if (uploadResult.isLocalFallback) {
                 console.log(`Using local fallback for image ${j + 1} for item ${i + 1}`)
               } else {
-                console.log(`Successfully uploaded image ${j + 1} for item ${i + 1}`)
+                console.log(
+                  `Successfully uploaded image ${j + 1} for item ${i + 1} to bucket: ${uploadResult.bucket || "item_images"}`,
+                )
               }
             } else {
               console.error(`Failed to upload image ${j + 1} for item ${i + 1}:`, uploadResult.error)
+              toast({
+                title: "Upload Warning",
+                description: `Failed to upload image ${j + 1} for item ${i + 1}. Continuing with other images.`,
+                variant: "warning",
+              })
               // Continue with other images even if one fails
             }
           } catch (error) {
             console.error(`Error uploading image ${j + 1} for item ${i + 1}:`, error)
+            toast({
+              title: "Upload Error",
+              description: `Error uploading image ${j + 1} for item ${i + 1}. Continuing with other images.`,
+              variant: "destructive",
+            })
             // Continue with other images even if one fails
           }
         }
@@ -767,9 +893,14 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       return updatedItems
     } catch (error) {
       console.error("Error uploading item images:", error)
+      toast({
+        title: "Upload Error",
+        description: "There was a problem uploading your images. Please try again.",
+        variant: "destructive",
+      })
       return getItems()
     }
-  }, [email, getItems, setItems])
+  }, [email, getItems, setItems, toast])
 
   // Add this helper function to validate files before upload
   const isValidFile = (file) => {
@@ -811,15 +942,23 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
 
       // Check if any items have images
       const hasAnyImages = itemsWithImages.some(
-        (item) => (item.imagePaths && item.imagePaths.length > 0) || item.imagePath,
+        (item) =>
+          (item.imagePaths && item.imagePaths.length > 0) ||
+          item.imagePath ||
+          (item.imageUrl && item.imageUrl.trim() !== ""),
       )
 
       if (!hasAnyImages) {
         console.warn("No images were successfully uploaded. Proceeding with submission anyway.")
+        toast({
+          title: "Warning",
+          description: "No images were successfully uploaded. Your items will be submitted without images.",
+          variant: "warning",
+        })
       }
 
       // Format items for submission
-      const formattedItems = itemsWithImages.map((item) => ({
+      const formattedItems = itemsWithImages.map((item, index) => ({
         name: item.name || "",
         description: item.description || "",
         condition: item.condition || "",
@@ -833,6 +972,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
         imageUrl: item.imageUrl || "", // This will map to image_url in the database
         imagePaths: item.imagePaths || [],
         imageUrls: item.imageUrls || [],
+        estimatedPrice: priceEstimates[index]?.price || totalEstimate.price || "$0", // Include the price estimate
       }))
 
       // Submit to Supabase
@@ -887,7 +1027,19 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
         variant: "destructive",
       })
     }
-  }, [address, email, fullName, getItems, phone, pickupDate, scrollToTop, toast, uploadItemImages])
+  }, [
+    address,
+    email,
+    fullName,
+    getItems,
+    phone,
+    pickupDate,
+    priceEstimates,
+    scrollToTop,
+    toast,
+    totalEstimate.price,
+    uploadItemImages,
+  ])
 
   // Handle form submission
   const handleSubmit = useCallback(
@@ -1159,7 +1311,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-[#f8fafc] to-[#f0f5ff] dark:from-gray-950 dark:to-[#0c1445]"
+      className="min-h-screen bg-gradient-to-b from-slate-50 to-blue-50 dark:from-slate-950 dark:to-blue-950"
       ref={formContainerRef}
     >
       {/* Add a ref at the top of the form for scrolling */}
@@ -1170,25 +1322,22 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           {/* Professional Header */}
           <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center mb-3">
-              <div className="h-px w-8 bg-gradient-to-r from-[#0066ff] to-transparent"></div>
-              <span className="mx-3 text-xs font-semibold uppercase tracking-wider text-[#6a5acd]">
-                Item Submission
+              <div className="h-px w-8 bg-gradient-to-r from-blue-500 to-transparent"></div>
+              <span className="mx-3 text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                Sell Your Item
               </span>
-              <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#8c52ff]"></div>
+              <div className="h-px w-8 bg-gradient-to-r from-transparent to-purple-500"></div>
             </div>
 
-            <h1 className="font-bold text-3xl md:text-4xl tracking-tight mb-3 bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] bg-clip-text text-transparent">
-              Sell Your Item
+            <h1 className="font-bold text-3xl md:text-4xl tracking-tight mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-violet-600 bg-clip-text text-transparent">
+              Get Cash for Your Items
             </h1>
 
-            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto text-sm">
+            <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto text-sm">
               Complete the form below to get an offer for your items within 24 hours.
             </p>
           </div>
         </ContentAnimation>
-
-        {/* Rest of the component remains the same... */}
-        {/* ... (keep all the existing JSX) */}
 
         {!formSubmitted ? (
           <>
@@ -1203,21 +1352,21 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
               <div className="mb-8">
                 <div className="hidden md:flex justify-between items-center relative z-10 px-8 max-w-2xl mx-auto">
                   {/* Progress line */}
-                  <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 dark:bg-gray-700 -translate-y-1/2"></div>
+                  <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-200 dark:bg-slate-700 -translate-y-1/2"></div>
                   <div
-                    className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] -translate-y-1/2 transition-all duration-500"
+                    className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-violet-500 -translate-y-1/2 transition-all duration-500"
                     style={{ width: formStep === 1 ? "0%" : "100%" }}
                   ></div>
 
                   {/* Step 1 */}
-                  <div className="flex flex-col items-center relative bg-[#f8fafc] dark:bg-gray-950 px-4">
+                  <div className="flex flex-col items-center relative bg-slate-50 dark:bg-slate-950 px-4">
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all ${
                         getStepStatus(1) === "complete"
-                          ? "bg-gradient-to-r from-[#0066ff] to-[#6a5acd] text-white"
+                          ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
                           : getStepStatus(1) === "current"
-                            ? "bg-white dark:bg-gray-800 border-2 border-[#0066ff] text-[#0066ff]"
-                            : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-400"
+                            ? "bg-white dark:bg-slate-800 border-2 border-blue-500 text-blue-500"
+                            : "bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-400"
                       }`}
                     >
                       {getStepStatus(1) === "complete" ? (
@@ -1229,10 +1378,10 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                     <span
                       className={`text-xs font-medium mt-2 ${
                         getStepStatus(1) === "current"
-                          ? "text-[#0066ff]"
+                          ? "text-blue-500"
                           : getStepStatus(1) === "complete"
-                            ? "text-gray-900 dark:text-white"
-                            : "text-gray-500 dark:text-gray-400"
+                            ? "text-slate-900 dark:text-white"
+                            : "text-slate-500 dark:text-slate-400"
                       }`}
                     >
                       Item Details
@@ -1240,14 +1389,14 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                   </div>
 
                   {/* Step 2 */}
-                  <div className="flex flex-col items-center relative bg-[#f8fafc] dark:bg-gray-950 px-4">
+                  <div className="flex flex-col items-center relative bg-slate-50 dark:bg-slate-950 px-4">
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all ${
                         getStepStatus(2) === "complete"
-                          ? "bg-gradient-to-r from-[#6a5acd] to-[#8c52ff] text-white"
+                          ? "bg-gradient-to-r from-purple-500 to-violet-500 text-white"
                           : getStepStatus(2) === "current"
-                            ? "bg-white dark:bg-gray-800 border-2 border-[#6a5acd] text-[#6a5acd]"
-                            : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-400"
+                            ? "bg-white dark:bg-slate-800 border-2 border-purple-500 text-purple-500"
+                            : "bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-400"
                       }`}
                     >
                       <User className="w-5 h-5" />
@@ -1255,10 +1404,10 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                     <span
                       className={`text-xs font-medium mt-2 ${
                         getStepStatus(2) === "current"
-                          ? "text-[#6a5acd]"
+                          ? "text-purple-500"
                           : getStepStatus(2) === "complete"
-                            ? "text-gray-900 dark:text-white"
-                            : "text-gray-500 dark:text-gray-400"
+                            ? "text-slate-900 dark:text-white"
+                            : "text-slate-500 dark:text-slate-400"
                       }`}
                     >
                       Contact Info
@@ -1268,16 +1417,16 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
 
                 {/* Mobile progress indicator */}
                 <div className="flex md:hidden justify-between items-center mb-4">
-                  <div className="text-base font-medium text-gray-900 dark:text-white">
+                  <div className="text-base font-medium text-slate-900 dark:text-white">
                     Step {formStep} of 2: {formStep === 1 ? "Item Details" : "Contact Info"}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
                     {Math.round((formStep / 2) * 100)}% Complete
                   </div>
                 </div>
-                <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-6 md:hidden">
+                <div className="h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mb-6 md:hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-violet-500 transition-all duration-500"
                     style={{ width: `${(formStep / 2) * 100}%` }}
                   ></div>
                 </div>
@@ -1288,14 +1437,14 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
               <form
                 ref={formBoxRef}
                 onSubmit={handleSubmit}
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 overflow-hidden"
+                className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 overflow-hidden"
               >
                 {/* Form header */}
-                <div className="bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 p-6 border-b border-gray-200 dark:border-gray-800">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-violet-50 dark:from-blue-950/30 dark:via-purple-950/30 dark:to-violet-950/30 p-6 border-b border-slate-200 dark:border-slate-800">
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                     {formStep === 1 ? "Add your items" : "Your contact information"}
                   </h2>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                     {formStep === 1
                       ? `You're currently adding ${getItems().length} item${getItems().length > 1 ? "s" : ""}`
                       : "Let us know how to reach you and arrange pickup"}
@@ -1312,20 +1461,22 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                             key={item.id}
                             id={item.id}
                             className={`border ${
-                              item.isValid ? "border-gray-200 dark:border-gray-700" : "border-[#0066ff]/30"
-                            } transition-all duration-300 hover:shadow-md bg-white dark:bg-gray-800 rounded-lg overflow-hidden`}
+                              item.isValid
+                                ? "border-slate-200 dark:border-slate-700"
+                                : "border-blue-300 dark:border-blue-700"
+                            } transition-all duration-300 hover:shadow-md bg-white dark:bg-slate-900 rounded-lg overflow-hidden`}
                           >
-                            <CardHeader className="bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 py-3 px-4 border-b border-gray-200 dark:border-gray-700">
+                            <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 py-3 px-4 border-b border-slate-200 dark:border-slate-800">
                               <div className="flex justify-between items-center">
                                 <div>
                                   <CardTitle className="text-base flex items-center gap-2">
-                                    <Package className="h-4 w-4 text-[#6a5acd]" />
+                                    <Package className="h-4 w-4 text-blue-500" />
                                     Item {index + 1}
                                     {item.isValid && (
-                                      <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                                      <Badge variant="success" className="ml-2">
                                         <CheckCircle2 className="mr-1 h-3 w-3" />
                                         Complete
-                                      </span>
+                                      </Badge>
                                     )}
                                   </CardTitle>
                                   <CardDescription className="text-xs">
@@ -1376,22 +1527,22 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                 <div className="transition-all duration-300">
                                   <Label
                                     htmlFor={`item-name-${index}`}
-                                    className="text-sm font-medium mb-2 block text-gray-900 dark:text-gray-100"
+                                    className="text-sm font-medium mb-2 block text-slate-900 dark:text-slate-100"
                                   >
                                     Item Name <span className="text-red-500">*</span>
                                   </Label>
-                                  <input
+                                  <Input
                                     id={`item-name-${index}`}
                                     value={item.name || ""}
                                     onChange={(e) => handleNameChange(e, index)}
                                     placeholder="e.g., Leather Sofa, Samsung TV"
-                                    className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066ff] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#0066ff]/30 focus:border-[#0066ff]/70 relative z-30"
+                                    className="transition-all duration-200"
                                     required
                                   />
 
-                                  {/* Smart name suggestion - moved here from description section */}
+                                  {/* Smart name suggestion */}
                                   {item.isLoadingSuggestion && (
-                                    <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                    <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
                                       <Loader2 className="h-3 w-3 animate-spin" />
                                       <span>Generating suggestion...</span>
                                     </div>
@@ -1400,18 +1551,23 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                   {item.nameSuggestion && (
                                     <div
                                       onClick={() => applySuggestion(index)}
-                                      className="mt-3 p-3 bg-[#6a5acd]/5 border border-[#6a5acd]/20 rounded-lg cursor-pointer hover:bg-[#6a5acd]/10 transition-colors duration-200"
+                                      className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors duration-200"
                                     >
                                       <div className="flex items-center gap-2 mb-1">
-                                        <Wand2 className="h-4 w-4 text-[#6a5acd]" />
-                                        <span className="text-sm font-medium text-[#6a5acd]">
+                                        <Wand2 className="h-4 w-4 text-blue-500" />
+                                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
                                           Suggested Description
                                         </span>
-                                        <span className="text-xs bg-[#6a5acd]/10 text-[#6a5acd] px-2 py-0.5 rounded-full">
+                                        <Badge
+                                          variant="outline"
+                                          className="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                                        >
                                           Click to Apply
-                                        </span>
+                                        </Badge>
                                       </div>
-                                      <p className="text-sm text-muted-foreground">{item.nameSuggestion}</p>
+                                      <p className="text-sm text-slate-600 dark:text-slate-300">
+                                        {item.nameSuggestion}
+                                      </p>
                                     </div>
                                   )}
                                 </div>
@@ -1420,27 +1576,27 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                   <div className="flex justify-between items-center mb-2">
                                     <Label
                                       htmlFor={`item-description-${index}`}
-                                      className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                                      className="text-sm font-medium text-slate-900 dark:text-slate-100"
                                     >
                                       Brief Description <span className="text-red-500">*</span>
                                     </Label>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">
                                       {(item.description || "").length} characters
                                     </div>
                                   </div>
-                                  <textarea
+                                  <Textarea
                                     id={`item-description-${index}`}
                                     value={item.description || ""}
                                     onChange={(e) => handleDescriptionChange(e, index)}
                                     placeholder="Describe your item in detail including brand, model, size, color, etc."
                                     rows={3}
-                                    className="flex min-h-[80px] w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066ff] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#0066ff]/30 focus:border-[#0066ff]/70 relative z-30"
+                                    className="transition-all duration-200"
                                     required
                                   />
                                 </div>
 
                                 <div className="transition-all duration-300">
-                                  <Label className="text-sm font-medium mb-2 block text-gray-900 dark:text-gray-100">
+                                  <Label className="text-sm font-medium mb-2 block text-slate-900 dark:text-slate-100">
                                     Item Condition <span className="text-red-500">*</span>
                                   </Label>
                                   <div className="grid grid-cols-5 gap-2">
@@ -1448,16 +1604,16 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                     <div
                                       className={`flex flex-col items-center p-3 rounded-md border ${
                                         item.condition === "like-new"
-                                          ? "border-[#0066ff] bg-[#0066ff]/5 dark:bg-[#0066ff]/20"
-                                          : "border-gray-200 dark:border-gray-700"
-                                      } cursor-pointer hover:border-[#0066ff] hover:bg-[#0066ff]/5 dark:hover:bg-[#0066ff]/10 transition-all shadow-sm`}
+                                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                          : "border-slate-200 dark:border-slate-700"
+                                      } cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all shadow-sm`}
                                       onClick={() => handleConditionSelect(index, "like-new")}
                                     >
                                       <div
                                         className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
                                           item.condition === "like-new"
-                                            ? "bg-gradient-to-r from-[#0066ff] to-[#6a5acd] text-white"
-                                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                            ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                                         }`}
                                       >
                                         <Sparkles className="w-4 h-4" />
@@ -1473,16 +1629,16 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                     <div
                                       className={`flex flex-col items-center p-3 rounded-md border ${
                                         item.condition === "excellent"
-                                          ? "border-[#3a7bff] bg-[#3a7bff]/5 dark:bg-[#3a7bff]/20"
-                                          : "border-gray-200 dark:border-gray-700"
-                                      } cursor-pointer hover:border-[#3a7bff] hover:bg-[#3a7bff]/5 dark:hover:bg-[#3a7bff]/10 transition-all shadow-sm`}
+                                          ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                                          : "border-slate-200 dark:border-slate-700"
+                                      } cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all shadow-sm`}
                                       onClick={() => handleConditionSelect(index, "excellent")}
                                     >
                                       <div
                                         className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
                                           item.condition === "excellent"
-                                            ? "bg-gradient-to-r from-[#3a7bff] to-[#6a5acd] text-white"
-                                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                            ? "bg-gradient-to-r from-blue-400 to-purple-400 text-white"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                                         }`}
                                       >
                                         <CheckCircle2 className="w-4 h-4" />
@@ -1498,16 +1654,16 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                     <div
                                       className={`flex flex-col items-center p-3 rounded-md border ${
                                         item.condition === "good"
-                                          ? "border-[#6a5acd] bg-[#6a5acd]/5 dark:bg-[#6a5acd]/20"
-                                          : "border-gray-200 dark:border-gray-700"
-                                      } cursor-pointer hover:border-[#6a5acd] hover:bg-[#6a5acd]/5 dark:hover:bg-[#6a5acd]/10 transition-all shadow-sm`}
+                                          ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                                          : "border-slate-200 dark:border-slate-700"
+                                      } cursor-pointer hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all shadow-sm`}
                                       onClick={() => handleConditionSelect(index, "good")}
                                     >
                                       <div
                                         className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
                                           item.condition === "good"
-                                            ? "bg-gradient-to-r from-[#6a5acd] to-[#7a6ad8] text-white"
-                                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                            ? "bg-gradient-to-r from-purple-500 to-violet-500 text-white"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                                         }`}
                                       >
                                         <Check className="w-4 h-4" />
@@ -1523,16 +1679,16 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                     <div
                                       className={`flex flex-col items-center p-3 rounded-md border ${
                                         item.condition === "fair"
-                                          ? "border-[#7a6ad8] bg-[#7a6ad8]/5 dark:bg-[#7a6ad8]/20"
-                                          : "border-gray-200 dark:border-gray-700"
-                                      } cursor-pointer hover:border-[#7a6ad8] hover:bg-[#7a6ad8]/5 dark:hover:bg-[#7a6ad8]/10 transition-all shadow-sm`}
+                                          ? "border-purple-400 bg-purple-50 dark:bg-purple-900/20"
+                                          : "border-slate-200 dark:border-slate-700"
+                                      } cursor-pointer hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all shadow-sm`}
                                       onClick={() => handleConditionSelect(index, "fair")}
                                     >
                                       <div
                                         className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
                                           item.condition === "fair"
-                                            ? "bg-gradient-to-r from-[#7a6ad8] to-[#8c52ff] text-white"
-                                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                            ? "bg-gradient-to-r from-purple-400 to-violet-400 text-white"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                                         }`}
                                       >
                                         <Info className="w-4 h-4" />
@@ -1548,16 +1704,16 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                     <div
                                       className={`flex flex-col items-center p-3 rounded-md border ${
                                         item.condition === "poor"
-                                          ? "border-[#8c52ff] bg-[#8c52ff]/5 dark:bg-[#8c52ff]/20"
-                                          : "border-gray-200 dark:border-gray-700"
-                                      } cursor-pointer hover:border-[#8c52ff] hover:bg-[#8c52ff]/5 dark:hover:bg-[#8c52ff]/10 transition-all shadow-sm`}
+                                          ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20"
+                                          : "border-slate-200 dark:border-slate-700"
+                                      } cursor-pointer hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-all shadow-sm`}
                                       onClick={() => handleConditionSelect(index, "poor")}
                                     >
                                       <div
                                         className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
                                           item.condition === "poor"
-                                            ? "bg-gradient-to-r from-[#8c52ff] to-[#9d47ff] text-white"
-                                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                            ? "bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                                         }`}
                                       >
                                         <AlertCircle className="w-4 h-4" />
@@ -1576,68 +1732,132 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                   <div className="flex justify-between items-center mb-2">
                                     <Label
                                       htmlFor={`item-issues-${index}`}
-                                      className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                                      className="text-sm font-medium text-slate-900 dark:text-slate-100"
                                     >
                                       Any issues or defects? <span className="text-red-500">*</span>
                                     </Label>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">
                                       {(item.issues || "").length} characters
                                     </div>
                                   </div>
-                                  <textarea
+                                  <Textarea
                                     id={`item-issues-${index}`}
                                     value={item.issues || ""}
                                     onChange={(e) => handleIssuesChange(e, index)}
                                     placeholder="Please describe any scratches, dents, missing parts, or functional issues. If none, please write 'None'."
                                     rows={3}
-                                    className="flex min-h-[80px] w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066ff] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#0066ff]/30 focus:border-[#0066ff]/70 relative z-30"
+                                    className="transition-all duration-200"
                                     required
                                   />
                                 </div>
 
                                 <div className="transition-all duration-300 mt-4">
-                                  <div className="flex justify-between items-center mb-2">
-                                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2"></Label>
-                                  </div>
-                                </div>
-
-                                <div className="transition-all duration-300">
-                                  <Label className="text-sm font-medium mb-2 block text-gray-900 dark:text-gray-100">
+                                  <Label className="text-sm font-medium mb-2 block text-slate-900 dark:text-slate-100">
                                     Item Photos <span className="text-red-500">*</span>{" "}
-                                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                                      (at least 3)
+                                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
+                                      (at least 1 required)
                                     </span>
                                   </Label>
 
-                                  {/* File upload */}
-                                  <div
-                                    onClick={() => fileInputRefs.current[`item-${index}`]?.click()}
-                                    className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors duration-200 border-gray-300 dark:border-gray-700 hover:border-[#6a5acd] bg-[#f8fafc] dark:bg-gray-900 hover:bg-[#6a5acd]/5 dark:hover:bg-[#6a5acd]/10"
+                                  <Tabs
+                                    defaultValue="upload"
+                                    value={activeTab}
+                                    onValueChange={setActiveTab}
+                                    className="w-full"
                                   >
-                                    <div className="flex flex-col items-center justify-center gap-2">
-                                      <ImageIcon className="w-6 h-6 text-[#6a5acd]/70" />
-                                      <p className="font-medium text-sm text-[#6a5acd]">Click to Upload Images</p>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        {(item.photos || []).length} of 3 required (max 10)
-                                      </p>
-                                    </div>
-                                    <input
-                                      type="file"
-                                      ref={(el) => (fileInputRefs.current[`item-${index}`] = el)}
-                                      className="hidden"
-                                      multiple
-                                      accept="image/*"
-                                      onChange={(e) => handleFileUpload(e, index)}
-                                    />
-                                  </div>
+                                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                                      <TabsTrigger value="upload" className="flex items-center gap-2">
+                                        <Camera className="h-4 w-4" />
+                                        <span>Upload Photos</span>
+                                      </TabsTrigger>
+                                      <TabsTrigger value="url" className="flex items-center gap-2">
+                                        <LinkIcon className="h-4 w-4" />
+                                        <span>Image URL</span>
+                                      </TabsTrigger>
+                                    </TabsList>
+
+                                    <TabsContent value="upload" className="mt-0">
+                                      {/* File upload */}
+                                      <div
+                                        onClick={() => fileInputRefs.current[`item-${index}`]?.click()}
+                                        className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors duration-200 border-slate-300 dark:border-slate-700 hover:border-blue-500 bg-slate-50 dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-900/10"
+                                      >
+                                        <div className="flex flex-col items-center justify-center gap-2">
+                                          <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                                            <Upload className="w-6 h-6 text-blue-500" />
+                                          </div>
+                                          <p className="font-medium text-sm text-blue-600 dark:text-blue-400">
+                                            Click to Upload Images
+                                          </p>
+                                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                            {(item.photos || []).length} photos uploaded (max 10)
+                                          </p>
+                                        </div>
+                                        <input
+                                          type="file"
+                                          ref={(el) => (fileInputRefs.current[`item-${index}`] = el)}
+                                          className="hidden"
+                                          multiple
+                                          accept="image/*"
+                                          onChange={(e) => handleFileUpload(e, index)}
+                                        />
+                                      </div>
+                                    </TabsContent>
+
+                                    <TabsContent value="url" className="mt-0">
+                                      <div className="space-y-4">
+                                        <div className="flex gap-2">
+                                          <Input
+                                            value={item.imageUrlInput || ""}
+                                            onChange={(e) => handleImageUrlInput(e, index)}
+                                            placeholder="https://example.com/image.jpg"
+                                            className="flex-1"
+                                          />
+                                          <Button
+                                            type="button"
+                                            onClick={() => addImageUrl(index)}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white"
+                                          >
+                                            Add URL
+                                          </Button>
+                                        </div>
+
+                                        {item.imageUrl && (
+                                          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                            <div className="flex justify-between items-center mb-2">
+                                              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                                Image URL Added
+                                              </span>
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => removeImageUrl(index)}
+                                                className="h-7 w-7 p-0 text-red-500"
+                                              >
+                                                <X className="w-4 h-4" />
+                                              </Button>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 break-all">
+                                              <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                              <span>{item.imageUrl}</span>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </TabsContent>
+                                  </Tabs>
 
                                   {/* Photo previews */}
                                   {item.photos && item.photos.length > 0 && (
                                     <div className="mt-4">
+                                      <Label className="text-sm font-medium mb-2 block text-slate-900 dark:text-slate-100">
+                                        Uploaded Photos ({item.photos.length})
+                                      </Label>
                                       <div className="flex flex-wrap gap-3">
                                         {item.photos.map((photo, photoIndex) => (
                                           <div key={photo.id || photoIndex} className="relative group">
-                                            <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                                            <div className="w-24 h-24 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                                               {photo.previewUrl ? (
                                                 <img
                                                   src={photo.previewUrl || "/placeholder.svg"}
@@ -1647,26 +1867,26 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                                     console.error(`Error loading image ${photoIndex}:`, e)
                                                     e.currentTarget.style.display = "none"
                                                     e.currentTarget.parentElement.innerHTML = `
-                        <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-gray-400">
-                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                            <circle cx="9" cy="9" r="2"></circle>
-                            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
-                          </svg>
-                        </div>
-                      `
+                                                      <div class="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-slate-400">
+                                                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
+                                                          <circle cx="9" cy="9" r="2"></circle>
+                                                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                                                        </svg>
+                                                      </div>
+                                                    `
                                                   }}
                                                 />
                                               ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                                                  <ImageIcon className="h-8 w-8 text-gray-400" />
+                                                <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                                                  <ImageIcon className="h-8 w-8 text-slate-400" />
                                                 </div>
                                               )}
                                             </div>
                                             <button
                                               type="button"
                                               onClick={() => removePhoto(index, photoIndex)}
-                                              className="absolute -top-2 -right-2 bg-white dark:bg-gray-800 text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md border border-gray-200 dark:border-gray-700"
+                                              className="absolute -top-2 -right-2 bg-white dark:bg-slate-800 text-red-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center shadow-md border border-slate-200 dark:border-slate-700"
                                               aria-label="Remove photo"
                                             >
                                               <X className="w-3 h-3" />
@@ -1679,18 +1899,44 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
 
                                   {/* Upload progress indicator */}
                                   <div className="flex items-center gap-1 mt-3 w-full">
-                                    <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                      <div
-                                        className={`h-full ${
-                                          (item.photos || []).length >= 3
+                                    <div className="w-full">
+                                      <Progress
+                                        value={Math.min(
+                                          100,
+                                          (((item.photos?.length || 0) + (item.imageUrl ? 1 : 0)) / 1) * 100,
+                                        )}
+                                        className="h-1.5"
+                                        indicatorClassName={
+                                          (item.photos?.length || 0) + (item.imageUrl ? 1 : 0) >= 1
                                             ? "bg-green-500"
-                                            : "bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff]"
-                                        }`}
-                                        style={{ width: `${Math.min(100, ((item.photos || []).length / 3) * 100)}%` }}
-                                      ></div>
+                                            : "bg-gradient-to-r from-blue-500 via-purple-500 to-violet-500"
+                                        }
+                                      />
                                     </div>
                                   </div>
                                 </div>
+
+                                {/* Price estimate for this item */}
+                                {priceEstimates[index] && (
+                                  <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                                    <div className="flex justify-between items-center">
+                                      <div className="flex items-center gap-2">
+                                        <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                        <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                                          Estimated Value
+                                        </span>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                                          {priceEstimates[index].price}
+                                        </div>
+                                        <div className="text-xs text-slate-600 dark:text-slate-400">
+                                          Range: ${priceEstimates[index].minPrice} - ${priceEstimates[index].maxPrice}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </CardContent>
                             )}
 
@@ -1700,14 +1946,14 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                   {item.name && (
                                     <div className="flex items-center gap-2">
                                       <span className="font-medium">Name:</span>
-                                      <span className="text-muted-foreground">{item.name}</span>
+                                      <span className="text-slate-600 dark:text-slate-300">{item.name}</span>
                                     </div>
                                   )}
 
                                   {item.condition && (
                                     <div className="flex items-center gap-2">
                                       <span className="font-medium">Condition:</span>
-                                      <span className="text-muted-foreground">
+                                      <span className="text-slate-600 dark:text-slate-300">
                                         {item.condition
                                           .split("-")
                                           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -1716,10 +1962,19 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                     </div>
                                   )}
 
-                                  {item.photos && item.photos.length > 0 && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">Photos:</span>
+                                    <span className="text-slate-600 dark:text-slate-300">
+                                      {(item.photos?.length || 0) + (item.imageUrl ? 1 : 0)}
+                                    </span>
+                                  </div>
+
+                                  {priceEstimates[index] && (
                                     <div className="flex items-center gap-2">
-                                      <span className="font-medium">Photos:</span>
-                                      <span className="text-muted-foreground">{item.photos.length}</span>
+                                      <span className="font-medium">Estimate:</span>
+                                      <span className="text-green-600 dark:text-green-400 font-medium">
+                                        {priceEstimates[index].price}
+                                      </span>
                                     </div>
                                   )}
                                 </div>
@@ -1734,7 +1989,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                         <Button
                           type="button"
                           onClick={addItem}
-                          className="bg-[#6a5acd]/10 text-[#6a5acd] hover:bg-[#6a5acd]/20 border border-[#6a5acd]/20 transition-all duration-300"
+                          className="bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition-all duration-300"
                         >
                           <Plus className="w-4 h-4 mr-2" />
                           Add Another Item
@@ -1742,32 +1997,33 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                       </div>
 
                       {/* Price Estimate Section */}
-                      <div className="mt-6 p-4 rounded-lg border border-[#6a5acd]/20 bg-[#6a5acd]/5">
+                      <div className="mt-6 p-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
                         <div className="flex items-center gap-2 mb-3">
-                          <DollarSign className="h-5 w-5 text-[#6a5acd]" />
-                          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Estimated Value</h3>
+                          <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                          <h3 className="text-lg font-medium text-slate-900 dark:text-white">Total Estimated Value</h3>
                         </div>
 
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                           <div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
                               Based on the information you've provided, we estimate your items are worth approximately:
                             </p>
                           </div>
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-[#6a5acd]">{totalEstimate.price}</div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                              {totalEstimate.price}
+                            </div>
+                            <div className="text-sm text-slate-500 dark:text-slate-400">
                               Range: ${totalEstimate.minPrice} - ${totalEstimate.maxPrice}
                             </div>
-                            <div
-                              className={`text-xs mt-1 px-2 py-0.5 rounded-full inline-flex items-center gap-1
-        ${
-          totalEstimate.confidence === "high"
-            ? "bg-green-100 text-green-800"
-            : totalEstimate.confidence === "medium"
-              ? "bg-yellow-100 text-yellow-800"
-              : "bg-orange-100 text-orange-800"
-        }`}
+                            <Badge
+                              className={`mt-1 ${
+                                totalEstimate.confidence === "high"
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                  : totalEstimate.confidence === "medium"
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+                                    : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
+                              }`}
                             >
                               <span>
                                 {totalEstimate.confidence === "high"
@@ -1777,43 +2033,11 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                     : "Low"}{" "}
                                 confidence
                               </span>
-                            </div>
+                            </Badge>
                           </div>
                         </div>
 
-                        <div className="space-y-3 mt-4">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Individual item estimates:</p>
-                          {getItems().map((item, index) => (
-                            <div
-                              key={item.id}
-                              className="flex justify-between items-center p-2 rounded bg-white dark:bg-gray-800 shadow-sm"
-                            >
-                              <div className="flex flex-col">
-                                <div className="flex items-center gap-2">
-                                  <Package className="h-4 w-4 text-[#6a5acd]" />
-                                  <span className="text-sm font-medium">{item.name || `Item ${index + 1}`}</span>
-                                </div>
-                                {priceEstimates[index]?.category && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-6">
-                                    Category: {priceEstimates[index].category.replace(/_/g, " ")}
-                                  </span>
-                                )}
-                              </div>
-                              {priceEstimates[index] ? (
-                                <div className="text-right">
-                                  <div className="text-sm font-semibold">{priceEstimates[index].price}</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    ${priceEstimates[index].minPrice} - ${priceEstimates[index].maxPrice}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="text-sm text-gray-400">Add more details</div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-2">
+                        <div className="mt-4 text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2">
                           <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                           <p>
                             This is just an estimate. The final offer may vary based on physical inspection. Adding more
@@ -1823,15 +2047,15 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                       </div>
 
                       <div className="flex justify-end mt-6">
-                        <button
+                        <Button
                           type="button"
                           onClick={handleContinueToStep2}
                           disabled={!step1Valid}
-                          className="bg-gradient-to-r from-[#0066ff] to-[#6a5acd] hover:from-[#0066ff]/90 hover:to-[#6a5acd]/90 text-white px-6 py-2.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow flex items-center gap-2 font-medium text-sm"
+                          className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-6 py-2.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center gap-2 font-medium text-sm"
                         >
                           <span>Continue</span>
                           <ChevronRight className="w-4 h-4" />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -1841,20 +2065,20 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                       <div className="transition-all">
                         <Label
                           htmlFor="full-name"
-                          className="text-sm font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100"
+                          className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-900 dark:text-slate-100"
                         >
-                          <User className="w-4 h-4 text-[#6a5acd]" />
+                          <User className="w-4 h-4 text-blue-500" />
                           <span>
                             Full Name <span className="text-red-500">*</span>
                           </span>
                         </Label>
-                        <input
+                        <Input
                           id="full-name"
                           name="name"
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                           placeholder="Your full name"
-                          className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a5acd] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#6a5acd]/30 focus:border-[#6a5acd]/70 relative z-30"
+                          className="transition-all duration-200"
                           required
                           ref={fullNameInputRef}
                         />
@@ -1864,21 +2088,21 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                       <div className="transition-all">
                         <Label
                           htmlFor="email"
-                          className="text-sm font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100"
+                          className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-900 dark:text-slate-100"
                         >
-                          <Mail className="w-4 h-4 text-[#6a5acd]" />
+                          <Mail className="w-4 h-4 text-blue-500" />
                           <span>
                             Email Address <span className="text-red-500">*</span>
                           </span>
                         </Label>
-                        <input
+                        <Input
                           id="email"
                           name="email"
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="your.email@example.com"
-                          className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a5acd] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#6a5acd]/30 focus:border-[#6a5acd]/70 relative z-30"
+                          className="transition-all duration-200"
                           required
                         />
                         {formErrors.email && <ErrorMessage message={formErrors.email} />}
@@ -1887,21 +2111,21 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                       <div className="transition-all">
                         <Label
                           htmlFor="phone"
-                          className="text-sm font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100"
+                          className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-900 dark:text-slate-100"
                         >
-                          <Phone className="w-4 h-4 text-[#6a5acd]" />
+                          <Phone className="w-4 h-4 text-blue-500" />
                           <span>
                             Phone Number <span className="text-red-500">*</span>
                           </span>
                         </Label>
-                        <input
+                        <Input
                           id="phone"
                           name="phone"
                           type="tel"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           placeholder="(123) 456-7890"
-                          className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a5acd] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#6a5acd]/30 focus:border-[#6a5acd]/70 relative z-30"
+                          className="transition-all duration-200"
                           required
                         />
                         {formErrors.phone && <ErrorMessage message={formErrors.phone} />}
@@ -1910,14 +2134,14 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                       <div className="transition-all">
                         <Label
                           htmlFor="pickup_date"
-                          className="text-sm font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100"
+                          className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-900 dark:text-slate-100"
                         >
-                          <Calendar className="w-4 h-4 text-[#6a5acd]" />
+                          <Calendar className="w-4 h-4 text-blue-500" />
                           <span>
                             Preferred Pickup Date <span className="text-red-500">*</span>
                           </span>
                         </Label>
-                        <input
+                        <Input
                           id="pickup_date"
                           name="pickup_date"
                           type="date"
@@ -1927,7 +2151,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                             // Blur the input to make the calendar disappear
                             e.target.blur()
                           }}
-                          className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a5acd] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 hover:border-[#6a5acd]/30 focus:border-[#6a5acd]/70 relative z-30"
+                          className="transition-all duration-200"
                           required
                         />
                         {formErrors.pickupDate && <ErrorMessage message={formErrors.pickupDate} />}
@@ -1947,39 +2171,43 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
 
                       {/* Show items summary in step 2 */}
                       <div className="transition-all">
-                        <div className="bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 shadow-sm">
-                          <h4 className="text-sm font-medium mb-3 flex items-center gap-2 text-gray-900 dark:text-white">
-                            <DollarSign className="w-4 h-4 text-[#6a5acd]" />
+                        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 shadow-sm">
+                          <h4 className="text-sm font-medium mb-3 flex items-center gap-2 text-slate-900 dark:text-white">
+                            <Package className="w-4 h-4 text-blue-500" />
                             <span>Items Summary ({getItems().length})</span>
                           </h4>
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                <span className="font-medium text-gray-900 dark:text-white">Items:</span>
-                                {getItems().length} items
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                <span className="font-medium text-slate-900 dark:text-white">Total Items:</span>{" "}
+                                {getItems().length}
                               </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                <span className="font-medium text-gray-900 dark:text-white">Names:</span>
-                                {getItems()
-                                  .map((item) => item.name || "Unnamed Item")
-                                  .join(", ")}
+                              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                <span className="font-medium text-slate-900 dark:text-white">Total Value:</span>{" "}
+                                <span className="text-green-600 dark:text-green-400 font-medium">
+                                  {totalEstimate.price}
+                                </span>
                               </p>
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">Item Details:</p>
+                              <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">Item Details:</p>
                               <Accordion type="single" collapsible className="w-full">
                                 {getItems().map((item, index) => (
-                                  <AccordionItem key={item.id} value={`item-${index}`}>
+                                  <AccordionItem
+                                    key={item.id}
+                                    value={`item-${index}`}
+                                    className="border-slate-200 dark:border-slate-800"
+                                  >
                                     <AccordionTrigger className="text-sm hover:no-underline py-2">
                                       <span className="flex items-center gap-2">
-                                        <Package className="h-4 w-4 text-[#6a5acd]" />
+                                        <Package className="h-4 w-4 text-blue-500" />
                                         {item.name || `Item ${index + 1}`}
                                       </span>
                                     </AccordionTrigger>
                                     <AccordionContent>
                                       <div className="pt-2">
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                                          <span className="font-medium text-gray-900 dark:text-white">Condition:</span>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                                          <span className="font-medium text-slate-900 dark:text-white">Condition:</span>{" "}
                                           {item.condition
                                             ? item.condition
                                                 .split("-")
@@ -1987,20 +2215,28 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                                 .join(" ")
                                             : "Not specified"}
                                         </p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                          <span className="font-medium text-gray-900 dark:text-white">
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                          <span className="font-medium text-slate-900 dark:text-white">
                                             Description:
-                                          </span>
+                                          </span>{" "}
                                           {item.description || "No description provided"}
                                         </p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                          <span className="font-medium text-gray-900 dark:text-white">Issues:</span>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                          <span className="font-medium text-slate-900 dark:text-white">Issues:</span>{" "}
                                           {item.issues || "None specified"}
                                         </p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                          <span className="font-medium text-gray-900 dark:text-white">Photos:</span>
-                                          {(item.photos || []).length}
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                          <span className="font-medium text-slate-900 dark:text-white">Photos:</span>{" "}
+                                          {(item.photos?.length || 0) + (item.imageUrl ? 1 : 0)}
                                         </p>
+                                        {priceEstimates[index] && (
+                                          <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                                            <span className="font-medium text-slate-900 dark:text-white">
+                                              Estimate:
+                                            </span>{" "}
+                                            {priceEstimates[index].price}
+                                          </p>
+                                        )}
                                       </div>
                                     </AccordionContent>
                                   </AccordionItem>
@@ -2012,25 +2248,25 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                       </div>
 
                       <div className="mt-6 transition-all">
-                        <div className="p-4 rounded-md bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+                        <div className="p-4 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                           <div className="flex items-start space-x-3">
                             <Checkbox
                               id="consent"
                               name="consent"
                               checked={termsAccepted}
                               onCheckedChange={setTermsAccepted}
-                              className={`mt-1 border-[#6a5acd] text-[#6a5acd] focus-visible:ring-[#6a5acd] ${formErrors.terms ? "border-red-300" : ""}`}
+                              className={`mt-1 border-blue-500 text-blue-500 focus-visible:ring-blue-500 ${formErrors.terms ? "border-red-300" : ""}`}
                               required
                             />
                             <div>
-                              <Label htmlFor="consent" className="font-medium text-gray-900 dark:text-white">
+                              <Label htmlFor="consent" className="font-medium text-slate-900 dark:text-white">
                                 I consent to being contacted by BluBerry <span className="text-red-500">*</span>
                               </Label>
-                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                By submitting this form, you agree to our
+                              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                By submitting this form, you agree to our{" "}
                                 <Link
                                   href="/privacy-policy"
-                                  className="text-[#0066ff] underline hover:text-[#6a5acd] transition-colors"
+                                  className="text-blue-500 underline hover:text-blue-600 transition-colors"
                                 >
                                   Privacy Policy
                                 </Link>
@@ -2043,7 +2279,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                       </div>
 
                       <div className="flex justify-between mt-8">
-                        <button
+                        <Button
                           type="button"
                           onClick={(e) => {
                             e.preventDefault()
@@ -2051,16 +2287,16 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                             setFormStep(1)
                             scrollToFormTop()
                           }}
-                          className="px-6 py-2.5 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 font-medium text-sm"
+                          className="px-6 py-2.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 font-medium text-sm"
                         >
                           <ChevronLeft className="w-4 h-4" />
                           <span>Back</span>
-                        </button>
+                        </Button>
 
                         <Button
                           type="submit"
                           disabled={!step2Valid || isSubmitting}
-                          className="bg-gradient-to-r from-[#6a5acd] to-[#8c52ff] hover:from-[#6a5acd]/90 hover:to-[#8c52ff]/90 text-white px-8 py-2.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow relative overflow-hidden"
+                          className="bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white px-8 py-2.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg relative overflow-hidden"
                         >
                           <span className="relative flex items-center justify-center gap-2">
                             {isSubmitting ? (
@@ -2084,42 +2320,47 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           </>
         ) : (
           <ContentAnimation>
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 overflow-hidden">
-              <div className="bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 p-6 border-b border-gray-200 dark:border-gray-800">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Submission Received</h2>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-violet-50 dark:from-blue-950/30 dark:via-purple-950/30 dark:to-violet-950/30 p-6 border-b border-slate-200 dark:border-slate-800">
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Submission Received</h2>
+                <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
                   Thank you for your submission. We'll be in touch soon.
                 </p>
               </div>
 
               <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-[#0066ff]/10 via-[#6a5acd]/10 to-[#8c52ff]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 className="w-8 h-8 text-[#6a5acd]" />
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle2 className="w-8 h-8 text-green-500" />
                 </div>
 
-                <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] bg-clip-text text-transparent">
+                <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-violet-600 bg-clip-text text-transparent">
                   Thank You!
                 </h2>
 
-                <div className="w-16 h-0.5 mx-auto mb-6 bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] rounded-full"></div>
+                <div className="w-16 h-0.5 mx-auto mb-6 bg-gradient-to-r from-blue-500 via-purple-500 to-violet-500 rounded-full"></div>
 
-                <p className="text-base mb-8 text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
+                <p className="text-base mb-4 text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
                   We've received your submission and will review your item details. You can expect to hear from us
                   within 24 hours with a price offer.
                 </p>
 
-                <div className="bg-[#f8fafc] dark:bg-gray-800 p-6 rounded-md max-w-md mx-auto flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-[#6a5acd] flex-shrink-0" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400 text-left">
-                    We've sent a confirmation email to
-                    <span className="font-medium text-gray-900 dark:text-white">{email}</span> with the details of your
+                <p className="text-sm mb-8 text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
+                  Your images have been stored in the{" "}
+                  <span className="font-medium text-blue-600 dark:text-blue-400">item_images</span> bucket.
+                </p>
+
+                <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-md max-w-md mx-auto flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  <p className="text-sm text-slate-600 dark:text-slate-400 text-left">
+                    We've sent a confirmation email to{" "}
+                    <span className="font-medium text-slate-900 dark:text-white">{email}</span> with the details of your
                     submission.
                   </p>
                 </div>
 
                 <Button
                   asChild
-                  className="mt-8 bg-gradient-to-r from-[#0066ff] to-[#6a5acd] hover:from-[#0066ff]/90 hover:to-[#6a5acd]/90"
+                  className="mt-8 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
                 >
                   <Link href="/">Back to Home</Link>
                 </Button>

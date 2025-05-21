@@ -35,6 +35,7 @@ export default function ItemUploadForm() {
   })
   const [formSuccess, setFormSuccess] = useState(false)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
+  const [uploadedBucket, setUploadedBucket] = useState<string | null>(null)
   const [priceEstimate, setPriceEstimate] = useState<PriceEstimateResult | null>(null)
   const [isEstimating, setIsEstimating] = useState(false)
   const [estimateError, setEstimateError] = useState<string | null>(null)
@@ -104,6 +105,7 @@ export default function ItemUploadForm() {
       // Get the image URL from the upload result
       const imageUrl = uploadResult.signedUrl || uploadResult.url || ""
       setUploadedImageUrl(imageUrl)
+      setUploadedBucket(uploadResult.bucket || null)
 
       console.log("Image URL to be saved:", imageUrl)
 
@@ -150,6 +152,7 @@ export default function ItemUploadForm() {
         setImageFile(null)
         setImagePreview(null)
         setUploadedImageUrl(null)
+        setUploadedBucket(null)
         setFormSuccess(false)
       }, 5000)
     } catch (error) {
@@ -262,6 +265,11 @@ export default function ItemUploadForm() {
                 className="max-w-full h-auto max-h-48 rounded-md"
                 onError={() => console.error("Failed to load image from URL:", uploadedImageUrl)}
               />
+              {uploadedBucket && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Stored in bucket: <span className="font-medium">{uploadedBucket}</span>
+                </p>
+              )}
             </div>
           )}
           <Button
