@@ -1,7 +1,7 @@
 "use server"
 
 import { createClient } from "@supabase/supabase-js"
-import { uploadImageToSupabase } from "@/lib/supabase-image-upload"
+import { uploadImageToSupabase, ensureItemImagesBucket } from "@/lib/supabase-image-upload"
 import { sendConfirmationEmail } from "./send-confirmation-email"
 
 export async function submitItemWithImage(formData: FormData) {
@@ -26,14 +26,28 @@ export async function submitItemWithImage(formData: FormData) {
       }
     }
 
+    // Ensure the item_images bucket exists
+    await ensureItemImagesBucket()
+
     // Convert the file to a buffer
     const arrayBuffer = await imageFile.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
     // Upload the image to Supabase with signed URL
-    const { image_path, image_url, signedUrl } = await uploadImageToSupabase(buffer, imageFile.name)
+    const uploadResult = await uploadImageToSupabase(buffer, imageFile.name, "item_images")
 
-    console.log("Image uploaded successfully:", { image_path, image_url, signedUrl })
+    if (!uploadResult.success) {
+      console.error("Image upload failed:", uploadResult)
+      return {
+        success: false,
+        message: "Failed to upload image",
+      }
+    }
+
+    const image_path = uploadResult.image_path
+    const image_url = uploadResult.image_url || uploadResult.publicUrl || uploadResult.signedUrl
+
+    console.log("Image uploaded successfully:", { image_path, image_url })
 
     // Get Supabase client for database operations
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || ""
@@ -64,7 +78,7 @@ export async function submitItemWithImage(formData: FormData) {
       status: "pending",
       submission_date: new Date().toISOString(),
       image_path: image_path, // Store the path
-      image_url: image_url, // Store the signed URL
+      image_url: image_url, // Store the URL
     }
 
     console.log("Submitting item data to database:", itemData)

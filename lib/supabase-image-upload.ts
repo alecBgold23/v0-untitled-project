@@ -40,7 +40,7 @@ export async function uploadImageClient(file: File, userId = "anonymous") {
     try {
       const { data, error } = await supabase.storage.from("item_images").upload(fileName, file, {
         cacheControl: "3600",
-        upsert: false,
+        upsert: true, // Changed to true to overwrite if file exists
       })
 
       if (!error) {
@@ -54,16 +54,24 @@ export async function uploadImageClient(file: File, userId = "anonymous") {
           throw new Error("Failed to generate signed URL")
         }
 
+        // Also get public URL as fallback
+        const { data: publicUrlData } = supabase.storage.from("item_images").getPublicUrl(data.path)
+
         console.log("Upload successful to item_images:", data.path)
         console.log("Signed URL:", signedUrlData.signedUrl)
+        console.log("Public URL:", publicUrlData.publicUrl)
 
         return {
           success: true,
           path: data.path,
           url: signedUrlData.signedUrl,
           signedUrl: signedUrlData.signedUrl,
+          publicUrl: publicUrlData.publicUrl,
           bucket: "item_images",
         }
+      } else {
+        console.error("Error uploading to item_images:", error)
+        throw new Error(`Upload to item_images failed: ${error.message}`)
       }
     } catch (itemImagesError) {
       console.error("Error uploading to item_images bucket:", itemImagesError)
@@ -73,7 +81,7 @@ export async function uploadImageClient(file: File, userId = "anonymous") {
     // Fallback to images2 bucket
     const { data, error } = await supabase.storage.from("images2").upload(fileName, file, {
       cacheControl: "3600",
-      upsert: false,
+      upsert: true, // Changed to true to overwrite if file exists
     })
 
     if (error) {
@@ -95,14 +103,19 @@ export async function uploadImageClient(file: File, userId = "anonymous") {
       throw new Error("Failed to generate signed URL")
     }
 
+    // Also get public URL as fallback
+    const { data: publicUrlData } = supabase.storage.from("images2").getPublicUrl(data.path)
+
     console.log("Upload successful to fallback bucket:", data.path)
     console.log("Signed URL:", signedUrlData.signedUrl)
+    console.log("Public URL:", publicUrlData.publicUrl)
 
     return {
       success: true,
       path: data.path,
       url: signedUrlData.signedUrl,
       signedUrl: signedUrlData.signedUrl,
+      publicUrl: publicUrlData.publicUrl,
       bucket: "images2",
     }
   } catch (error) {
@@ -159,37 +172,59 @@ export async function checkSupabaseStorage() {
 
 // Server-side image upload function with signed URL (for use in Node.js)
 export async function uploadImageToSupabase(fileBuffer: Buffer, fileName: string, bucket = "item_images") {
-  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  try {
+    // Use service role key for server-side operations
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-  const filePath = `uploads/${Date.now()}-${fileName}`
+    // Create a unique file path
+    const filePath = `uploads/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`
 
-  // Upload the file
-  const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
-    contentType: "image/jpeg", // Adjust if needed
-    upsert: false,
-  })
+    console.log(`Attempting to upload image to ${bucket} bucket with path: ${filePath}`)
 
-  if (uploadError) {
-    console.error("Upload error:", uploadError)
-    throw new Error("Failed to upload image to Supabase Storage")
-  }
+    // Upload the file
+    const { data, error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
+      contentType: "image/jpeg", // Adjust if needed
+      upsert: true, // Changed to true to overwrite if file exists
+    })
 
-  // Generate a signed URL (valid for 7 days = 604800 seconds)
-  const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-    .from(bucket)
-    .createSignedUrl(filePath, 60 * 60 * 24 * 7) // 7 days
+    if (uploadError) {
+      console.error("Upload error:", uploadError)
+      throw new Error(`Failed to upload image to ${bucket}: ${uploadError.message}`)
+    }
 
-  if (signedUrlError) {
-    console.error("Signed URL error:", signedUrlError)
-    throw new Error("Failed to generate signed URL")
-  }
+    console.log(`Successfully uploaded image to ${bucket} bucket with path: ${filePath}`)
 
-  const imageUrl = signedUrlData?.signedUrl || null
+    // Generate a signed URL (valid for 7 days = 604800 seconds)
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(filePath, 60 * 60 * 24 * 7) // 7 days
 
-  return {
-    image_path: filePath,
-    image_url: imageUrl,
-    signedUrl: signedUrlData?.signedUrl,
+    if (signedUrlError) {
+      console.error("Signed URL error:", signedUrlError)
+      throw new Error(`Failed to generate signed URL: ${signedUrlError.message}`)
+    }
+
+    // Also get the public URL as a fallback
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePath)
+
+    const imageUrl = signedUrlData?.signedUrl || publicUrlData?.publicUrl || null
+
+    console.log("Image upload successful with URLs:", {
+      path: filePath,
+      signedUrl: signedUrlData?.signedUrl,
+      publicUrl: publicUrlData?.publicUrl,
+    })
+
+    return {
+      image_path: filePath,
+      image_url: imageUrl,
+      signedUrl: signedUrlData?.signedUrl,
+      publicUrl: publicUrlData?.publicUrl,
+      success: true,
+    }
+  } catch (error) {
+    console.error("Error in uploadImageToSupabase:", error)
+    throw error
   }
 }
 
@@ -198,7 +233,7 @@ export async function uploadImageToSupabaseBrowser(
   file: File,
   bucket = "item_images",
   path = "",
-): Promise<{ url: string; signedUrl?: string } | { error: string }> {
+): Promise<{ url: string; signedUrl?: string; publicUrl?: string; path?: string } | { error: string }> {
   try {
     // Generate a unique file name
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
@@ -206,7 +241,9 @@ export async function uploadImageToSupabaseBrowser(
     const filePath = path ? `${path}/${fileName}.${fileExt}` : `${fileName}.${fileExt}`
 
     // Upload the file
-    const { data, error } = await supabase.storage.from(bucket).upload(filePath, file)
+    const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, {
+      upsert: true, // Changed to true to overwrite if file exists
+    })
 
     if (error) {
       return { error: error.message }
@@ -221,16 +258,21 @@ export async function uploadImageToSupabaseBrowser(
       return { error: signedUrlError.message }
     }
 
+    // Also get public URL as fallback
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePath)
+
     return {
       url: signedUrlData.signedUrl,
       signedUrl: signedUrlData.signedUrl,
+      publicUrl: publicUrlData.publicUrl,
+      path: filePath,
     }
   } catch (error: any) {
     return { error: error.message || "Failed to upload image" }
   }
 }
 
-// NEW: Function to save an external image URL to Supabase database
+// Function to save an external image URL to Supabase database
 export async function saveImageUrlToSupabase(
   imageUrl: string,
   itemId: string | null = null,
@@ -288,12 +330,12 @@ export async function saveImageUrlToSupabase(
   }
 }
 
-// NEW: Function to upload an image from a URL to Supabase storage
+// Function to upload an image from a URL to Supabase storage
 export async function uploadImageFromUrl(
   url: string,
   bucket = "item_images",
   path = "",
-): Promise<{ url: string; path: string } | { error: string }> {
+): Promise<{ url: string; path: string; publicUrl?: string } | { error: string }> {
   try {
     if (!url) {
       return { error: "No URL provided" }
@@ -320,7 +362,7 @@ export async function uploadImageFromUrl(
     const { data, error } = await supabase.storage.from(bucket).upload(filePath, blob, {
       contentType,
       cacheControl: "3600",
-      upsert: false,
+      upsert: true, // Changed to true to overwrite if file exists
     })
 
     if (error) {
@@ -334,6 +376,7 @@ export async function uploadImageFromUrl(
     return {
       url: publicUrlData.publicUrl,
       path: filePath,
+      publicUrl: publicUrlData.publicUrl,
     }
   } catch (error: any) {
     console.error("Error uploading image from URL:", error)
@@ -341,7 +384,7 @@ export async function uploadImageFromUrl(
   }
 }
 
-// NEW: Function to store an image URL in Supabase database with metadata
+// Function to store an image URL in Supabase database with metadata
 export async function storeImageUrlWithMetadata(
   imageUrl: string,
   metadata: {
@@ -399,5 +442,44 @@ export async function storeImageUrlWithMetadata(
   } catch (error: any) {
     console.error("Error storing image URL with metadata:", error)
     return { success: false, error: error.message || "Failed to store image URL with metadata" }
+  }
+}
+
+// Function to create the item_images bucket if it doesn't exist
+export async function ensureItemImagesBucket() {
+  try {
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+    // Check if bucket exists
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets()
+
+    if (listError) {
+      console.error("Error listing buckets:", listError)
+      return { success: false, error: listError.message }
+    }
+
+    const bucketExists = buckets.some((bucket) => bucket.name === "item_images")
+
+    if (!bucketExists) {
+      // Create the bucket
+      const { data, error } = await supabase.storage.createBucket("item_images", {
+        public: true,
+        fileSizeLimit: 5242880, // 5MB
+      })
+
+      if (error) {
+        console.error("Error creating item_images bucket:", error)
+        return { success: false, error: error.message }
+      }
+
+      console.log("Successfully created item_images bucket")
+      return { success: true, message: "Created item_images bucket" }
+    }
+
+    console.log("item_images bucket already exists")
+    return { success: true, message: "item_images bucket already exists" }
+  } catch (error: any) {
+    console.error("Error ensuring item_images bucket:", error)
+    return { success: false, error: error.message || "Unknown error" }
   }
 }

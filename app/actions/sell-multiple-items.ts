@@ -47,22 +47,25 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
       }
     }
 
+    // Validate phone number - ensure it's not null or empty
+    if (!contactInfo.phone || contactInfo.phone.trim() === "") {
+      return {
+        success: false,
+        message: "Phone number is required",
+      }
+    }
+
     // Get Supabase client
     const supabase = getSupabaseAdmin()
 
     // First, check if the table exists and ensure it has the required structure
     await ensureTableStructure(supabase)
 
-    // Get the actual column names from the table to ensure we're using the correct ones
-    const { data: tableInfo, error: tableInfoError } = await supabase.from("sell_items").select().limit(1)
+    // Check if the phone column has a NOT NULL constraint
+    const hasNotNullConstraint = await checkPhoneConstraint(supabase)
 
-    if (tableInfoError && tableInfoError.code !== "PGRST116") {
-      console.error("Error fetching table info:", tableInfoError)
-      return {
-        success: false,
-        message: `Database error: ${tableInfoError.message}`,
-      }
-    }
+    // Log the constraint status
+    console.log("Phone column has NOT NULL constraint:", hasNotNullConstraint)
 
     // Prepare data for insertion - use only the correct column names that match the database schema
     const submissionData = items.map((item) => {
@@ -71,23 +74,32 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
         item_name: item.name,
         item_description: item.description,
         item_condition: item.condition,
-        item_issues: item.issues,
-        image_path: item.imagePath || "",
-        image_url: item.imageUrl || "",
+        item_issues: item.issues || "None",
         email: contactInfo.email,
-        phone: contactInfo.phone,
-        address: contactInfo.address,
+        // Ensure phone is never null - use empty string as fallback if needed
+        phone: contactInfo.phone || "",
+        address: contactInfo.address || "",
         full_name: contactInfo.fullName,
-        pickup_date: contactInfo.pickupDate,
+        pickup_date: contactInfo.pickupDate || "",
         status: "pending",
         submission_date: new Date().toISOString(),
-        estimated_price: item.estimatedPrice || null,
+        estimated_price: item.estimatedPrice || "",
+      }
+
+      // Add image data - ensure we're using the correct column names
+      if (item.imagePath) {
+        baseData.image_path = item.imagePath
+      }
+
+      if (item.imageUrl) {
+        baseData.image_url = item.imageUrl
       }
 
       return baseData
     })
 
     console.log("Attempting to insert data with correct column names")
+    console.log("First item data sample:", submissionData[0])
 
     // Insert data into Supabase
     let data // Changed from const to let
@@ -97,8 +109,33 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
     if (error) {
       console.error("Error submitting items to Supabase:", error)
 
-      // If the error is about column names, try a more minimal approach
-      if (error.message.includes("column") || error.code === "42703") {
+      // If the error is about the phone column being null
+      if (error.message && error.message.includes("phone") && error.message.includes("not-null")) {
+        // Try to alter the table to make phone nullable
+        try {
+          console.log("Attempting to make phone column nullable...")
+          await supabase.rpc("execute_sql", {
+            query: "ALTER TABLE sell_items ALTER COLUMN phone DROP NOT NULL;",
+          })
+          console.log("Phone column constraint removed, trying again...")
+
+          // Try the insert again
+          ;({ data, error } = await supabase.from("sell_items").insert(submissionData).select())
+
+          if (error) {
+            console.error("Still error after making phone nullable:", error)
+            return {
+              success: false,
+              message: `Database error: ${error.message}`,
+              code: error.code,
+            }
+          }
+        } catch (alterError) {
+          console.error("Error altering phone column:", alterError)
+        }
+      }
+      // If still having issues, try a more minimal approach
+      else if (error) {
         console.log("Trying minimal insertion with only essential fields")
 
         const minimalData = items.map((item) => ({
@@ -106,6 +143,7 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           item_description: item.description,
           item_condition: item.condition,
           email: contactInfo.email,
+          phone: contactInfo.phone || "", // Ensure phone is never null
           status: "pending",
         }))
 
@@ -124,12 +162,6 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
 
         console.log("Successfully submitted with minimal fields")
         data = minimalResult
-      } else {
-        return {
-          success: false,
-          message: `Database error: ${error.message}`,
-          code: error.code,
-        }
       }
     }
 
@@ -143,7 +175,7 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
         itemName: `Multiple Items (${items.length})`,
         itemCondition: "Multiple",
         itemDescription: items.map((item) => `${item.name}: ${item.description}`).join(" | "),
-        itemIssues: items.map((item) => `${item.name}: ${item.issues}`).join(" | "),
+        itemIssues: items.map((item) => `${item.name}: ${item.issues || "None"}`).join(" | "),
         phone: contactInfo.phone,
         address: contactInfo.address,
         pickupDate: contactInfo.pickupDate,
@@ -168,6 +200,28 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
   }
 }
 
+// Helper function to check if the phone column has a NOT NULL constraint
+async function checkPhoneConstraint(supabase) {
+  try {
+    const { data, error } = await supabase
+      .from("information_schema.columns")
+      .select("is_nullable")
+      .eq("table_name", "sell_items")
+      .eq("column_name", "phone")
+      .single()
+
+    if (error) {
+      console.error("Error checking phone constraint:", error)
+      return false
+    }
+
+    return data && data.is_nullable === "NO"
+  } catch (err) {
+    console.error("Error in checkPhoneConstraint:", err)
+    return false
+  }
+}
+
 // Helper function to ensure the table exists with the correct structure
 async function ensureTableStructure(supabase) {
   try {
@@ -185,6 +239,7 @@ async function ensureTableStructure(supabase) {
             item_description TEXT NOT NULL,
             item_condition TEXT NOT NULL,
             email TEXT,
+            phone TEXT, -- Create without NOT NULL constraint
             status TEXT DEFAULT 'pending',
             submission_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
           );
@@ -204,13 +259,19 @@ async function ensureTableStructure(supabase) {
             query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS image_url TEXT;",
           })
           await supabase.rpc("execute_sql", {
-            query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS phone TEXT;",
+            query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS image_paths TEXT;",
+          })
+          await supabase.rpc("execute_sql", {
+            query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS image_urls TEXT;",
+          })
+          await supabase.rpc("execute_sql", {
+            query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS photo_count INTEGER DEFAULT 0;",
           })
           await supabase.rpc("execute_sql", {
             query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS address TEXT;",
           })
           await supabase.rpc("execute_sql", {
-            query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS fullname TEXT;",
+            query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS full_name TEXT;",
           })
           await supabase.rpc("execute_sql", {
             query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS pickup_date TEXT;",
@@ -220,9 +281,6 @@ async function ensureTableStructure(supabase) {
           })
           await supabase.rpc("execute_sql", {
             query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS item_issues TEXT;",
-          })
-          await supabase.rpc("execute_sql", {
-            query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS full_name TEXT;",
           })
           console.log("Additional columns added successfully")
         } catch (alterError) {
@@ -241,13 +299,19 @@ async function ensureTableStructure(supabase) {
           query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS image_url TEXT;",
         })
         await supabase.rpc("execute_sql", {
-          query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS phone TEXT;",
+          query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS image_paths TEXT;",
+        })
+        await supabase.rpc("execute_sql", {
+          query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS image_urls TEXT;",
+        })
+        await supabase.rpc("execute_sql", {
+          query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS photo_count INTEGER DEFAULT 0;",
         })
         await supabase.rpc("execute_sql", {
           query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS address TEXT;",
         })
         await supabase.rpc("execute_sql", {
-          query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS fullname TEXT;",
+          query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS full_name TEXT;",
         })
         await supabase.rpc("execute_sql", {
           query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS pickup_date TEXT;",
@@ -258,10 +322,17 @@ async function ensureTableStructure(supabase) {
         await supabase.rpc("execute_sql", {
           query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS item_issues TEXT;",
         })
-        await supabase.rpc("execute_sql", {
-          query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS full_name TEXT;",
-        })
         console.log("Ensured all columns exist")
+
+        // Try to make the phone column nullable if it exists
+        try {
+          await supabase.rpc("execute_sql", {
+            query: "ALTER TABLE sell_items ALTER COLUMN phone DROP NOT NULL;",
+          })
+          console.log("Made phone column nullable (if it had a constraint)")
+        } catch (alterError) {
+          console.error("Error making phone column nullable:", alterError)
+        }
       } catch (alterError) {
         console.error("Error ensuring columns exist:", alterError)
       }
@@ -271,7 +342,7 @@ async function ensureTableStructure(supabase) {
     try {
       const { data, error } = await supabase
         .from("information_schema.columns")
-        .select("column_name, data_type")
+        .select("column_name, data_type, is_nullable")
         .eq("table_name", "sell_items")
       if (data) {
         console.log("Current table structure:", data)

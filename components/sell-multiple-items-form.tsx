@@ -1048,11 +1048,22 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       e.stopPropagation()
 
       if (validateStep2()) {
+        // Ensure phone is not empty before submission
+        if (!phone || phone.trim() === "") {
+          setFormErrors((prev) => ({ ...prev, phone: "Phone number is required" }))
+          toast({
+            title: "Validation Error",
+            description: "Please enter a valid phone number.",
+            variant: "destructive",
+          })
+          return
+        }
+
         // Proceed directly to form submission without phone verification
         await completeFormSubmission()
       }
     },
-    [completeFormSubmission, validateStep2],
+    [completeFormSubmission, validateStep2, phone, toast, setFormErrors],
   )
 
   // Fetch suggestion for a specific item
