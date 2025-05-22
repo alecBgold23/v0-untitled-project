@@ -415,7 +415,7 @@ export default function Home() {
       >
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <h2 className="text-2xl md:text-3xl font-light mb-8 text-center tracking-wide">
+            <h2 className="text-2xl md:text-3xl font-light mb-4 text-center tracking-wide">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
                 Our Resale Process
               </span>
@@ -423,24 +423,41 @@ export default function Home() {
             <p
               className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} mb-8 text-center max-w-2xl mx-auto text-sm`}
             >
-              We handle <span className="font-medium">everything</span> so you don't have to
+              <span className="font-medium">We do everything.</span> You do nothing.
             </p>
           </ContentAnimation>
 
-          {/* Process Comparison */}
-          <div className="grid md:grid-cols-2 gap-8 mb-10">
+          {/* Visual Process Comparison */}
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
             <ContentAnimation delay={0.1}>
               <div
                 className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border h-full`}
               >
-                <h3 className={`text-xl font-medium mb-4 text-center ${isMobile ? "text-white" : "text-foreground"}`}>
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
-                    What We Do
-                  </span>
-                </h3>
-                <ul className="space-y-4">
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-6 h-6 text-white"
+                    >
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                  <h3 className={`text-xl font-medium ml-3 ${isMobile ? "text-white" : "text-foreground"}`}>
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                      BluBerry Handles
+                    </span>
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -454,17 +471,11 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        Expert Evaluation
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        We assess condition, authenticity, and market value to determine optimal pricing
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Item Evaluation</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -478,17 +489,11 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        Professional Photography
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        We take high-quality photos that showcase your items in the best light
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Photography</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -502,17 +507,11 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        Detailed Descriptions
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        We craft compelling listings that highlight key features and selling points
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Descriptions</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -526,17 +525,13 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        Multi-Platform Listing
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        We list on multiple marketplaces to reach the largest possible audience
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>
+                      Marketplace Listings
+                    </p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -550,17 +545,11 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        Buyer Communication
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        We handle all inquiries, negotiations, and follow-ups with potential buyers
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Buyer Communication</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -574,16 +563,45 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        Secure Transactions
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        We process payments and ensure secure financial transactions
-                      </p>
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Shipping & Delivery</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-[#3B82F6]"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
                     </div>
-                  </li>
-                </ul>
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Payment Processing</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-[#3B82F6]"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Customer Service</p>
+                  </div>
+                </div>
               </div>
             </ContentAnimation>
 
@@ -591,12 +609,30 @@ export default function Home() {
               <div
                 className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border h-full`}
               >
-                <h3 className={`text-xl font-medium mb-4 text-center ${isMobile ? "text-white" : "text-foreground"}`}>
-                  <span className="text-red-400">What You Don't Do</span>
-                </h3>
-                <ul className="space-y-4">
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-12 h-12 rounded-full bg-red-400/20 flex items-center justify-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-6 h-6 text-red-400"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </div>
+                  <h3 className={`text-xl font-medium ml-3 ${isMobile ? "text-white" : "text-foreground"}`}>
+                    <span className="text-red-400">You Do Nothing</span>
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -611,17 +647,11 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        No Research Required
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        You don't need to research comparable items or determine market value
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Research</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -636,17 +666,11 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        No Photography Needed
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        You don't need to take, edit, or upload any photos of your items
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Photography</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -661,17 +685,11 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        No Listing Creation
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        You don't need to write descriptions or create listings on any platforms
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Descriptions</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -686,17 +704,11 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        No Buyer Interaction
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        You don't need to answer questions, negotiate, or deal with potential buyers
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Listings</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -711,17 +723,11 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        No Shipping Hassle
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        You don't need to package, ship, or track any items
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Buyer Contact</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -736,68 +742,103 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                        No Payment Processing
-                      </p>
-                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                        You don't need to handle payment methods, transfers, or payment disputes
-                      </p>
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Shipping</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-red-400"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
                     </div>
-                  </li>
-                </ul>
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Payment Hassles</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-red-400"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </div>
+                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Customer Service</p>
+                  </div>
+                </div>
               </div>
             </ContentAnimation>
           </div>
 
-          {/* Customer Journey */}
+          {/* Simple 3-Step Process */}
           <ContentAnimation delay={0.3}>
             <div className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border`}>
-              <h3 className={`text-xl font-medium mb-4 text-center ${isMobile ? "text-white" : "text-foreground"}`}>
+              <h3 className={`text-lg font-medium mb-6 text-center ${isMobile ? "text-white" : "text-foreground"}`}>
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
                   Your Simple 3-Step Journey
                 </span>
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto mb-3">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="text-center w-full md:w-1/3 relative">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto">
                     <span className="text-white font-bold">1</span>
                   </div>
-                  <h4 className={`text-sm font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
-                    Submit Your Items
+                  <h4 className={`text-sm font-medium mt-2 ${isMobile ? "text-white" : "text-foreground"}`}>
+                    Submit Form
                   </h4>
-                  <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                    Fill out our simple form with basic item details
-                  </p>
+                  <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>Takes 2 minutes</p>
+
+                  {/* Arrow for desktop */}
+                  <div className="hidden md:block absolute top-6 right-0 w-1/3 h-0.5 bg-gradient-to-r from-[#3B82F6] to-transparent"></div>
                 </div>
 
-                <div className="text-center">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto mb-3">
+                <div className="text-center w-full md:w-1/3 relative">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto">
                     <span className="text-white font-bold">2</span>
                   </div>
-                  <h4 className={`text-sm font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
-                    Schedule Pickup
+                  <h4 className={`text-sm font-medium mt-2 ${isMobile ? "text-white" : "text-foreground"}`}>
+                    We Pick Up
                   </h4>
                   <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                    Choose a convenient time for us to collect your items
+                    At your convenience
                   </p>
+
+                  {/* Arrow for desktop */}
+                  <div className="hidden md:block absolute top-6 right-0 w-1/3 h-0.5 bg-gradient-to-r from-[#3B82F6] to-transparent"></div>
                 </div>
 
-                <div className="text-center">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto mb-3">
+                <div className="text-center w-full md:w-1/3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto">
                     <span className="text-white font-bold">3</span>
                   </div>
-                  <h4 className={`text-sm font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
+                  <h4 className={`text-sm font-medium mt-2 ${isMobile ? "text-white" : "text-foreground"}`}>
                     Get Paid
                   </h4>
                   <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                    Receive payment immediately upon pickup
+                    Immediately on pickup
                   </p>
                 </div>
               </div>
 
-              <div className="mt-6 text-center">
+              <div className="mt-8 text-center">
                 <Link
                   href="/sell-multiple-items"
                   className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-6 py-2 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all text-sm"
