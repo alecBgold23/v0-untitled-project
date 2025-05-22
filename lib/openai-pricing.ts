@@ -1,4 +1,5 @@
 import { OpenAI } from "openai"
+import { updateLastUsage } from "@/app/api/openai-key-usage/route"
 
 /**
  * Generates a price estimate based on item details and condition
@@ -26,10 +27,12 @@ export async function generatePriceEstimate(itemDetails: string, condition: stri
 
     const prompt = `
 You are a professional appraiser for used consumer items. Estimate a fair market resale price in USD for the following item. 
-Be concise and return only the number, no dollar sign or explanation.
+Provide your estimate as a price range (e.g., $50-$75) to account for variations in the market.
 
 Item description: ${itemDetails}
 Condition: ${condition}
+
+Return only the price range in the format $X-$Y, with no additional text.
 `
 
     const response = await openai.chat.completions.create({
@@ -37,19 +40,24 @@ Condition: ${condition}
       messages: [
         {
           role: "system",
-          content: "You are an expert in pricing used consumer goods. Only return a price estimate as a number.",
+          content:
+            "You are an expert in pricing used consumer goods. Only return a price estimate as a price range in the format $X-$Y.",
         },
         { role: "user", content: prompt },
       ],
-      max_tokens: 10,
+      max_tokens: 20,
+      temperature: 0.7,
     })
 
-    console.log("OpenAI API response received:", response)
+    console.log("OpenAI API response received:", JSON.stringify(response))
+
+    // Update the last usage timestamp
+    updateLastUsage()
 
     const priceText = response.choices[0]?.message?.content?.trim() || "0"
-    const priceNumber = Number.parseFloat(priceText.replace(/[^0-9.]/g, ""))
 
-    const formattedPrice = `$${priceNumber.toFixed(2)}`
+    // If the response doesn't contain a dollar sign, add one
+    const formattedPrice = priceText.includes("$") ? priceText : `$${priceText}`
 
     console.log("Generated price estimate:", formattedPrice)
 
@@ -57,49 +65,6 @@ Condition: ${condition}
   } catch (error) {
     console.error("Error generating price estimate:", error)
     return generateFallbackPrice(itemDetails, condition)
-  }
-}
-
-/**
- * Generates a price estimate with comparable items
- */
-export async function generatePriceEstimateWithComparables(
-  description: string,
-  condition: string,
-  category?: string,
-): Promise<{
-  estimatedPrice: string
-  comparableItems: any[]
-  aiEstimate: string
-}> {
-  try {
-    console.log("Generating price estimate with comparables for:", description, condition)
-
-    // Get AI-generated price estimate
-    const aiEstimate = await generatePriceEstimate(description, condition)
-
-    console.log("AI estimate received:", aiEstimate)
-
-    // Generate mock comparable items
-    const priceText = aiEstimate.replace(/[^0-9.]/g, "")
-    const basePrice = Number.parseFloat(priceText) || 50
-    const comparableItems = generateMockComparables(description, basePrice, condition)
-
-    return {
-      estimatedPrice: aiEstimate,
-      comparableItems: comparableItems,
-      aiEstimate: aiEstimate,
-    }
-  } catch (error) {
-    console.error("Error generating price estimate with comparables:", error)
-
-    // Fallback to a default estimate
-    const fallbackPrice = generateFallbackPrice(description, condition)
-    return {
-      estimatedPrice: fallbackPrice,
-      comparableItems: [],
-      aiEstimate: fallbackPrice,
-    }
   }
 }
 
@@ -218,6 +183,49 @@ function generateFallbackPrice(description: string, condition = "used"): string 
   console.log("Generated fallback price:", result)
 
   return result
+}
+
+/**
+ * Generates a price estimate with comparable items
+ */
+export async function generatePriceEstimateWithComparables(
+  description: string,
+  condition: string,
+  category?: string,
+): Promise<{
+  estimatedPrice: string
+  comparableItems: any[]
+  aiEstimate: string
+}> {
+  try {
+    console.log("Generating price estimate with comparables for:", description, condition)
+
+    // Get AI-generated price estimate
+    const aiEstimate = await generatePriceEstimate(description, condition)
+
+    console.log("AI estimate received:", aiEstimate)
+
+    // Generate mock comparable items
+    const priceText = aiEstimate.replace(/[^0-9.]/g, "")
+    const basePrice = Number.parseFloat(priceText) || 50
+    const comparableItems = generateMockComparables(description, basePrice, condition)
+
+    return {
+      estimatedPrice: aiEstimate,
+      comparableItems: comparableItems,
+      aiEstimate: aiEstimate,
+    }
+  } catch (error) {
+    console.error("Error generating price estimate with comparables:", error)
+
+    // Fallback to a default estimate
+    const fallbackPrice = generateFallbackPrice(description, condition)
+    return {
+      estimatedPrice: fallbackPrice,
+      comparableItems: [],
+      aiEstimate: fallbackPrice,
+    }
+  }
 }
 
 /**

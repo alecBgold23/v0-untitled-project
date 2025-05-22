@@ -1,12 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Star, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { Star, CheckCircle, AlertCircle, Loader2, ArrowRight } from "lucide-react"
 import Image from "next/image"
 import ContentAnimation from "@/components/content-animation"
 import { toast } from "@/hooks/use-toast"
@@ -125,41 +124,39 @@ export default function ReviewsPage() {
 
   const ErrorMessage = ({ message }) => (
     <div className="flex items-center gap-1 text-red-500 text-sm mt-1">
-      <AlertCircle className="h-4 w-4" />
+      <AlertCircle className="h-3 w-3" />
       <span>{message}</span>
     </div>
   )
 
   return (
     <div className="bg-background">
-      {/* Header Section */}
-      <section className="py-8 bg-background border-b border-border">
+      {/* Hero Section with elegant gradient */}
+      <section className="py-12 md:py-16 bg-gradient-to-br from-background via-background to-secondary/30">
         <div className="container mx-auto px-4">
           <ContentAnimation>
-            <h1 className="page-header text-center font-[var(--font-roboto)] font-light tracking-tight">
+            <h1 className="text-3xl md:text-5xl font-bold mb-4 text-center font-[var(--font-roboto)] font-light tracking-tight">
               <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
                 Customer Reviews
               </span>
             </h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>
-            <p className="text-muted-foreground text-center mt-2">
+            <p className="text-lg md:text-xl text-center max-w-2xl mx-auto text-muted-foreground">
               See what our customers are saying about their BluBerry experience.
             </p>
           </ContentAnimation>
         </div>
       </section>
 
-      <section className="py-12 bg-background">
+      <section className="py-12 md:py-20 bg-background">
         <div className="container mx-auto px-4 max-w-5xl">
-          <div className="grid md:grid-cols-2 gap-12">
+          <div className="grid md:grid-cols-2 gap-8">
             {/* Submit Review Form */}
             <ContentAnimation delay={0.2}>
               <div>
                 <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
-                  <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight text-foreground">
-                    Share Your Experience
-                  </h2>
+                  <h2 className="text-2xl font-semibold mb-6 text-foreground">Share Your Experience</h2>
 
                   {submitSuccess ? (
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-start mb-6">
@@ -249,20 +246,25 @@ export default function ReviewsPage() {
                         {formErrors.comment && <ErrorMessage message={formErrors.comment} />}
                       </div>
 
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] hover:from-[#3574e2] hover:to-[#7a47e6] text-white"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Submitting...
-                          </>
-                        ) : (
-                          "Submit Review"
-                        )}
-                      </Button>
+                      <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg w-full">
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="w-full flex justify-center items-center bg-card hover:bg-secondary transition-colors px-4 py-2 rounded-lg font-medium text-foreground group text-sm"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            <>
+                              Submit Review
+                              <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </form>
                   )}
                 </div>
@@ -272,9 +274,7 @@ export default function ReviewsPage() {
             {/* Reviews List */}
             <ContentAnimation delay={0.3}>
               <div>
-                <h2 className="section-header mb-6 font-[var(--font-roboto)] font-light tracking-tight text-foreground">
-                  Customer Feedback
-                </h2>
+                <h2 className="text-2xl font-semibold mb-6 text-foreground">Customer Feedback</h2>
 
                 {reviews.length > 0 ? (
                   <div className="space-y-6">

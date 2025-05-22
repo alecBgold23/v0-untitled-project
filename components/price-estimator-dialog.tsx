@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { DollarSign, Wand2, AlertCircle, Loader2 } from "lucide-react"
-import { estimateItemPrice } from "@/lib/client-price-estimator"
+import { estimateItemPriceFromAPI } from "@/lib/client-price-estimator"
 
 interface PriceEstimatorDialogProps {
   description: string
@@ -37,6 +37,7 @@ export function PriceEstimatorDialog({
   const [priceRange, setPriceRange] = useState<{ min: number; max: number } | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [source, setSource] = useState<string | null>(null)
 
   // Use a ref to track if we've already estimated the price
   const hasEstimatedPrice = useRef(false)
@@ -52,7 +53,7 @@ export function PriceEstimatorDialog({
   // Silent price estimation on mount or when inputs significantly change
   useEffect(() => {
     // Skip if we've already estimated the price or if there's no description
-    if (hasEstimatedPrice.current || !description?.trim()) return
+    if (hasEstimatedPrice.current || (!description?.trim() && !name?.trim())) return
 
     // Mark that we've estimated the price
     hasEstimatedPrice.current = true
@@ -62,10 +63,12 @@ export function PriceEstimatorDialog({
         setIsLoading(true)
         setError(null)
 
-        // Use client-side estimation
-        const result = estimateItemPrice(description, name, condition, issues)
+        // Use API-based estimation
+        const result = await estimateItemPriceFromAPI(description, name, condition, issues)
 
         setEstimatedPrice(result.price)
+        setSource(result.source || null)
+
         if (result.minPrice && result.maxPrice) {
           setPriceRange({ min: result.minPrice, max: result.maxPrice })
         }
@@ -81,6 +84,7 @@ export function PriceEstimatorDialog({
         // Generate a simple fallback price
         const fallbackPrice = `$${Math.round((25 + Math.random() * 75) / 5) * 5}`
         setEstimatedPrice(fallbackPrice)
+        setSource("fallback")
 
         if (onPriceEstimated) {
           onPriceEstimated(fallbackPrice, "Error estimating price, using fallback")
@@ -92,10 +96,10 @@ export function PriceEstimatorDialog({
 
     // Run the estimation
     estimatePrice()
-  }, []) // Empty dependency array - only run once on mount
+  }, [description, name, condition, issues, onPriceEstimated]) // Dependencies updated
 
   // Function to manually trigger price estimation
-  const handleManualEstimate = () => {
+  const handleManualEstimate = async () => {
     setIsLoading(true)
     setError(null)
 
@@ -103,10 +107,12 @@ export function PriceEstimatorDialog({
       // Get the latest props from ref
       const { description, name, condition, issues } = propsRef.current
 
-      // Use client-side estimation
-      const result = estimateItemPrice(description, name, condition, issues)
+      // Use API-based estimation
+      const result = await estimateItemPriceFromAPI(description, name, condition, issues)
 
       setEstimatedPrice(result.price)
+      setSource(result.source || null)
+
       if (result.minPrice && result.maxPrice) {
         setPriceRange({ min: result.minPrice, max: result.maxPrice })
       }
@@ -122,6 +128,7 @@ export function PriceEstimatorDialog({
       // Generate a simple fallback price
       const fallbackPrice = `$${Math.round((25 + Math.random() * 75) / 5) * 5}`
       setEstimatedPrice(fallbackPrice)
+      setSource("fallback")
 
       if (onPriceEstimated) {
         onPriceEstimated(fallbackPrice, "Error estimating price, using fallback")
@@ -214,7 +221,13 @@ export function PriceEstimatorDialog({
 
               {priceRange && (
                 <p className="text-sm text-gray-500 mt-1">
-                  Estimated range: ${priceRange.min} - ${priceRange.max}
+                  Estimated range: ${priceRange.min.toFixed(2)} - ${priceRange.max.toFixed(2)}
+                </p>
+              )}
+
+              {source && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Source: {source === "openai" ? "AI-powered estimate" : "Algorithm-based estimate"}
                 </p>
               )}
 
@@ -234,6 +247,9 @@ export function PriceEstimatorDialog({
                 <li>Brand value and rarity</li>
                 <li>Current market trends</li>
               </ul>
+              <p className="text-xs text-gray-500 mt-2">
+                Powered by AI technology to provide the most accurate estimates possible.
+              </p>
             </div>
           </div>
         </DialogContent>

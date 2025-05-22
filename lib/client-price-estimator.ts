@@ -1,78 +1,76 @@
 /**
- * Client-side price estimation utility
- * This provides a fallback when the API is unavailable
+ * Client-side price estimation function
+ * This is a simplified version that runs in the browser
  */
-
-export interface PriceEstimateResult {
+export function estimateItemPrice(
+  description: string,
+  name?: string,
+  condition?: string,
+  issues?: string,
+): {
   price: string
   minPrice?: number
   maxPrice?: number
-  confidence?: "low" | "medium" | "high"
-  source: "client"
+} {
+  console.log("Client-side price estimation called for:", name || description)
+
+  // In a real implementation, this would call the API
+  // For now, we'll return a placeholder and let the server handle it
+  return {
+    price: "Calculating...",
+  }
 }
 
-export function estimateItemPrice(description = "", name = "", condition = "", issues = ""): PriceEstimateResult {
-  // Combine all text for analysis
-  const combinedText = `${name} ${description} ${condition} ${issues}`.toLowerCase()
+/**
+ * Server-side price estimation function that calls the API
+ */
+export async function estimateItemPriceFromAPI(
+  description: string,
+  name?: string,
+  condition?: string,
+  issues?: string,
+): Promise<{
+  price: string
+  priceRange?: string
+  minPrice?: number
+  maxPrice?: number
+  source?: string
+}> {
+  try {
+    console.log("Calling price estimation API for:", name || description)
 
-  // Base price range based on condition
-  const basePrice = 50 // Default base price
-  let multiplier = 1.0
+    const response = await fetch("/api/estimate-price", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        itemName: name || "",
+        briefDescription: description || "",
+        condition: condition || "Good",
+        issues: issues || "",
+      }),
+    })
 
-  // Adjust for condition
-  if (condition) {
-    if (condition.includes("new") || condition === "like-new") multiplier = 2.0
-    else if (condition === "excellent") multiplier = 1.5
-    else if (condition === "good") multiplier = 1.2
-    else if (condition === "fair") multiplier = 0.8
-    else if (condition === "poor") multiplier = 0.5
-  }
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
 
-  // Check for premium keywords
-  const premiumKeywords = ["antique", "vintage", "rare", "collectible", "limited", "designer", "luxury"]
-  const premiumCount = premiumKeywords.filter((word) => combinedText.includes(word)).length
-  multiplier += premiumCount * 0.2
+    const data = await response.json()
+    console.log("Price estimation API response:", data)
 
-  // Check for brand names (simplified)
-  const brands = ["apple", "samsung", "sony", "lg", "nike", "adidas", "gucci", "prada", "ikea"]
-  const hasBrand = brands.some((brand) => combinedText.includes(brand))
-  if (hasBrand) multiplier += 0.3
-
-  // Check for issue keywords
-  const issueKeywords = ["broken", "damaged", "scratched", "cracked", "worn", "tear", "stain"]
-  const issueCount = issueKeywords.filter((word) => combinedText.includes(word)).length
-  multiplier -= issueCount * 0.15
-
-  // Adjust for description length (more detailed descriptions suggest better items)
-  if (description && description.length > 100) multiplier += 0.1
-
-  // Calculate final price
-  let finalPrice = Math.round(basePrice * multiplier)
-
-  // Ensure minimum price
-  finalPrice = Math.max(finalPrice, 10)
-
-  // Add some randomness for realistic variation (±10%)
-  const randomFactor = 0.9 + Math.random() * 0.2
-  finalPrice = Math.round(finalPrice * randomFactor)
-
-  // Calculate price range
-  const minPrice = Math.round(finalPrice * 0.8)
-  const maxPrice = Math.round(finalPrice * 1.2)
-
-  // Determine confidence level
-  let confidence: "low" | "medium" | "high" = "medium"
-  if (premiumCount > 0 && hasBrand && description.length > 100) {
-    confidence = "high"
-  } else if (issueCount > 2 || !condition || !description) {
-    confidence = "low"
-  }
-
-  return {
-    price: `$${finalPrice}`,
-    minPrice,
-    maxPrice,
-    confidence,
-    source: "client",
+    return {
+      price: data.price ? `$${data.price}` : data.priceRange || "$25",
+      priceRange: data.priceRange,
+      minPrice: data.minPrice ? Number(data.minPrice) : undefined,
+      maxPrice: data.maxPrice ? Number(data.maxPrice) : undefined,
+      source: data.source,
+    }
+  } catch (error) {
+    console.error("Error estimating price from API:", error)
+    return {
+      price: "$25",
+      source: "fallback",
+    }
   }
 }

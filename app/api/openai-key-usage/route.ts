@@ -6,6 +6,7 @@ let lastUsageTimestamp: string | null = null
 
 export function updateLastUsage() {
   lastUsageTimestamp = new Date().toISOString()
+  console.log("OpenAI API usage timestamp updated:", lastUsageTimestamp)
 }
 
 export async function GET() {
