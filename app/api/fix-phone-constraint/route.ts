@@ -12,25 +12,47 @@ export async function GET() {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // First, check if the column exists and has a NOT NULL constraint
-    const { data: columnCheck, error: checkError } = await supabase
-      .from("information_schema.columns")
-      .select("column_name, is_nullable")
-      .eq("table_name", "sell_items")
-      .eq("column_name", "phone")
-      .single()
+    // First, check if the table exists
+    const { data: tableExists, error: tableError } = await supabase.rpc("execute_sql", {
+      query: `
+        SELECT EXISTS (
+          SELECT FROM pg_tables
+          WHERE schemaname = 'public'
+          AND tablename = 'sell_items'
+        );
+      `,
+    })
 
-    if (checkError && checkError.code !== "PGRST116") {
-      return NextResponse.json({ error: "Error checking column existence", details: checkError }, { status: 500 })
+    if (tableError) {
+      return NextResponse.json({ error: "Error checking table existence", details: tableError }, { status: 500 })
+    }
+
+    if (!tableExists || !tableExists.length || !tableExists[0].exists) {
+      return NextResponse.json({ error: "Table sell_items does not exist" }, { status: 404 })
+    }
+
+    // Check if the phone column exists and its constraints
+    const { data: columnInfo, error: columnError } = await supabase.rpc("execute_sql", {
+      query: `
+        SELECT column_name, is_nullable
+        FROM information_schema.columns
+        WHERE table_name = 'sell_items'
+        AND column_name = 'phone'
+        AND table_schema = 'public';
+      `,
+    })
+
+    if (columnError) {
+      return NextResponse.json({ error: "Error checking column info", details: columnError }, { status: 500 })
     }
 
     // If column doesn't exist, create it without NOT NULL constraint
-    if (!columnCheck) {
+    if (!columnInfo || !columnInfo.length) {
       console.log("phone column doesn't exist, creating it...")
 
       // Try to create the column
       const { error: createError } = await supabase.rpc("execute_sql", {
-        query: "ALTER TABLE sell_items ADD COLUMN IF NOT EXISTS phone TEXT;",
+        query: "ALTER TABLE sell_items ADD COLUMN phone TEXT;",
       })
 
       if (createError) {
@@ -51,7 +73,7 @@ export async function GET() {
     }
 
     // If column exists but has NOT NULL constraint, remove it
-    if (columnCheck && columnCheck.is_nullable === "NO") {
+    if (columnInfo[0].is_nullable === "NO") {
       console.log("phone column has NOT NULL constraint, removing it...")
 
       // Try to remove the NOT NULL constraint
@@ -80,7 +102,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       message: "phone column already exists without NOT NULL constraint",
-      columnDetails: columnCheck,
+      columnDetails: columnInfo[0],
     })
   } catch (error) {
     console.error("Error in fix-phone-constraint:", error)

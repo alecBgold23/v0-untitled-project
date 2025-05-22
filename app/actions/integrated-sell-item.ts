@@ -2,6 +2,8 @@
 
 import { createClient } from "@supabase/supabase-js"
 import { uploadImageToSupabase, ensureItemImagesBucket } from "@/lib/supabase-image-upload"
+// Import the fix-image-urls utility at the top of the file
+import { fixImageUrl } from "@/lib/fix-image-urls"
 
 // Use the same environment variables consistently
 const supabaseUrl = process.env.SUPABASE_URL || ""
@@ -60,7 +62,7 @@ export async function submitSellItemWithImage(formData: FormData) {
           item_name: name,
           item_description: description,
           image_path: imagePath,
-          image_url: imageUrl,
+          image_url: fixImageUrl(imageUrl), // Fix the URL format here
           email,
           item_condition: condition,
           status: "pending",

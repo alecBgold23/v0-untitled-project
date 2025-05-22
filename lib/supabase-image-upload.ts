@@ -1,6 +1,12 @@
 import { createClient } from "@supabase/supabase-js"
 import type { Buffer } from "buffer"
 
+// Add this function at the top of the file, after the imports
+function getSupabaseProjectId(url: string): string {
+  const match = url.match(/https:\/\/([^.]+)\.supabase\.co/)
+  return match ? match[1] : ""
+}
+
 // Create a singleton client to avoid multiple instances
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
@@ -10,6 +16,45 @@ const supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
 const supabaseServiceRole = createClient(supabaseUrl, supabaseServiceRoleKey)
 
 export const supabase = supabaseClient
+
+// Add this function to ensure URLs have the correct format
+function ensureCorrectImageUrl(url: string, bucket = "item_images"): string {
+  if (!url) return ""
+
+  // If it already has the correct format with item_images, return it
+  if (url.includes(`/public/${bucket}/`)) return url
+
+  // Get the Supabase project ID
+  const projectId = getSupabaseProjectId(url)
+  if (!projectId) return url
+
+  // Extract the file path - get everything after the last slash
+  const filePath = url.split("/").pop() || ""
+
+  // Construct the correct URL format
+  return `https://${projectId}.supabase.co/storage/v1/object/public/${bucket}/uploads/${filePath}`
+}
+
+// Function to ensure the URL has the correct format with bucket name
+function ensureCorrectUrlFormat(url: string, bucket = "item_images"): string {
+  if (!url) return url
+
+  // If the URL already contains the bucket name, return it
+  if (url.includes(`/public/${bucket}/`)) return url
+
+  // Extract the Supabase project URL
+  const projectUrlMatch = url.match(/(https:\/\/[^/]+)/)
+  if (!projectUrlMatch) return url
+
+  const projectUrl = projectUrlMatch[1]
+
+  // Extract the file path after the last slash
+  const pathParts = url.split("/")
+  const fileName = pathParts[pathParts.length - 1]
+
+  // Construct the correct URL format
+  return `${projectUrl}/storage/v1/object/public/${bucket}/${fileName}`
+}
 
 // Client-side image upload function (for use in browser)
 export async function uploadImageClient(file: File, userId = "anonymous") {
@@ -30,93 +75,41 @@ export async function uploadImageClient(file: File, userId = "anonymous") {
       throw new Error("File size must be less than 5MB")
     }
 
-    // Create unique filename
+    // Create unique filename with user ID for better organization
     const fileExt = file.name.split(".").pop()
     const fileName = `${userId}/${Date.now()}.${fileExt}`
 
     console.log("Uploading file:", fileName)
 
-    // Try to upload to item_images bucket first
-    try {
-      const { data, error } = await supabase.storage.from("item_images").upload(fileName, file, {
-        cacheControl: "3600",
-        upsert: true, // Changed to true to overwrite if file exists
-      })
+    // Always use item_images bucket
+    const bucket = "item_images"
 
-      if (!error) {
-        // Generate a signed URL (valid for 7 days)
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from("item_images")
-          .createSignedUrl(data.path, 60 * 60 * 24 * 7) // 7 days
-
-        if (signedUrlError) {
-          console.error("Signed URL error:", signedUrlError)
-          throw new Error("Failed to generate signed URL")
-        }
-
-        // Also get public URL as fallback
-        const { data: publicUrlData } = supabase.storage.from("item_images").getPublicUrl(data.path)
-
-        console.log("Upload successful to item_images:", data.path)
-        console.log("Signed URL:", signedUrlData.signedUrl)
-        console.log("Public URL:", publicUrlData.publicUrl)
-
-        return {
-          success: true,
-          path: data.path,
-          url: signedUrlData.signedUrl,
-          signedUrl: signedUrlData.signedUrl,
-          publicUrl: publicUrlData.publicUrl,
-          bucket: "item_images",
-        }
-      } else {
-        console.error("Error uploading to item_images:", error)
-        throw new Error(`Upload to item_images failed: ${error.message}`)
-      }
-    } catch (itemImagesError) {
-      console.error("Error uploading to item_images bucket:", itemImagesError)
-      // Continue to fallback bucket
-    }
-
-    // Fallback to images2 bucket
-    const { data, error } = await supabase.storage.from("images2").upload(fileName, file, {
+    // Upload to item_images bucket
+    const { data, error } = await supabase.storage.from(bucket).upload(fileName, file, {
       cacheControl: "3600",
       upsert: true, // Changed to true to overwrite if file exists
     })
 
     if (error) {
-      console.error("Supabase storage error:", error)
-      throw new Error(error.message)
+      console.error("Error uploading to item_images:", error)
+      throw new Error(`Upload to item_images failed: ${error.message}`)
     }
 
-    if (!data?.path) {
-      throw new Error("Upload failed - no path returned")
-    }
+    // Get the public URL directly
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(data.path)
 
-    // Generate a signed URL (valid for 7 days)
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-      .from("images2")
-      .createSignedUrl(data.path, 60 * 60 * 24 * 7) // 7 days
+    // Ensure the URL has the correct format
+    const correctUrl = ensureCorrectUrlFormat(publicUrlData.publicUrl, bucket)
 
-    if (signedUrlError) {
-      console.error("Signed URL error:", signedUrlError)
-      throw new Error("Failed to generate signed URL")
-    }
-
-    // Also get public URL as fallback
-    const { data: publicUrlData } = supabase.storage.from("images2").getPublicUrl(data.path)
-
-    console.log("Upload successful to fallback bucket:", data.path)
-    console.log("Signed URL:", signedUrlData.signedUrl)
-    console.log("Public URL:", publicUrlData.publicUrl)
+    console.log("Upload successful to item_images:", data.path)
+    console.log("Public URL:", correctUrl)
 
     return {
       success: true,
       path: data.path,
-      url: signedUrlData.signedUrl,
-      signedUrl: signedUrlData.signedUrl,
-      publicUrl: publicUrlData.publicUrl,
-      bucket: "images2",
+      url: correctUrl,
+      publicUrl: correctUrl,
+      bucket: bucket,
     }
   } catch (error) {
     console.error("Upload error:", error)
@@ -130,24 +123,8 @@ export async function uploadImageClient(file: File, userId = "anonymous") {
 // Function to check if Supabase storage is configured correctly
 export async function checkSupabaseStorage() {
   try {
-    // Try to list files in the item_images bucket first
-    try {
-      const { data, error } = await supabase.storage.from("item_images").list()
-
-      if (!error) {
-        return {
-          success: true,
-          message: "item_images bucket is configured correctly",
-          files: data?.length || 0,
-          bucket: "item_images",
-        }
-      }
-    } catch (itemImagesError) {
-      console.error("Error checking item_images bucket:", itemImagesError)
-    }
-
-    // Fallback to images2 bucket
-    const { data, error } = await supabase.storage.from("images2").list()
+    // Check the item_images bucket
+    const { data, error } = await supabase.storage.from("item_images").list()
 
     if (error) {
       return {
@@ -158,9 +135,9 @@ export async function checkSupabaseStorage() {
 
     return {
       success: true,
-      message: "Supabase storage is configured correctly",
+      message: "item_images bucket is configured correctly",
       files: data?.length || 0,
-      bucket: "images2",
+      bucket: "item_images",
     }
   } catch (error) {
     return {
@@ -170,14 +147,15 @@ export async function checkSupabaseStorage() {
   }
 }
 
-// Server-side image upload function with signed URL (for use in Node.js)
+// Server-side image upload function with public URL (for use in Node.js)
 export async function uploadImageToSupabase(fileBuffer: Buffer, fileName: string, bucket = "item_images") {
   try {
     // Use service role key for server-side operations
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-    // Create a unique file path
-    const filePath = `uploads/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`
+    // Create a unique file path with better organization
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_")
+    const filePath = `uploads/${Date.now()}-${sanitizedFileName}`
 
     console.log(`Attempting to upload image to ${bucket} bucket with path: ${filePath}`)
 
@@ -194,32 +172,19 @@ export async function uploadImageToSupabase(fileBuffer: Buffer, fileName: string
 
     console.log(`Successfully uploaded image to ${bucket} bucket with path: ${filePath}`)
 
-    // Generate a signed URL (valid for 7 days = 604800 seconds)
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(filePath, 60 * 60 * 24 * 7) // 7 days
-
-    if (signedUrlError) {
-      console.error("Signed URL error:", signedUrlError)
-      throw new Error(`Failed to generate signed URL: ${signedUrlError.message}`)
-    }
-
-    // Also get the public URL as a fallback
+    // Get the public URL directly
     const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePath)
 
-    const imageUrl = signedUrlData?.signedUrl || publicUrlData?.publicUrl || null
+    // Ensure the URL has the correct format
+    const correctUrl = ensureCorrectUrlFormat(publicUrlData.publicUrl, bucket)
 
-    console.log("Image upload successful with URLs:", {
-      path: filePath,
-      signedUrl: signedUrlData?.signedUrl,
-      publicUrl: publicUrlData?.publicUrl,
-    })
+    console.log("Image upload successful with URL:", correctUrl)
 
+    // Replace the existing return statement with this:
     return {
       image_path: filePath,
-      image_url: imageUrl,
-      signedUrl: signedUrlData?.signedUrl,
-      publicUrl: publicUrlData?.publicUrl,
+      image_url: ensureCorrectImageUrl(publicUrlData.publicUrl, bucket),
+      publicUrl: ensureCorrectImageUrl(publicUrlData.publicUrl, bucket),
       success: true,
     }
   } catch (error) {
@@ -233,7 +198,7 @@ export async function uploadImageToSupabaseBrowser(
   file: File,
   bucket = "item_images",
   path = "",
-): Promise<{ url: string; signedUrl?: string; publicUrl?: string; path?: string } | { error: string }> {
+): Promise<{ url: string; publicUrl?: string; path?: string } | { error: string }> {
   try {
     // Generate a unique file name
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
@@ -249,84 +214,19 @@ export async function uploadImageToSupabaseBrowser(
       return { error: error.message }
     }
 
-    // Generate a signed URL (valid for 7 days)
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(filePath, 60 * 60 * 24 * 7) // 7 days
-
-    if (signedUrlError) {
-      return { error: signedUrlError.message }
-    }
-
-    // Also get public URL as fallback
+    // Get the public URL directly
     const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePath)
 
+    // Ensure the URL has the correct format
+    const correctUrl = ensureCorrectUrlFormat(publicUrlData.publicUrl, bucket)
+
     return {
-      url: signedUrlData.signedUrl,
-      signedUrl: signedUrlData.signedUrl,
-      publicUrl: publicUrlData.publicUrl,
+      url: correctUrl,
+      publicUrl: correctUrl,
       path: filePath,
     }
   } catch (error: any) {
     return { error: error.message || "Failed to upload image" }
-  }
-}
-
-// Function to save an external image URL to Supabase database
-export async function saveImageUrlToSupabase(
-  imageUrl: string,
-  itemId: string | null = null,
-  tableName = "items",
-  userId = "anonymous",
-): Promise<{ success: boolean; data?: any; error?: string }> {
-  try {
-    if (!imageUrl) {
-      return { success: false, error: "No image URL provided" }
-    }
-
-    // Create a timestamp for the update
-    const timestamp = new Date().toISOString()
-
-    // If itemId is provided, update the existing record
-    if (itemId) {
-      const { data, error } = await supabase
-        .from(tableName)
-        .update({
-          image_url: imageUrl,
-          updated_at: timestamp,
-        })
-        .eq("id", itemId)
-        .select()
-
-      if (error) {
-        console.error("Error updating image URL in Supabase:", error)
-        return { success: false, error: error.message }
-      }
-
-      return { success: true, data }
-    }
-    // Otherwise, create a new record
-    else {
-      const { data, error } = await supabase
-        .from(tableName)
-        .insert({
-          image_url: imageUrl,
-          user_id: userId,
-          created_at: timestamp,
-          updated_at: timestamp,
-        })
-        .select()
-
-      if (error) {
-        console.error("Error inserting image URL in Supabase:", error)
-        return { success: false, error: error.message }
-      }
-
-      return { success: true, data }
-    }
-  } catch (error: any) {
-    console.error("Error saving image URL to Supabase:", error)
-    return { success: false, error: error.message || "Failed to save image URL" }
   }
 }
 
@@ -373,10 +273,13 @@ export async function uploadImageFromUrl(
     // Get the public URL
     const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePath)
 
+    // Ensure the URL has the correct format
+    const correctUrl = ensureCorrectUrlFormat(publicUrlData.publicUrl, bucket)
+
     return {
-      url: publicUrlData.publicUrl,
+      url: correctUrl,
       path: filePath,
-      publicUrl: publicUrlData.publicUrl,
+      publicUrl: correctUrl,
     }
   } catch (error: any) {
     console.error("Error uploading image from URL:", error)
@@ -384,64 +287,63 @@ export async function uploadImageFromUrl(
   }
 }
 
-// Function to store an image URL in Supabase database with metadata
-export async function storeImageUrlWithMetadata(
-  imageUrl: string,
-  metadata: {
-    itemName?: string
-    description?: string
-    price?: number | string
-    condition?: string
-    category?: string
-    userId?: string
-    itemId?: string
-    [key: string]: any // Allow any additional metadata
-  },
-  tableName = "item_images",
-): Promise<{ success: boolean; data?: any; error?: string; id?: string }> {
+// Function to fix existing image URLs in the database
+export async function fixImageUrls(tableName = "sell_items") {
   try {
-    if (!imageUrl) {
-      return { success: false, error: "No image URL provided" }
-    }
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-    // Create a timestamp for the record
-    const timestamp = new Date().toISOString()
-
-    // Prepare the data to insert
-    const insertData = {
-      image_url: imageUrl,
-      item_name: metadata.itemName || null,
-      description: metadata.description || null,
-      price: metadata.price || null,
-      condition: metadata.condition || null,
-      category: metadata.category || null,
-      user_id: metadata.userId || "anonymous",
-      item_id: metadata.itemId || null,
-      created_at: timestamp,
-      updated_at: timestamp,
-      ...Object.entries(metadata)
-        .filter(
-          ([key]) => !["itemName", "description", "price", "condition", "category", "userId", "itemId"].includes(key),
-        )
-        .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {}),
-    }
-
-    // Insert the record
-    const { data, error } = await supabase.from(tableName).insert(insertData).select()
+    // Get all records with image_url
+    const { data, error } = await supabase
+      .from(tableName)
+      .select("id, image_url, image_path")
+      .not("image_url", "is", null)
 
     if (error) {
-      console.error("Error storing image URL with metadata:", error)
+      console.error("Error fetching records:", error)
       return { success: false, error: error.message }
+    }
+
+    if (!data || data.length === 0) {
+      return { success: true, message: "No records with image URLs found" }
+    }
+
+    console.log(`Found ${data.length} records with image URLs to fix`)
+
+    // Fix each record
+    let fixedCount = 0
+    let errorCount = 0
+
+    for (const record of data) {
+      if (!record.image_url) continue
+
+      const correctUrl = ensureCorrectUrlFormat(record.image_url, "item_images")
+
+      // Only update if the URL changed
+      if (correctUrl !== record.image_url) {
+        const { error: updateError } = await supabase
+          .from(tableName)
+          .update({ image_url: correctUrl })
+          .eq("id", record.id)
+
+        if (updateError) {
+          console.error(`Error updating record ${record.id}:`, updateError)
+          errorCount++
+        } else {
+          fixedCount++
+        }
+      }
     }
 
     return {
       success: true,
-      data,
-      id: data && data[0] ? data[0].id : undefined,
+      message: `Fixed ${fixedCount} URLs, ${errorCount} errors, ${data.length - fixedCount - errorCount} already correct`,
     }
-  } catch (error: any) {
-    console.error("Error storing image URL with metadata:", error)
-    return { success: false, error: error.message || "Failed to store image URL with metadata" }
+  } catch (error) {
+    console.error("Error fixing image URLs:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error fixing image URLs",
+    }
   }
 }
 

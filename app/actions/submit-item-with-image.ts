@@ -3,6 +3,8 @@
 import { createClient } from "@supabase/supabase-js"
 import { uploadImageToSupabase, ensureItemImagesBucket } from "@/lib/supabase-image-upload"
 import { sendConfirmationEmail } from "./send-confirmation-email"
+// Import the fix-image-urls utility at the top of the file
+import { fixImageUrl } from "@/lib/fix-image-urls"
 
 export async function submitItemWithImage(formData: FormData) {
   try {
@@ -33,7 +35,7 @@ export async function submitItemWithImage(formData: FormData) {
     const arrayBuffer = await imageFile.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Upload the image to Supabase with signed URL
+    // Upload the image to Supabase with public URL
     const uploadResult = await uploadImageToSupabase(buffer, imageFile.name, "item_images")
 
     if (!uploadResult.success) {
@@ -45,7 +47,7 @@ export async function submitItemWithImage(formData: FormData) {
     }
 
     const image_path = uploadResult.image_path
-    const image_url = uploadResult.image_url || uploadResult.publicUrl || uploadResult.signedUrl
+    const image_url = uploadResult.publicUrl || uploadResult.image_url
 
     console.log("Image uploaded successfully:", { image_path, image_url })
 
@@ -78,7 +80,7 @@ export async function submitItemWithImage(formData: FormData) {
       status: "pending",
       submission_date: new Date().toISOString(),
       image_path: image_path, // Store the path
-      image_url: image_url, // Store the URL
+      image_url: fixImageUrl(image_url), // Fix the URL format here
     }
 
     console.log("Submitting item data to database:", itemData)
