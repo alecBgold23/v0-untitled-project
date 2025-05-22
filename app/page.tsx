@@ -1,7 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, Star, Leaf, Clock, Shield, CreditCard } from "lucide-react"
+import {
+  ArrowRight,
+  Star,
+  Leaf,
+  Clock,
+  Shield,
+  CreditCard,
+  Facebook,
+  Instagram,
+  Twitter,
+  Linkedin,
+  Mail,
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import ContentAnimation from "@/components/content-animation"
@@ -265,248 +277,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Resale Process Section - New prominent section */}
-      <section
-        className={`py-16 ${isMobile ? "bg-gray-950" : "bg-gradient-to-b from-background to-secondary/30"} relative z-20`}
-      >
-        <div className="container mx-auto px-4 max-w-6xl">
-          <ContentAnimation>
-            <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
-                  Our Resale Process
-                </span>
-              </h2>
-              <p className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} max-w-2xl mx-auto`}>
-                We handle every aspect of the resale process so you don't have to. Here's how we transform your items
-                into cash.
-              </p>
-            </div>
-          </ContentAnimation>
-
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <ContentAnimation delay={0.1}>
-              <div
-                className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 md:p-8 rounded-xl shadow-lg border border-border`}
-              >
-                <h3 className={`text-2xl font-semibold mb-6 ${isMobile ? "text-white" : "text-foreground"}`}>
-                  How We Handle Your Items
-                </h3>
-
-                <div className="space-y-6">
-                  <div className="flex gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center shrink-0">
-                      <span className="text-white font-bold">1</span>
-                    </div>
-                    <div>
-                      <h4 className={`font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
-                        Expert Evaluation
-                      </h4>
-                      <p className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-sm`}>
-                        Our specialists carefully assess each item's condition, authenticity, and market value to
-                        determine the optimal selling price.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center shrink-0">
-                      <span className="text-white font-bold">2</span>
-                    </div>
-                    <div>
-                      <h4 className={`font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
-                        Professional Preparation
-                      </h4>
-                      <p className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-sm`}>
-                        We clean, photograph, and prepare detailed descriptions for each item to maximize its appeal to
-                        potential buyers.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center shrink-0">
-                      <span className="text-white font-bold">3</span>
-                    </div>
-                    <div>
-                      <h4 className={`font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
-                        Strategic Marketing
-                      </h4>
-                      <p className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-sm`}>
-                        We list your items across multiple platforms and marketplaces to reach the largest possible
-                        audience of qualified buyers.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center shrink-0">
-                      <span className="text-white font-bold">4</span>
-                    </div>
-                    <div>
-                      <h4 className={`font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
-                        Secure Transactions
-                      </h4>
-                      <p className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-sm`}>
-                        We handle all buyer inquiries, negotiations, payment processing, and shipping logistics with
-                        security as our top priority.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </ContentAnimation>
-
-            <ContentAnimation delay={0.3}>
-              <div className="space-y-6">
-                <div
-                  className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border`}
-                >
-                  <h3 className={`text-xl font-semibold mb-3 ${isMobile ? "text-white" : "text-foreground"}`}>
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
-                      Transparent Pricing
-                    </span>
-                  </h3>
-                  <p className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-sm mb-4`}>
-                    We use advanced market analysis and AI-powered pricing tools to ensure you get the best possible
-                    value for your items.
-                  </p>
-                  <div className="flex items-center justify-between bg-gradient-to-r from-[#3B82F6]/10 to-[#8c52ff]/10 p-3 rounded-lg">
-                    <span className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
-                      Average seller payout
-                    </span>
-                    <span className="text-lg font-bold text-[#3B82F6]">70-80%</span>
-                  </div>
-                </div>
-
-                <div
-                  className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border`}
-                >
-                  <h3 className={`text-xl font-semibold mb-3 ${isMobile ? "text-white" : "text-foreground"}`}>
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
-                      Hassle-Free Experience
-                    </span>
-                  </h3>
-                  <ul className="space-y-3">
-                    <li className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#3B82F6] flex items-center justify-center mt-0.5 shrink-0">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-3 h-3 text-white"
-                        >
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </div>
-                      <span className={`text-sm ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>
-                        No need to create listings or take photos
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#3B82F6] flex items-center justify-center mt-0.5 shrink-0">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-3 h-3 text-white"
-                        >
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </div>
-                      <span className={`text-sm ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>
-                        No dealing with buyer questions or haggling
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#3B82F6] flex items-center justify-center mt-0.5 shrink-0">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-3 h-3 text-white"
-                        >
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </div>
-                      <span className={`text-sm ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>
-                        No shipping or delivery coordination
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#3B82F6] flex items-center justify-center mt-0.5 shrink-0">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-3 h-3 text-white"
-                        >
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </div>
-                      <span className={`text-sm ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>
-                        No waiting for payment processing
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div
-                  className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border`}
-                >
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6]/20 to-[#8c52ff]/20 flex items-center justify-center shrink-0">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-6 h-6 text-[#8c52ff]"
-                      >
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className={`text-xl font-semibold ${isMobile ? "text-white" : "text-foreground"}`}>
-                        Immediate Payment
-                      </h3>
-                      <p className={`text-sm ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>
-                        Get paid on the spot when we pick up your items
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    href="/sell-multiple-items"
-                    className="block w-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white py-3 rounded-lg text-center font-medium hover:shadow-lg transition-all transform hover:-translate-y-1"
-                  >
-                    Start Selling Now
-                  </Link>
-                </div>
-              </div>
-            </ContentAnimation>
-          </div>
-        </div>
-      </section>
-
       {/* Combined Testimonials and Environmental Mission Section - Blending into background */}
       <section
         className={`py-16 ${
@@ -634,6 +404,516 @@ export default function Home() {
               </div>
             </ContentAnimation>
           </div>
+        </div>
+      </section>
+
+      {/* Our Resale Process Section - Redesigned to match homepage style */}
+      <section
+        className={`py-16 ${
+          isMobile ? "bg-black text-white" : "bg-gradient-to-b from-secondary to-background"
+        } relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-border z-20 mb-0`}
+      >
+        <div className="container mx-auto px-4 max-w-5xl">
+          <ContentAnimation>
+            <h2 className="text-2xl md:text-3xl font-light mb-8 text-center tracking-wide">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
+                Our Resale Process
+              </span>
+            </h2>
+            <p
+              className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} mb-8 text-center max-w-2xl mx-auto text-sm`}
+            >
+              We handle <span className="font-medium">everything</span> so you don't have to
+            </p>
+          </ContentAnimation>
+
+          {/* Process Comparison */}
+          <div className="grid md:grid-cols-2 gap-8 mb-10">
+            <ContentAnimation delay={0.1}>
+              <div
+                className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border h-full`}
+              >
+                <h3 className={`text-xl font-medium mb-4 text-center ${isMobile ? "text-white" : "text-foreground"}`}>
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                    What We Do
+                  </span>
+                </h3>
+                <ul className="space-y-4">
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-[#3B82F6]"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        Expert Evaluation
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        We assess condition, authenticity, and market value to determine optimal pricing
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-[#3B82F6]"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        Professional Photography
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        We take high-quality photos that showcase your items in the best light
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-[#3B82F6]"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        Detailed Descriptions
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        We craft compelling listings that highlight key features and selling points
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-[#3B82F6]"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        Multi-Platform Listing
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        We list on multiple marketplaces to reach the largest possible audience
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-[#3B82F6]"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        Buyer Communication
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        We handle all inquiries, negotiations, and follow-ups with potential buyers
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-[#3B82F6]"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        Secure Transactions
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        We process payments and ensure secure financial transactions
+                      </p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </ContentAnimation>
+
+            <ContentAnimation delay={0.2}>
+              <div
+                className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border h-full`}
+              >
+                <h3 className={`text-xl font-medium mb-4 text-center ${isMobile ? "text-white" : "text-foreground"}`}>
+                  <span className="text-red-400">What You Don't Do</span>
+                </h3>
+                <ul className="space-y-4">
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-red-400"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        No Research Required
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        You don't need to research comparable items or determine market value
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-red-400"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        No Photography Needed
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        You don't need to take, edit, or upload any photos of your items
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-red-400"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        No Listing Creation
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        You don't need to write descriptions or create listings on any platforms
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-red-400"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        No Buyer Interaction
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        You don't need to answer questions, negotiate, or deal with potential buyers
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-red-400"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        No Shipping Hassle
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        You don't need to package, ship, or track any items
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-red-400"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isMobile ? "text-white" : "text-foreground"}`}>
+                        No Payment Processing
+                      </p>
+                      <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                        You don't need to handle payment methods, transfers, or payment disputes
+                      </p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </ContentAnimation>
+          </div>
+
+          {/* Customer Journey */}
+          <ContentAnimation delay={0.3}>
+            <div className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border`}>
+              <h3 className={`text-xl font-medium mb-4 text-center ${isMobile ? "text-white" : "text-foreground"}`}>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                  Your Simple 3-Step Journey
+                </span>
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto mb-3">
+                    <span className="text-white font-bold">1</span>
+                  </div>
+                  <h4 className={`text-sm font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
+                    Submit Your Items
+                  </h4>
+                  <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                    Fill out our simple form with basic item details
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto mb-3">
+                    <span className="text-white font-bold">2</span>
+                  </div>
+                  <h4 className={`text-sm font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
+                    Schedule Pickup
+                  </h4>
+                  <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                    Choose a convenient time for us to collect your items
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto mb-3">
+                    <span className="text-white font-bold">3</span>
+                  </div>
+                  <h4 className={`text-sm font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
+                    Get Paid
+                  </h4>
+                  <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
+                    Receive payment immediately upon pickup
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 text-center">
+                <Link
+                  href="/sell-multiple-items"
+                  className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-6 py-2 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all text-sm"
+                >
+                  Start Selling Now
+                </Link>
+              </div>
+            </div>
+          </ContentAnimation>
+        </div>
+      </section>
+
+      {/* Social Links Section */}
+      <section
+        className={`py-12 ${
+          isMobile ? "bg-black text-white" : "bg-gradient-to-b from-secondary to-background"
+        } relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-border z-20 mb-0`}
+      >
+        <div className="container mx-auto px-4 max-w-5xl">
+          <ContentAnimation>
+            <h2 className="text-xl md:text-2xl font-light mb-6 text-center tracking-wide">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
+                Connect With Us
+              </span>
+            </h2>
+            <p
+              className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} mb-8 text-center max-w-2xl mx-auto text-sm`}
+            >
+              Follow BluBerry on social media for updates, tips, and success stories
+            </p>
+          </ContentAnimation>
+
+          <ContentAnimation delay={0.1}>
+            <div className="flex flex-wrap justify-center gap-6 mb-8">
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${
+                  isMobile ? "bg-gray-900" : "bg-card"
+                } hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center`}
+                aria-label="Facebook"
+              >
+                <Facebook className="h-8 w-8 text-[#3B82F6]" />
+                <span className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>Facebook</span>
+              </a>
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${
+                  isMobile ? "bg-gray-900" : "bg-card"
+                } hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center`}
+                aria-label="Instagram"
+              >
+                <Instagram className="h-8 w-8 text-[#8c52ff]" />
+                <span className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>Instagram</span>
+              </a>
+              <a
+                href="https://twitter.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${
+                  isMobile ? "bg-gray-900" : "bg-card"
+                } hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center`}
+                aria-label="Twitter"
+              >
+                <Twitter className="h-8 w-8 text-[#3B82F6]" />
+                <span className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>Twitter</span>
+              </a>
+              <a
+                href="https://linkedin.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${
+                  isMobile ? "bg-gray-900" : "bg-card"
+                } hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center`}
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="h-8 w-8 text-[#3B82F6]" />
+                <span className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>LinkedIn</span>
+              </a>
+              <a
+                href="mailto:alecgold808@gmail.com"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${
+                  isMobile ? "bg-gray-900" : "bg-card"
+                } hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center`}
+                aria-label="Email"
+              >
+                <Mail className="h-8 w-8 text-[#8c52ff]" />
+                <span className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>Email</span>
+              </a>
+            </div>
+          </ContentAnimation>
+
+          <ContentAnimation delay={0.2}>
+            <div className="text-center">
+              <p className={`text-sm ${isMobile ? "text-gray-300" : "text-muted-foreground"} mb-2`}>
+                Have questions? We're here to help!
+              </p>
+              <div className="flex justify-center gap-4">
+                <Link
+                  href="/contact"
+                  className="inline-block px-4 py-2 rounded-full border border-[#3B82F6] text-[#3B82F6] hover:bg-[#3B82F6] hover:text-white transition-all text-xs font-medium"
+                >
+                  Contact Us
+                </Link>
+                <Link
+                  href="/faq"
+                  className="inline-block px-4 py-2 rounded-full border border-[#8c52ff] text-[#8c52ff] hover:bg-[#8c52ff] hover:text-white transition-all text-xs font-medium"
+                >
+                  FAQ
+                </Link>
+              </div>
+            </div>
+          </ContentAnimation>
         </div>
       </section>
 
