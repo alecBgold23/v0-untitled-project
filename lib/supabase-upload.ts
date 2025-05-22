@@ -163,3 +163,116 @@ export async function createBucket(bucketName = getBucketName()) {
     return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
   }
 }
+
+// Function to get the count of files in a specific folder or for a specific item
+export async function getPhotoCount(itemId: string, bucketName = getBucketName()): Promise<number> {
+  try {
+    // If itemId is provided, we'll look for files in a folder with that name
+    const folderPath = itemId ? `${itemId}/` : ""
+
+    const { data, error } = await supabase.storage.from(bucketName).list(folderPath)
+
+    if (error) {
+      console.error(`Error getting photo count for item ${itemId}:`, error)
+      return 0
+    }
+
+    // Filter out folders, count only files
+    const fileCount = data.filter((item) => !item.id.endsWith("/")).length
+    console.log(`Found ${fileCount} photos for item ${itemId}`)
+    return fileCount
+  } catch (error) {
+    console.error(`Error counting photos for item ${itemId}:`, error)
+    return 0
+  }
+}
+
+// Function to update the photo count in the database
+export async function updatePhotoCount(itemId: string, table = "items"): Promise<boolean> {
+  try {
+    if (!itemId) {
+      console.error("No item ID provided for updating photo count")
+      return false
+    }
+
+    // Get the current photo count from storage
+    const photoCount = await getPhotoCount(itemId)
+
+    // Update the item record with the photo count
+    const { error } = await supabase
+      .from(table)
+      .update({ photo_count: photoCount, updated_at: new Date().toISOString() })
+      .eq("id", itemId)
+
+    if (error) {
+      console.error(`Error updating photo count for item ${itemId}:`, error)
+      return false
+    }
+
+    console.log(`Updated photo count for item ${itemId} to ${photoCount}`)
+    return true
+  } catch (error) {
+    console.error(`Error in updatePhotoCount for item ${itemId}:`, error)
+    return false
+  }
+}
+
+// Enhanced upload function that organizes files by item ID and updates count
+export async function uploadItemPhoto(file: File, itemId: string, index = 0) {
+  try {
+    if (!file) {
+      throw new Error("No file provided")
+    }
+
+    if (!itemId) {
+      throw new Error("No item ID provided")
+    }
+
+    // Get the bucket name from environment variable
+    const bucket = getBucketName()
+
+    // Create a folder structure with item ID
+    const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
+    const filePath = `${itemId}/${index}_${Date.now()}_${fileName}`
+
+    console.log(`Uploading file to bucket: ${bucket}, path: ${filePath}`)
+
+    // Upload the file
+    const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: true, // Overwrite if file exists
+    })
+
+    if (error) {
+      console.error("Error uploading file:", error)
+      throw error
+    }
+
+    // Get the public URL
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(data.path)
+
+    // Format the URL to ensure it's correct
+    const formattedUrl = formatImageUrl(publicUrlData.publicUrl, bucket)
+
+    // Update the photo count in the database
+    await updatePhotoCount(itemId)
+
+    console.log("File uploaded successfully:", formattedUrl)
+
+    return {
+      success: true,
+      path: data.path,
+      url: formattedUrl,
+      publicUrl: formattedUrl,
+      bucket: bucket,
+      itemId: itemId,
+    }
+  } catch (error) {
+    console.error("Upload error:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown upload error",
+      itemId: itemId,
+    }
+  }
+}
