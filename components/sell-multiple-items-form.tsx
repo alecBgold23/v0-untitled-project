@@ -690,18 +690,15 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
   // Scroll to the top of the form
   const scrollToFormTop = useCallback(() => {
     if (formTopRef.current) {
-      // Use scrollIntoView with specific options to position at the top of the viewport
-      formTopRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+      // First, scroll to the absolute top of the page
+      window.scrollTo({ top: 0, behavior: "instant" })
 
-      // Focus on the first input field in step 2
-      if (formStep === 1) {
-        // Small delay to ensure DOM is updated and scrolling is complete
-        setTimeout(() => {
-          if (fullNameInputRef.current) {
-            fullNameInputRef.current.focus()
-          }
-        }, 300)
-      }
+      // Then, after a small delay to ensure DOM updates, focus on the first input field in step 2
+      setTimeout(() => {
+        if (formStep === 2 && fullNameInputRef.current) {
+          fullNameInputRef.current.focus()
+        }
+      }, 50)
     }
   }, [formStep])
 
@@ -781,14 +778,22 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       e.stopPropagation()
 
       if (validateStep1()) {
+        // First scroll to top before changing step
+        window.scrollTo({ top: 0, behavior: "instant" })
+
+        // Then update the form step
         setFormStep(2)
         setFormErrors({})
 
-        // Scroll to the top of the form
-        scrollToFormTop()
+        // After a small delay to ensure DOM updates, focus on the first input field
+        setTimeout(() => {
+          if (fullNameInputRef.current) {
+            fullNameInputRef.current.focus()
+          }
+        }, 100)
       }
     },
-    [validateStep1, scrollToFormTop],
+    [validateStep1],
   )
 
   // Upload images for all items
@@ -1319,6 +1324,20 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       }
     }
   }, [])
+
+  // Effect to handle scrolling when form step changes
+  useEffect(() => {
+    if (formStep === 2) {
+      window.scrollTo({ top: 0, behavior: "instant" })
+
+      // Focus on the first input field after a small delay
+      setTimeout(() => {
+        if (fullNameInputRef.current) {
+          fullNameInputRef.current.focus()
+        }
+      }, 100)
+    }
+  }, [formStep])
 
   return (
     <div
@@ -2215,6 +2234,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                         {item.name || `Item ${index + 1}`}
                                       </span>
                                     </AccordionTrigger>
+
                                     <AccordionContent>
                                       <div className="pt-2">
                                         <p className="text-sm text-slate-600 dark:text-slate-400">
