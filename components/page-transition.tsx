@@ -15,11 +15,6 @@ export default function PageTransition({ children }: { children: React.ReactNode
     setIsFirstMount(false)
   }, [])
 
-  // Scroll to top on page change
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" })
-  }, [pathname])
-
   // Simple side-to-side transition
   const variants = {
     hidden: {
