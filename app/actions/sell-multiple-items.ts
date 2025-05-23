@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { isBlockedContent } from "@/lib/content-filter"
 import { OpenAI } from "openai"
 import { fixImageUrl } from "@/lib/fix-image-urls"
+import { sendEmail } from "@/lib/nodemailer"
 
 interface ItemData {
   name: string
@@ -101,18 +102,6 @@ function formatPhoneNumber(phone) {
 // Helper function to send confirmation email directly
 async function sendConfirmationEmailDirect(email: string, name: string, items: ItemData[]) {
   try {
-    // Import nodemailer dynamically to avoid issues
-    const nodemailer = await import("nodemailer")
-
-    // Create transporter
-    const transporter = nodemailer.createTransporter({
-      service: "gmail",
-      auth: {
-        user: process.env.CONTACT_EMAIL,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    })
-
     // Create email content
     const itemsList = items
       .map(
@@ -139,15 +128,14 @@ async function sendConfirmationEmailDirect(email: string, name: string, items: I
       The Sales Team
     `
 
-    // Send email
-    await transporter.sendMail({
-      from: process.env.CONTACT_EMAIL,
+    // Use the existing sendEmail function from lib/nodemailer
+    const result = await sendEmail({
       to: email,
       subject: "Item Submission Confirmation",
       text: emailContent,
     })
 
-    return { success: true }
+    return result
   } catch (error) {
     console.error("Error sending email directly:", error)
     return { success: false, error: error.message }
@@ -211,7 +199,7 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           }
         }
 
-        // Prepare data for insertion - include contact info directly in sell_items
+        // Prepare data for insertion - use only the columns that exist in the table
         const itemData: Record<string, any> = {
           item_name: item.name || "Unnamed Item",
           item_description: enhancedDescription || item.description || "",
@@ -219,13 +207,18 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           email: contactInfo.email,
           phone: formattedPhone,
           full_name: contactInfo.fullName,
-          address: contactInfo.address || null,
-          pickup_date: contactInfo.pickupDate || null,
           status: "pending",
-          submission_date: new Date().toISOString(),
         }
 
-        // Add image data if available
+        // Add optional fields only if they have values
+        if (contactInfo.address) {
+          itemData.address = contactInfo.address
+        }
+
+        if (contactInfo.pickupDate) {
+          itemData.pickup_date = contactInfo.pickupDate
+        }
+
         if (item.imagePath) {
           itemData.image_path = item.imagePath
         }
@@ -263,7 +256,6 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
               phone: formattedPhone,
               full_name: contactInfo.fullName,
               status: "pending",
-              submission_date: new Date().toISOString(),
             }
 
             const { data: minimalResult, error: minimalError } = await supabase
@@ -318,42 +310,14 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
     try {
       console.log("Attempting to send confirmation email...")
 
-      // Try direct email sending first
+      // Try direct email sending
       const emailResult = await sendConfirmationEmailDirect(contactInfo.email, contactInfo.fullName, items)
 
       if (emailResult.success) {
-        console.log("Confirmation email sent successfully via direct method")
+        console.log("Confirmation email sent successfully")
         emailSent = true
       } else {
-        console.log("Direct email failed, trying API method...")
-
-        // Fallback to API method if direct method fails
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/send-item-email`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              to: contactInfo.email,
-              name: contactInfo.fullName,
-              items: items.map((item) => ({
-                name: item.name,
-                description: item.description,
-                condition: item.condition,
-                estimatedPrice: item.estimatedPrice,
-              })),
-            }),
-          },
-        )
-
-        if (response.ok) {
-          console.log("Confirmation email sent successfully via API")
-          emailSent = true
-        } else {
-          console.log("API email method also failed")
-        }
+        console.log("Email sending failed:", emailResult.error)
       }
     } catch (error) {
       console.log("Email sending failed, but continuing with submission:", error.message)
