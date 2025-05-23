@@ -117,7 +117,6 @@ async function sendUserConfirmationEmail(email: string, name: string, items: Ite
           <li>Our team will review your submission within 24-48 hours</li>
           <li>We'll contact you to schedule a pickup or drop-off</li>
           <li>Final pricing will be determined after physical inspection</li>
-          <li>Payment will be processed once items are sold</li>
         </ol>
       </div>
       
@@ -299,23 +298,84 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           continue // Skip this item
         }
 
-        // Prepare data for insertion
+        // Prepare basic data for insertion (only columns that exist)
         const itemData: Record<string, any> = {
           item_name: item.name || "Unnamed Item",
           item_description: item.description || "",
           item_condition: item.condition || "unknown",
-          item_issues: item.issues || "None",
           email: contactInfo.email,
           phone: formattedPhone,
           full_name: contactInfo.fullName,
           status: "pending",
-          address: contactInfo.address || null,
-          pickup_date: contactInfo.pickupDate || null,
-          image_path: item.imagePath || null,
-          image_url: item.imageUrl ? fixImageUrl(item.imageUrl) : null,
-          estimated_price: item.estimatedPrice || null,
-          image_paths: item.imagePaths ? JSON.stringify(item.imagePaths) : null,
-          image_urls: item.imageUrls ? JSON.stringify(item.imageUrls) : null,
+        }
+
+        // Add optional fields only if they have values
+        if (contactInfo.address) {
+          itemData.address = contactInfo.address
+        }
+
+        if (contactInfo.pickupDate) {
+          itemData.pickup_date = contactInfo.pickupDate
+        }
+
+        if (item.issues) {
+          itemData.item_issues = item.issues
+        }
+
+        if (item.estimatedPrice) {
+          itemData.estimated_price = item.estimatedPrice
+        }
+
+        // Handle image data - use single image fields first
+        if (item.imageUrl) {
+          itemData.image_url = fixImageUrl(item.imageUrl)
+        }
+
+        if (item.imagePath) {
+          itemData.image_path = item.imagePath
+        }
+
+        // If multiple images exist, try to store them in available columns
+        // First, try to use image_urls column if it exists
+        if (item.imageUrls && item.imageUrls.length > 0) {
+          try {
+            // Test if image_urls column exists by attempting a select
+            const { error: testError } = await supabase.from("sell_items").select("image_urls").limit(1)
+
+            if (!testError) {
+              // Column exists, use it
+              itemData.image_urls = JSON.stringify(item.imageUrls)
+            } else {
+              // Column doesn't exist, append to description
+              const imageUrlsText = item.imageUrls.map((url, index) => `Image ${index + 1}: ${url}`).join("\n")
+              itemData.item_description += `\n\nAdditional Images:\n${imageUrlsText}`
+            }
+          } catch (columnTestError) {
+            // If test fails, append to description
+            const imageUrlsText = item.imageUrls.map((url, index) => `Image ${index + 1}: ${url}`).join("\n")
+            itemData.item_description += `\n\nAdditional Images:\n${imageUrlsText}`
+          }
+        }
+
+        // Similarly for image_paths
+        if (item.imagePaths && item.imagePaths.length > 0) {
+          try {
+            // Test if image_paths column exists
+            const { error: testError } = await supabase.from("sell_items").select("image_paths").limit(1)
+
+            if (!testError) {
+              // Column exists, use it
+              itemData.image_paths = JSON.stringify(item.imagePaths)
+            } else {
+              // Column doesn't exist, append to description
+              const imagePathsText = item.imagePaths.map((path, index) => `Image Path ${index + 1}: ${path}`).join("\n")
+              itemData.item_description += `\n\nImage Paths:\n${imagePathsText}`
+            }
+          } catch (columnTestError) {
+            // If test fails, append to description
+            const imagePathsText = item.imagePaths.map((path, index) => `Image Path ${index + 1}: ${path}`).join("\n")
+            itemData.item_description += `\n\nImage Paths:\n${imagePathsText}`
+          }
         }
 
         console.log("Attempting to insert item data:", itemData)
@@ -326,8 +386,39 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
         if (error) {
           console.error("Error submitting item to Supabase:", error)
           console.error("Error details:", JSON.stringify(error, null, 2))
-          itemSuccess = false
-          itemErrorMessage = `Database error: ${error.message}`
+
+          // If there's still a column error, try with minimal data
+          if (error.message && error.message.includes("column")) {
+            console.log("Column error detected, trying with minimal data...")
+
+            const minimalData = {
+              item_name: item.name || "Unnamed Item",
+              item_description: item.description || "",
+              item_condition: item.condition || "unknown",
+              email: contactInfo.email,
+              phone: formattedPhone,
+              full_name: contactInfo.fullName,
+              status: "pending",
+            }
+
+            const { data: minimalResult, error: minimalError } = await supabase
+              .from("sell_items")
+              .insert([minimalData])
+              .select()
+
+            if (minimalError) {
+              console.error("Error with minimal submission:", minimalError)
+              itemSuccess = false
+              itemErrorMessage = `Database error: ${minimalError.message}`
+            } else {
+              console.log("Successfully submitted with minimal data")
+              itemSuccess = true
+              itemResults.push({ success: true, name: item.name, id: minimalResult?.[0]?.id })
+            }
+          } else {
+            itemSuccess = false
+            itemErrorMessage = `Database error: ${error.message}`
+          }
         } else {
           console.log("Successfully submitted item:", data?.[0])
           itemSuccess = true
