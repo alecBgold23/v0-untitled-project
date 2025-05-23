@@ -218,16 +218,6 @@ async function sendAdminNotificationEmail(contactInfo: ContactInfo, items: ItemD
           .join("")}
       </div>
       
-      <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: #4f46e5;">Action Required</h3>
-        <ol>
-          <li>Review the submitted items</li>
-          <li>Contact the customer within 24-48 hours</li>
-          <li>Schedule pickup or drop-off</li>
-          <li>Conduct physical inspection and final pricing</li>
-        </ol>
-      </div>
-      
       <p style="font-weight: bold;">Customer Contact: ${contactInfo.email} | ${contactInfo.phone}</p>
     </div>
     `
@@ -257,28 +247,31 @@ async function sendAdminNotificationEmail(contactInfo: ContactInfo, items: ItemD
 export async function sellMultipleItems(items: ItemData[], contactInfo: ContactInfo) {
   console.log("Starting submission to Supabase via sell-multiple-items:", { items, contactInfo })
 
+  let itemResults = []
+  let userEmailSent = false
+  let adminEmailSent = false
+  let message = ""
+  let success = false
+
   try {
     // Validate inputs
     if (!items || items.length === 0) {
-      return {
-        success: false,
-        message: "No items provided",
-      }
+      message = "No items provided"
+      console.error(message)
+      return { success: false, message }
     }
 
     if (!contactInfo.email || !contactInfo.fullName) {
-      return {
-        success: false,
-        message: "Contact information is incomplete",
-      }
+      message = "Contact information is incomplete"
+      console.error(message)
+      return { success: false, message }
     }
 
     // Validate phone number - ensure it's not null or empty
     if (!contactInfo.phone || contactInfo.phone.trim() === "") {
-      return {
-        success: false,
-        message: "Phone number is required",
-      }
+      message = "Phone number is required"
+      console.error(message)
+      return { success: false, message }
     }
 
     // Create Supabase client
@@ -288,9 +281,12 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
     const formattedPhone = formatPhoneNumber(contactInfo.phone)
 
     // Process each item directly without separate contact table
-    const itemResults = []
+    itemResults = []
 
     for (const item of items) {
+      let itemSuccess = false
+      let itemErrorMessage = ""
+
       try {
         // Check for blocked content
         if (
@@ -299,119 +295,53 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           isBlockedContent(item.issues || "")
         ) {
           console.warn("Blocked content detected in item:", item.name)
+          itemResults.push({ success: false, name: item.name, error: "Content policy violation" })
           continue // Skip this item
         }
 
-        // Prepare data for insertion - use only the columns that exist in the table
-        const itemData: Record<string, any> = {
+        // Prepare data for insertion
+        const itemData = {
           item_name: item.name || "Unnamed Item",
           item_description: item.description || "",
           item_condition: item.condition || "unknown",
+          item_issues: item.issues || "None",
           email: contactInfo.email,
           phone: formattedPhone,
           full_name: contactInfo.fullName,
           status: "pending",
+          address: contactInfo.address || null,
+          pickup_date: contactInfo.pickupDate || null,
+          image_path: item.imagePath || null,
+          image_url: item.imageUrl ? fixImageUrl(item.imageUrl) : null,
+          estimated_price: item.estimatedPrice || null,
         }
-
-        // Add optional fields only if they have values
-        if (contactInfo.address) {
-          itemData.address = contactInfo.address
-        }
-
-        if (contactInfo.pickupDate) {
-          itemData.pickup_date = contactInfo.pickupDate
-        }
-
-        if (item.imagePath) {
-          itemData.image_path = item.imagePath
-        }
-
-        if (item.imageUrl) {
-          itemData.image_url = fixImageUrl(item.imageUrl)
-        }
-
-        if (item.estimatedPrice) {
-          itemData.estimated_price = item.estimatedPrice
-        }
-
-        if (item.issues) {
-          itemData.item_issues = item.issues
-        }
-
-        console.log("Attempting to insert item data:", itemData)
 
         // Insert data into Supabase
         const { data, error } = await supabase.from("sell_items").insert([itemData]).select()
 
         if (error) {
           console.error("Error submitting item to Supabase:", error)
-          console.error("Error details:", JSON.stringify(error, null, 2))
-
-          // If the error is about a column not existing, try a more minimal approach
-          if (error.message && (error.message.includes("column") || error.code === "42703")) {
-            console.log("Column error detected, trying minimal insertion with only essential fields")
-
-            const minimalData = {
-              item_name: item.name || "Unnamed Item",
-              item_description: item.description || "",
-              item_condition: item.condition || "unknown",
-              email: contactInfo.email,
-              phone: formattedPhone,
-              full_name: contactInfo.fullName,
-              status: "pending",
-            }
-
-            const { data: minimalResult, error: minimalError } = await supabase
-              .from("sell_items")
-              .insert([minimalData])
-              .select()
-
-            if (minimalError) {
-              console.error("Error with minimal submission:", minimalError)
-              console.error("Minimal error details:", JSON.stringify(minimalError, null, 2))
-
-              // If table doesn't exist, return a helpful error
-              if (minimalError.code === "PGRST116") {
-                return {
-                  success: false,
-                  message: "Database table 'sell_items' does not exist. Please contact support.",
-                  code: minimalError.code,
-                }
-              }
-
-              return {
-                success: false,
-                message: `Database error: ${minimalError.message}`,
-                code: minimalError.code,
-              }
-            } else {
-              console.log("Successfully submitted with minimal fields")
-              itemResults.push({ success: true, name: item.name, id: minimalResult?.[0]?.id })
-            }
-          } else {
-            // If it's some other error, return it
-            return {
-              success: false,
-              message: `Database error: ${error.message}`,
-              code: error.code,
-            }
-          }
+          itemSuccess = false
+          itemErrorMessage = `Database error: ${error.message}`
         } else {
           console.log("Successfully submitted item:", data?.[0])
+          itemSuccess = true
           itemResults.push({ success: true, name: item.name, id: data?.[0]?.id })
         }
       } catch (itemProcessError) {
         console.error("Error processing item:", itemProcessError)
-        itemResults.push({ success: false, name: item.name, error: "Processing error" })
+        itemSuccess = false
+        itemErrorMessage = `Processing error: ${itemProcessError.message}`
+      }
+
+      if (!itemSuccess) {
+        itemResults.push({ success: false, name: item.name, error: itemErrorMessage })
       }
     }
 
     console.log("Successfully submitted items to Supabase")
 
     // Send both confirmation emails
-    let userEmailSent = false
-    let adminEmailSent = false
-
     try {
       console.log("Attempting to send confirmation emails...")
 
@@ -469,8 +399,8 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           console.log("Admin email sending failed:", adminEmailResult.error)
         }
       }
-    } catch (error) {
-      console.error("Email sending error:", error)
+    } catch (emailError) {
+      console.error("Email sending error:", emailError)
       console.log("Email sending failed, but continuing with submission")
     }
 
@@ -480,7 +410,7 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
     const successfulItems = itemResults.filter((r) => r.success).length
 
     // Create detailed success message
-    let message = `Successfully submitted ${successfulItems} item(s)`
+    message = `Successfully submitted ${successfulItems} item(s)`
 
     if (userEmailSent && adminEmailSent) {
       message += " and sent confirmation emails"
@@ -492,18 +422,24 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
       message += " (confirmation emails could not be sent)"
     }
 
+    success = true
     return {
-      success: true,
+      success,
       message,
       itemResults,
       userEmailSent,
       adminEmailSent,
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Unexpected error in sellMultipleItems:", error)
+    success = false
+    message = `Unexpected error: ${error.message || "Unknown error occurred"}`
     return {
-      success: false,
-      message: error instanceof Error ? error.message : "Unknown error occurred",
+      success,
+      message,
+      itemResults,
+      userEmailSent,
+      adminEmailSent,
     }
   }
 }
