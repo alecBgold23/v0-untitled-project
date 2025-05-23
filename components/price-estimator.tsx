@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, DollarSign, RefreshCw, AlertCircle, Check } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 
@@ -66,18 +66,27 @@ export function PriceEstimator({
         }),
       })
 
-      // Even if we get a non-200 response, try to parse the JSON
-      const data = await res.json().catch(() => ({ error: "Failed to parse response" }))
+      // Parse the JSON response
+      const data = await res.json()
 
-      if (data.error) {
-        console.warn("API returned error:", data.error)
-        setError(`${data.error}. Using fallback price.`)
+      // Check if there was an API key error
+      if (data.error && data.error.includes("API key")) {
+        setError("Pricing API key is invalid or missing. Please contact support.")
+        setIsLoading(false)
+        return
       }
 
-      // Handle different response formats, with fallbacks at each step
-      const price = data.price || data.estimatedPrice || "$25-$100"
+      // Check for other errors
+      if (data.error) {
+        setError(data.error)
+        setIsLoading(false)
+        return
+      }
+
+      // Handle successful response
+      const price = data.price
       setEstimatedPrice(price)
-      setPriceSource(data.source || "fallback")
+      setPriceSource(data.source || "openai")
 
       // Check if the price was saved to Supabase
       setSavedToDatabase(data.savedToSupabase || false)
@@ -91,17 +100,7 @@ export function PriceEstimator({
       }
     } catch (err: any) {
       console.error("Error estimating price:", err)
-      setError("There was an issue with the pricing service, but we've provided an estimate.")
-
-      // Set a fallback price even on error
-      const fallbackPrice = "$25-$100"
-      setEstimatedPrice(fallbackPrice)
-      setPriceSource("error_fallback")
-      setNumericPrice(25)
-
-      if (onPriceEstimated) {
-        onPriceEstimated(fallbackPrice, 25)
-      }
+      setError("There was an error connecting to the pricing service. Please try again later.")
     } finally {
       setIsLoading(false)
     }
@@ -132,6 +131,7 @@ export function PriceEstimator({
     setNumericPrice(null)
     setSavedToDatabase(false)
     setPriceSource(null)
+    setError(null)
   }
 
   return (
@@ -145,7 +145,19 @@ export function PriceEstimator({
       </CardHeader>
 
       <CardContent className="pt-6">
-        {estimatedPrice ? (
+        {error ? (
+          <div className="py-6">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Pricing Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            <Button variant="outline" size="sm" className="mt-4" onClick={resetEstimate}>
+              <RefreshCw className="h-3 w-3 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        ) : estimatedPrice ? (
           <div className="text-center py-6">
             <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Estimated Value</div>
             <div className="text-3xl font-bold bg-gradient-to-r from-[#0066ff] via-[#6a5acd] to-[#8c52ff] bg-clip-text text-transparent">
@@ -154,15 +166,7 @@ export function PriceEstimator({
 
             {priceSource && (
               <div className="mt-2 text-xs text-gray-500">
-                {priceSource === "openai" ? (
-                  <span>Estimated using AI</span>
-                ) : priceSource === "fallback_api_error" ? (
-                  <span>Fallback estimate (API error)</span>
-                ) : priceSource === "fallback_no_api_key" ? (
-                  <span>Fallback estimate (no API key)</span>
-                ) : (
-                  <span>Estimated using algorithm</span>
-                )}
+                {priceSource === "openai" ? <span>Estimated using AI</span> : <span>Estimated using algorithm</span>}
               </div>
             )}
 
@@ -274,13 +278,6 @@ export function PriceEstimator({
                 className="resize-none"
               />
             </div>
-
-            {error && (
-              <Alert variant="destructive" className="py-2">
-                <AlertCircle className="h-4 w-4 mr-2" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
 
             <Button
               type="submit"

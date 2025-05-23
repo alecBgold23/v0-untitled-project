@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, Tag, DollarSign, Info, CheckCircle } from "lucide-react"
-import { estimateItemPrice } from "@/lib/client-price-estimator"
+import { Loader2, Tag, DollarSign, Info, AlertCircle } from "lucide-react"
+import { estimateItemPriceFromAPI } from "@/lib/client-price-estimator"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface SimilarEbayItemsProps {
   description: string
@@ -25,22 +26,24 @@ export function SimilarEbayItems({ description, onPriceSelected, className = "" 
         setIsLoading(true)
         setError(null)
 
-        // Use client-side estimation
-        const result = estimateItemPrice(description)
+        // Use API-based estimation
+        const result = await estimateItemPriceFromAPI(description)
+
+        if (result.error) {
+          setError(result.error)
+          setIsLoading(false)
+          return
+        }
 
         setSuggestedPrice(result.price)
-        setConfidence(result.confidence)
+        setConfidence(result.source === "openai" ? "high" : "medium")
 
         if (result.minPrice && result.maxPrice) {
           setPriceRange({ min: result.minPrice, max: result.maxPrice })
         }
-
-        // Simulate a short delay to make it feel like it's doing work
-        await new Promise((resolve) => setTimeout(resolve, 800))
       } catch (err) {
         console.error("Error estimating price:", err)
-        setError("Failed to estimate price")
-        setSuggestedPrice("$50") // Default fallback
+        setError("Failed to estimate price. Please try again later.")
       } finally {
         setIsLoading(false)
       }
@@ -79,13 +82,11 @@ export function SimilarEbayItems({ description, onPriceSelected, className = "" 
 
   if (error) {
     return (
-      <div className="p-4 border border-yellow-100 bg-yellow-50 rounded-md">
-        <p className="text-yellow-700 mb-2">We couldn't generate a price estimate at this time.</p>
-        <p className="text-gray-600 mb-4">
-          Our suggested price: <span className="font-bold">{suggestedPrice}</span>
-        </p>
-        <Button onClick={handleSelectPrice}>Use This Price</Button>
-      </div>
+      <Alert variant="destructive" className="mb-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Pricing Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     )
   }
 
@@ -130,7 +131,7 @@ export function SimilarEbayItems({ description, onPriceSelected, className = "" 
             <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
               <div className="flex items-start gap-3">
                 <div className="bg-[#6a5acd]/10 p-2 rounded-full">
-                  <CheckCircle className="h-4 w-4 text-[#6a5acd]" />
+                  <Info className="h-4 w-4 text-[#6a5acd]" />
                 </div>
                 <div>
                   <h4 className="font-medium text-sm">Item Condition</h4>
@@ -148,7 +149,7 @@ export function SimilarEbayItems({ description, onPriceSelected, className = "" 
             <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
               <div className="flex items-start gap-3">
                 <div className="bg-[#6a5acd]/10 p-2 rounded-full">
-                  <CheckCircle className="h-4 w-4 text-[#6a5acd]" />
+                  <Info className="h-4 w-4 text-[#6a5acd]" />
                 </div>
                 <div>
                   <h4 className="font-medium text-sm">Market Factors</h4>
@@ -162,7 +163,7 @@ export function SimilarEbayItems({ description, onPriceSelected, className = "" 
             <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
               <div className="flex items-start gap-3">
                 <div className="bg-[#6a5acd]/10 p-2 rounded-full">
-                  <CheckCircle className="h-4 w-4 text-[#6a5acd]" />
+                  <Info className="h-4 w-4 text-[#6a5acd]" />
                 </div>
                 <div>
                   <h4 className="font-medium text-sm">Item Details</h4>

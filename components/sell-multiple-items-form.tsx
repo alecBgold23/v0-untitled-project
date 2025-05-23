@@ -45,6 +45,9 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+// Add import for content filter at the top of the file
+import { isBlockedContent } from "@/lib/content-filter"
+import { estimateItemPriceFromAPI } from "@/lib/client-price-estimator"
 
 interface SellMultipleItemsFormProps {
   onError?: (error: Error) => void
@@ -217,56 +220,110 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
   )
 
   // Calculate price estimates for all items using enhanced pricing
-  const calculatePriceEstimates = useCallback(() => {
+  const calculatePriceEstimates = useCallback(async () => {
     try {
       const items = getItems()
-      const estimates = items.map((item) => {
-        // Use the enhanced category detection
-        const { category, basePrice, confidence } = detectCategory(item.description || "", item.name || "")
+      const newEstimates = []
 
-        // Adjust price based on condition
-        const adjustedPrice = adjustForCondition(
-          basePrice,
-          item.condition || "",
-          item.description || "",
-          item.issues || "",
-        )
-
-        // Add some natural variation (±10%)
-        const variation = 0.9 + Math.random() * 0.2
-        const finalPrice = Math.round(adjustedPrice * variation)
-        const minPrice = Math.round(finalPrice * 0.85)
-        const maxPrice = Math.round(finalPrice * 1.15)
-
-        // Map confidence value to low/medium/high
-        let confidenceLevel = "medium"
-        if (confidence > 0.8) confidenceLevel = "high"
-        else if (confidence < 0.6) confidenceLevel = "low"
-
-        return {
-          price: `$${finalPrice}`,
-          minPrice,
-          maxPrice,
-          confidence: confidenceLevel,
-          source: "enhanced",
-          category,
+      // Process each item
+      for (const item of items) {
+        // Check for blocked content first
+        if (
+          isBlockedContent(item.name || "") ||
+          isBlockedContent(item.description || "") ||
+          isBlockedContent(item.issues || "")
+        ) {
+          newEstimates.push({
+            price: "$0",
+            minPrice: 0,
+            maxPrice: 0,
+            confidence: "high",
+            source: "content_filter",
+            category: "blocked_content",
+          })
+          continue
         }
-      })
 
-      setPriceEstimates(estimates)
+        try {
+          // Try to get estimate from API
+          const apiEstimate = await estimateItemPriceFromAPI(
+            item.description || "",
+            item.name || "",
+            item.condition || "used",
+            item.issues || "",
+          )
+
+          if (apiEstimate.error) {
+            console.warn("API price estimation failed, falling back to local estimation:", apiEstimate.error)
+
+            // Use the enhanced category detection as fallback
+            const { category, basePrice, confidence } = detectCategory(item.description || "", item.name || "")
+
+            // Adjust price based on condition
+            const adjustedPrice = adjustForCondition(
+              basePrice,
+              item.condition || "",
+              item.description || "",
+              item.issues || "",
+            )
+
+            // Add some natural variation (±10%)
+            const variation = 0.9 + Math.random() * 0.2
+            const finalPrice = Math.round(adjustedPrice * variation)
+            const minPrice = Math.round(finalPrice * 0.85)
+            const maxPrice = Math.round(finalPrice * 1.15)
+
+            // Map confidence value to low/medium/high
+            let confidenceLevel = "medium"
+            if (confidence > 0.8) confidenceLevel = "high"
+            else if (confidence < 0.6) confidenceLevel = "low"
+
+            newEstimates.push({
+              price: `$${finalPrice}`,
+              minPrice,
+              maxPrice,
+              confidence: confidenceLevel,
+              source: "enhanced",
+              category,
+            })
+          } else {
+            // Use the API estimate
+            newEstimates.push({
+              price: apiEstimate.price,
+              minPrice: apiEstimate.minPrice || 0,
+              maxPrice: apiEstimate.maxPrice || 0,
+              confidence: "high",
+              source: apiEstimate.source || "api",
+            })
+          }
+        } catch (itemError) {
+          console.error("Error estimating price for item:", itemError)
+
+          // Fallback to a basic estimate
+          newEstimates.push({
+            price: "$25",
+            minPrice: 20,
+            maxPrice: 30,
+            confidence: "low",
+            source: "fallback",
+          })
+        }
+      }
+
+      setPriceEstimates(newEstimates)
 
       // Calculate total estimate
-      const totalMin = estimates.reduce((sum, est) => sum + (est.minPrice || 0), 0)
-      const totalMax = estimates.reduce((sum, est) => sum + (est.maxPrice || 0), 0)
+      const totalMin = newEstimates.reduce((sum, est) => sum + (est.minPrice || 0), 0)
+      const totalMax = newEstimates.reduce((sum, est) => sum + (est.maxPrice || 0), 0)
       const totalPrice = `$${Math.round((totalMin + totalMax) / 2)}`
 
       setTotalEstimate({
         price: totalPrice,
         minPrice: totalMin,
         maxPrice: totalMax,
-        confidence: estimates.some((e) => e.confidence === "low")
+        confidence: newEstimates.some((e) => e.confidence === "low")
           ? "low"
-          : estimates.every((e) => e.confidence === "high")
+          : newEstimates.every((e) => e.confidence === "high")
             ? "high"
             : "medium",
       })
@@ -1941,9 +1998,15 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                         <div className="text-lg font-bold text-green-600 dark:text-green-400">
                                           {priceEstimates[index].price}
                                         </div>
-                                        <div className="text-xs text-slate-600 dark:text-slate-400">
-                                          Range: ${priceEstimates[index].minPrice} - ${priceEstimates[index].maxPrice}
-                                        </div>
+                                        {priceEstimates[index].source === "content_filter" ? (
+                                          <div className="text-xs text-red-600 dark:text-red-400">
+                                            Content policy violation detected
+                                          </div>
+                                        ) : (
+                                          <div className="text-xs text-slate-600 dark:text-slate-400">
+                                            Range: ${priceEstimates[index].minPrice} - ${priceEstimates[index].maxPrice}
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </div>

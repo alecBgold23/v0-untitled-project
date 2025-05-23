@@ -2,7 +2,7 @@ import { OpenAI } from "openai"
 
 // Initialize OpenAI client
 const getOpenAIClient = () => {
-  // First try to get the pricing-specific key
+  // First try to get the pricing-specific key, then fall back to the general key
   const apiKey = process.env.PRICING_OPENAI_API_KEY || process.env.OPENAI_API_KEY
 
   if (!apiKey) {
@@ -12,7 +12,9 @@ const getOpenAIClient = () => {
   // Log when the key is being used (without exposing the actual key)
   console.log(`OpenAI API key being used at: ${new Date().toISOString()}`)
 
-  return new OpenAI({ apiKey })
+  return new OpenAI({
+    apiKey, // ✅ Using environment variable
+  })
 }
 
 /**

@@ -30,7 +30,7 @@ export async function openaiRequest(
     throw new Error("OpenAI service is currently unavailable")
   }
 
-  const apiKey = getOpenAIKey()
+  const apiKey = getOpenAIKey() // ✅ Using the environment variable getter function
 
   if (!apiKey) {
     throw new Error("OpenAI API key is not configured")
@@ -43,7 +43,7 @@ export async function openaiRequest(
 
   const headers = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${apiKey}`,
+    Authorization: `Bearer ${apiKey}`, // ✅ Using the retrieved environment variable
   }
 
   const options: RequestInit = {

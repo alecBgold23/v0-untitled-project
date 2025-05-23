@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { OpenAI } from "openai"
 
 // Types for price data
 type PriceData = {
@@ -74,287 +75,163 @@ export async function getMarketData(category: string): Promise<PriceData | null>
   }
 }
 
+// Initialize OpenAI client with proper API key
+const getOpenAIClient = () => {
+  // First try to get the pricing-specific key, then fall back to the general key
+  const apiKey = process.env.PRICING_OPENAI_API_KEY || process.env.OPENAI_API_KEY
+
+  if (!apiKey) {
+    console.error("OpenAI API key is not set")
+    return null
+  }
+
+  return new OpenAI({
+    apiKey,
+  })
+}
+
 /**
- * Enhanced category detection with more specific categories
+ * Detect category and base price for an item
  */
 export function detectCategory(
   description: string,
-  name?: string,
+  name = "",
 ): {
   category: string
   basePrice: number
   confidence: number
 } {
-  const text = `${name || ""} ${description}`.toLowerCase()
+  const text = `${name} ${description}`.toLowerCase()
 
-  // VR Headsets - more specific detection
-  if (
-    text.includes("oculus") ||
-    text.includes("quest") ||
-    text.includes("rift") ||
-    text.includes("vr headset") ||
-    text.includes("virtual reality") ||
-    (text.includes("vr") && text.includes("headset")) ||
-    text.includes("htc vive") ||
-    text.includes("valve index") ||
-    text.includes("playstation vr") ||
-    text.includes("psvr")
-  ) {
-    // Detect specific models
-    if (text.includes("quest 3")) {
-      return { category: "vr_quest_3", basePrice: 499, confidence: 0.9 }
-    } else if (text.includes("quest 2")) {
-      return { category: "vr_quest_2", basePrice: 299, confidence: 0.9 }
-    } else if (text.includes("quest pro")) {
-      return { category: "vr_quest_pro", basePrice: 999, confidence: 0.9 }
-    } else if (text.includes("quest")) {
-      return { category: "vr_quest", basePrice: 299, confidence: 0.8 }
-    } else if (text.includes("rift s")) {
-      return { category: "vr_rift_s", basePrice: 399, confidence: 0.9 }
-    } else if (text.includes("rift")) {
-      return { category: "vr_rift", basePrice: 349, confidence: 0.8 }
-    } else if (text.includes("valve index")) {
-      return { category: "vr_valve_index", basePrice: 999, confidence: 0.9 }
-    } else if (text.includes("htc vive")) {
-      return { category: "vr_htc_vive", basePrice: 499, confidence: 0.9 }
-    } else if (text.includes("playstation vr") || text.includes("psvr")) {
-      return { category: "vr_psvr", basePrice: 299, confidence: 0.9 }
-    } else {
-      return { category: "vr_headset", basePrice: 299, confidence: 0.7 }
+  // Define categories with keywords and base prices
+  const categories = [
+    {
+      name: "electronics",
+      keywords: ["phone", "laptop", "computer", "tv", "tablet", "monitor", "speaker", "headphone", "camera", "gaming"],
+      basePrice: 150,
+    },
+    {
+      name: "furniture",
+      keywords: ["sofa", "couch", "chair", "table", "desk", "bed", "dresser", "cabinet", "bookshelf", "furniture"],
+      basePrice: 120,
+    },
+    {
+      name: "clothing",
+      keywords: ["shirt", "pants", "dress", "jacket", "coat", "shoes", "boots", "clothing", "apparel", "wear"],
+      basePrice: 25,
+    },
+    {
+      name: "appliances",
+      keywords: ["refrigerator", "fridge", "washer", "dryer", "dishwasher", "microwave", "oven", "stove", "appliance"],
+      basePrice: 200,
+    },
+    {
+      name: "toys",
+      keywords: ["toy", "game", "puzzle", "doll", "action figure", "board game", "lego", "playset"],
+      basePrice: 20,
+    },
+    {
+      name: "sports",
+      keywords: ["bike", "bicycle", "treadmill", "weights", "exercise", "fitness", "sports", "athletic", "gym"],
+      basePrice: 80,
+    },
+    {
+      name: "jewelry",
+      keywords: ["jewelry", "necklace", "ring", "bracelet", "watch", "gold", "silver", "diamond"],
+      basePrice: 100,
+    },
+    {
+      name: "books",
+      keywords: ["book", "novel", "textbook", "cookbook", "magazine", "comic", "literature"],
+      basePrice: 10,
+    },
+    {
+      name: "tools",
+      keywords: ["tool", "drill", "saw", "hammer", "screwdriver", "wrench", "power tool", "toolbox"],
+      basePrice: 50,
+    },
+    {
+      name: "art",
+      keywords: ["art", "painting", "print", "sculpture", "canvas", "poster", "artwork", "decor"],
+      basePrice: 60,
+    },
+  ]
+
+  // Find matching categories and calculate confidence
+  let bestMatch = { category: "miscellaneous", basePrice: 30, confidence: 0.3 }
+
+  for (const category of categories) {
+    let matchCount = 0
+    for (const keyword of category.keywords) {
+      if (text.includes(keyword)) {
+        matchCount++
+      }
+    }
+
+    if (matchCount > 0) {
+      const confidence = Math.min(0.3 + (matchCount / category.keywords.length) * 0.7, 0.95)
+
+      if (confidence > bestMatch.confidence) {
+        bestMatch = {
+          category: category.name,
+          basePrice: category.basePrice,
+          confidence: confidence,
+        }
+      }
     }
   }
 
-  // Cars and Vehicles
-  if (
-    text.includes("car") ||
-    text.includes("vehicle") ||
-    text.includes("auto") ||
-    text.includes("truck") ||
-    text.includes("suv") ||
-    text.includes("sedan") ||
-    text.includes("coupe") ||
-    text.includes("convertible") ||
-    text.includes("motorcycle") ||
-    text.includes("bike")
-  ) {
-    // Luxury car brands
-    if (
-      text.includes("mercedes") ||
-      text.includes("bmw") ||
-      text.includes("audi") ||
-      text.includes("lexus") ||
-      text.includes("porsche") ||
-      text.includes("tesla") ||
-      text.includes("ferrari") ||
-      text.includes("lamborghini") ||
-      text.includes("maserati") ||
-      text.includes("bentley") ||
-      text.includes("rolls royce")
-    ) {
-      return { category: "vehicle_luxury", basePrice: 50000, confidence: 0.9 }
-    }
-
-    // Sports cars
-    if (
-      text.includes("sports car") ||
-      text.includes("performance") ||
-      text.includes("turbo") ||
-      text.includes("supercharged") ||
-      text.includes("v8") ||
-      text.includes("v12")
-    ) {
-      return { category: "vehicle_sports", basePrice: 35000, confidence: 0.9 }
-    }
-
-    // Electric vehicles
-    if (
-      text.includes("electric") ||
-      text.includes("ev") ||
-      text.includes("hybrid") ||
-      text.includes("tesla") ||
-      text.includes("leaf") ||
-      text.includes("bolt") ||
-      text.includes("prius")
-    ) {
-      return { category: "vehicle_electric", basePrice: 30000, confidence: 0.9 }
-    }
-
-    // SUVs
-    if (
-      text.includes("suv") ||
-      text.includes("crossover") ||
-      text.includes("4x4") ||
-      text.includes("off-road") ||
-      text.includes("all-wheel drive") ||
-      text.includes("awd")
-    ) {
-      return { category: "vehicle_suv", basePrice: 25000, confidence: 0.9 }
-    }
-
-    // Trucks
-    if (
-      text.includes("truck") ||
-      text.includes("pickup") ||
-      text.includes("f-150") ||
-      text.includes("silverado") ||
-      text.includes("ram") ||
-      text.includes("tacoma") ||
-      text.includes("tundra")
-    ) {
-      return { category: "vehicle_truck", basePrice: 28000, confidence: 0.9 }
-    }
-
-    // Motorcycles
-    if (
-      text.includes("motorcycle") ||
-      text.includes("bike") ||
-      text.includes("harley") ||
-      text.includes("honda") ||
-      text.includes("yamaha") ||
-      text.includes("kawasaki") ||
-      text.includes("ducati") ||
-      text.includes("triumph")
-    ) {
-      return { category: "vehicle_motorcycle", basePrice: 8000, confidence: 0.9 }
-    }
-
-    // Sedan/standard cars
-    if (
-      text.includes("sedan") ||
-      text.includes("toyota") ||
-      text.includes("honda") ||
-      text.includes("nissan") ||
-      text.includes("ford") ||
-      text.includes("chevrolet") ||
-      text.includes("hyundai") ||
-      text.includes("kia")
-    ) {
-      return { category: "vehicle_sedan", basePrice: 18000, confidence: 0.9 }
-    }
-
-    // Generic vehicle
-    return { category: "vehicle", basePrice: 15000, confidence: 0.8 }
-  }
-
-  // Watches and Jewelry (high-value items)
-  if (
-    text.includes("watch") ||
-    text.includes("jewelry") ||
-    text.includes("ring") ||
-    text.includes("necklace") ||
-    text.includes("bracelet") ||
-    text.includes("earrings") ||
-    text.includes("diamond") ||
-    text.includes("gold") ||
-    text.includes("silver") ||
-    text.includes("platinum")
-  ) {
-    // Luxury watches
-    if (
-      text.includes("rolex") ||
-      text.includes("omega") ||
-      text.includes("tag heuer") ||
-      text.includes("breitling") ||
-      text.includes("patek philippe") ||
-      text.includes("audemars piguet") ||
-      text.includes("cartier") ||
-      text.includes("iwc") ||
-      text.includes("hublot") ||
-      text.includes("tudor")
-    ) {
-      return { category: "watch_luxury", basePrice: 8000, confidence: 0.9 }
-    }
-
-    // Diamond jewelry
-    if (
-      text.includes("diamond") ||
-      text.includes("engagement ring") ||
-      text.includes("wedding ring") ||
-      text.includes("carat")
-    ) {
-      return { category: "jewelry_diamond", basePrice: 3000, confidence: 0.9 }
-    }
-
-    // Gold jewelry
-    if (text.includes("gold") || text.includes("14k") || text.includes("18k") || text.includes("24k")) {
-      return { category: "jewelry_gold", basePrice: 1000, confidence: 0.9 }
-    }
-
-    // Standard watches
-    if (text.includes("watch")) {
-      return { category: "watch", basePrice: 200, confidence: 0.8 }
-    }
-
-    // Generic jewelry
-    return { category: "jewelry", basePrice: 300, confidence: 0.8 }
-  }
-
-  // Default for other categories
-  return { category: "general", basePrice: 49, confidence: 0.5 }
+  return bestMatch
 }
 
 /**
  * Adjust price based on condition
  */
-export function adjustForCondition(
-  basePrice: number,
-  condition?: string,
-  description?: string,
-  issues?: string,
-): number {
-  const text = `${description || ""} ${condition || ""} ${issues || ""}`.toLowerCase()
-
-  // New/sealed items
-  if (text.includes("new") || text.includes("sealed") || text.includes("unopened") || text.includes("brand new")) {
-    return basePrice * 1.0 // 100% of base price for new items
+export function adjustForCondition(basePrice: number, condition: string, description = "", issues = ""): number {
+  // Condition multipliers
+  const conditionMultipliers = {
+    "like-new": 1.0,
+    excellent: 0.9,
+    good: 0.7,
+    fair: 0.5,
+    poor: 0.3,
+    unknown: 0.6,
   }
 
-  // Like new
-  if (
-    text.includes("like new") ||
-    text.includes("barely used") ||
-    text.includes("excellent condition") ||
-    text.includes("mint condition")
-  ) {
-    return basePrice * 0.9 // 90% of base price
+  // Default to 'unknown' if condition not recognized
+  const multiplier = conditionMultipliers[condition] || conditionMultipliers.unknown
+
+  // Check for premium brands or features in description
+  const premiumKeywords = ["premium", "luxury", "high-end", "designer", "limited edition", "rare", "vintage"]
+  let premiumBonus = 0
+
+  for (const keyword of premiumKeywords) {
+    if (description.toLowerCase().includes(keyword)) {
+      premiumBonus += 0.1 // Add 10% for each premium keyword
+    }
   }
 
-  // Good condition
-  if (
-    text.includes("good condition") ||
-    text.includes("works perfectly") ||
-    text.includes("works great") ||
-    text.includes("minor wear")
-  ) {
-    return basePrice * 0.8 // 80% of base price
+  // Cap premium bonus at 50%
+  premiumBonus = Math.min(premiumBonus, 0.5)
+
+  // Check for issues that might reduce value
+  const issueKeywords = ["broken", "damaged", "cracked", "scratched", "stained", "torn", "missing", "not working"]
+  let issuesPenalty = 0
+
+  for (const keyword of issueKeywords) {
+    if (issues.toLowerCase().includes(keyword)) {
+      issuesPenalty += 0.1 // Reduce by 10% for each issue keyword
+    }
   }
 
-  // Fair condition
-  if (
-    text.includes("fair condition") ||
-    text.includes("used") ||
-    text.includes("wear and tear") ||
-    text.includes("scratches") ||
-    text.includes("scuffs")
-  ) {
-    return basePrice * 0.7 // 70% of base price
-  }
+  // Cap issues penalty at 50%
+  issuesPenalty = Math.min(issuesPenalty, 0.5)
 
-  // Poor condition
-  if (
-    text.includes("poor condition") ||
-    text.includes("heavily used") ||
-    text.includes("damaged") ||
-    text.includes("broken") ||
-    text.includes("not working") ||
-    text.includes("for parts") ||
-    text.includes("needs repair")
-  ) {
-    return basePrice * 0.4 // 40% of base price
-  }
+  // Calculate final price
+  const adjustedPrice = basePrice * multiplier * (1 + premiumBonus) * (1 - issuesPenalty)
 
-  // Default to good condition if not specified
-  return basePrice * 0.8 // 80% of base price
+  // Ensure minimum price of $5
+  return Math.max(Math.round(adjustedPrice), 5)
 }
 
 /**
@@ -409,5 +286,62 @@ export async function generateAccuratePrice(
       source: "error_fallback",
       confidence: 0.3,
     }
+  }
+}
+
+// Function to get a more accurate price using OpenAI (if available)
+export async function getAIPriceEstimate(
+  itemName: string,
+  description: string,
+  condition: string,
+  issues: string,
+): Promise<{ price: number; confidence: number } | null> {
+  try {
+    const openai = getOpenAIClient()
+    if (!openai) return null
+
+    const prompt = `
+      I need to estimate the resale value of the following item:
+      
+      Item Name: ${itemName}
+      Description: ${description}
+      Condition: ${condition}
+      Issues: ${issues || "None reported"}
+      
+      Please provide:
+      1. An estimated price in USD (just the number)
+      2. Your confidence level as a number between 0 and 1
+      
+      Format your response as JSON with keys: price, confidence
+    `
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are a pricing expert who specializes in estimating the value of secondhand items.",
+        },
+        { role: "user", content: prompt },
+      ],
+      response_format: { type: "json_object" },
+    })
+
+    const content = response.choices[0]?.message?.content
+    if (!content) return null
+
+    try {
+      const result = JSON.parse(content)
+      return {
+        price: Number(result.price),
+        confidence: Number(result.confidence),
+      }
+    } catch (error) {
+      console.error("Failed to parse AI price estimate:", error)
+      return null
+    }
+  } catch (error) {
+    console.error("Error getting AI price estimate:", error)
+    return null
   }
 }

@@ -11,6 +11,7 @@ export function estimateItemPrice(
   price: string
   minPrice?: number
   maxPrice?: number
+  error?: string
 } {
   console.log("Client-side price estimation called for:", name || description)
 
@@ -35,11 +36,15 @@ export async function estimateItemPriceFromAPI(
   minPrice?: number
   maxPrice?: number
   source?: string
+  error?: string
 }> {
   try {
     console.log("Calling price estimation API for:", name || description)
 
-    const response = await fetch("/api/estimate-price", {
+    // Add a timestamp to prevent caching
+    const timestamp = new Date().getTime()
+
+    const response = await fetch(`/api/estimate-price?t=${timestamp}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -50,27 +55,39 @@ export async function estimateItemPriceFromAPI(
         condition: condition || "Good",
         issues: issues || "",
       }),
+      // Ensure we don't use cached responses
+      cache: "no-store",
     })
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`)
-    }
 
     const data = await response.json()
     console.log("Price estimation API response:", data)
 
+    // Check for API errors
+    if (data.error) {
+      return {
+        error: data.error,
+      }
+    }
+
+    // If we have a valid price
+    if (data.price || data.priceRange) {
+      return {
+        price: data.price ? `$${data.price}` : data.priceRange,
+        priceRange: data.priceRange,
+        minPrice: data.minPrice ? Number(data.minPrice) : undefined,
+        maxPrice: data.maxPrice ? Number(data.maxPrice) : undefined,
+        source: data.source,
+      }
+    }
+
+    // If we don't have a price but no error was returned
     return {
-      price: data.price ? `$${data.price}` : data.priceRange || "$25",
-      priceRange: data.priceRange,
-      minPrice: data.minPrice ? Number(data.minPrice) : undefined,
-      maxPrice: data.maxPrice ? Number(data.maxPrice) : undefined,
-      source: data.source,
+      error: "Unable to generate a price estimate. Please try again later.",
     }
   } catch (error) {
     console.error("Error estimating price from API:", error)
     return {
-      price: "$25",
-      source: "fallback",
+      error: "Failed to connect to pricing service. Please try again later.",
     }
   }
 }
