@@ -60,6 +60,23 @@ function formatPhoneNumber(phone) {
   return cleaned
 }
 
+// Helper function to check if a column exists in the table
+async function checkColumnExists(supabase, tableName: string, columnName: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("information_schema.columns")
+      .select("column_name")
+      .eq("table_name", tableName)
+      .eq("column_name", columnName)
+      .single()
+
+    return !error && data
+  } catch (error) {
+    console.log(`Column ${columnName} does not exist in table ${tableName}`)
+    return false
+  }
+}
+
 // Helper function to send confirmation email to user
 async function sendUserConfirmationEmail(email: string, name: string, items: ItemData[]) {
   console.log("Attempting to send user confirmation email to:", email)
@@ -287,6 +304,19 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
     // Format phone number if needed
     const formattedPhone = formatPhoneNumber(contactInfo.phone)
 
+    // Check which columns exist in the database
+    const imagePathsExists = await checkColumnExists(supabase, "sell_items", "image_paths")
+    const imageUrlsExists = await checkColumnExists(supabase, "sell_items", "image_urls")
+    const photoCountExists = await checkColumnExists(supabase, "sell_items", "photo_count")
+    const itemIssuesExists = await checkColumnExists(supabase, "sell_items", "item_issues")
+
+    console.log("Column existence check:", {
+      imagePathsExists,
+      imageUrlsExists,
+      photoCountExists,
+      itemIssuesExists,
+    })
+
     // Process each item directly without separate contact table
     const itemResults = []
 
@@ -322,6 +352,16 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           itemData.pickup_date = contactInfo.pickupDate
         }
 
+        // Add image data only if the columns exist
+        if (imagePathsExists && item.imagePaths && item.imagePaths.length > 0) {
+          itemData.image_paths = JSON.stringify(item.imagePaths)
+        }
+
+        if (imageUrlsExists && item.imageUrls && item.imageUrls.length > 0) {
+          itemData.image_urls = JSON.stringify(item.imageUrls)
+        }
+
+        // Keep single image fields for backward compatibility
         if (item.imagePath) {
           itemData.image_path = item.imagePath
         }
@@ -330,12 +370,26 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           itemData.image_url = fixImageUrl(item.imageUrl)
         }
 
+        // Add photo count for tracking if column exists
+        if (photoCountExists) {
+          if (item.photos && item.photos.length > 0) {
+            itemData.photo_count = item.photos.length + (item.imageUrl ? 1 : 0)
+          } else if (item.imageUrl) {
+            itemData.photo_count = 1
+          }
+        }
+
         if (item.estimatedPrice) {
           itemData.estimated_price = item.estimatedPrice
         }
 
-        if (item.issues) {
+        // Use the correct column name for issues
+        if (itemIssuesExists && item.issues) {
           itemData.item_issues = item.issues
+        } else if (item.issues) {
+          // Fallback to a generic description field or skip
+          console.log("item_issues column doesn't exist, adding to description")
+          itemData.item_description = `${itemData.item_description}\n\nIssues: ${item.issues}`
         }
 
         console.log("Attempting to insert item data:", itemData)
@@ -359,6 +413,14 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
               phone: formattedPhone,
               full_name: contactInfo.fullName,
               status: "pending",
+              // Add image data to minimal submission only if columns exist
+              ...(item.imagePath && { image_path: item.imagePath }),
+              ...(item.imageUrl && { image_url: fixImageUrl(item.imageUrl) }),
+            }
+
+            // Add issues to description if item_issues column doesn't exist
+            if (item.issues && !itemIssuesExists) {
+              minimalData.item_description = `${minimalData.item_description}\n\nIssues: ${item.issues}`
             }
 
             const { data: minimalResult, error: minimalError } = await supabase
