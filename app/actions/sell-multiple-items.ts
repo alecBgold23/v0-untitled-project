@@ -300,7 +300,7 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
         }
 
         // Prepare data for insertion
-        const itemData = {
+        const itemData: Record<string, any> = {
           item_name: item.name || "Unnamed Item",
           item_description: item.description || "",
           item_condition: item.condition || "unknown",
@@ -314,13 +314,18 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           image_path: item.imagePath || null,
           image_url: item.imageUrl ? fixImageUrl(item.imageUrl) : null,
           estimated_price: item.estimatedPrice || null,
+          image_paths: item.imagePaths ? JSON.stringify(item.imagePaths) : null,
+          image_urls: item.imageUrls ? JSON.stringify(item.imageUrls) : null,
         }
+
+        console.log("Attempting to insert item data:", itemData)
 
         // Insert data into Supabase
         const { data, error } = await supabase.from("sell_items").insert([itemData]).select()
 
         if (error) {
           console.error("Error submitting item to Supabase:", error)
+          console.error("Error details:", JSON.stringify(error, null, 2))
           itemSuccess = false
           itemErrorMessage = `Database error: ${error.message}`
         } else {
