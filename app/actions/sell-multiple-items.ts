@@ -60,23 +60,6 @@ function formatPhoneNumber(phone) {
   return cleaned
 }
 
-// Helper function to check if a column exists in the table
-async function checkColumnExists(supabase, tableName: string, columnName: string): Promise<boolean> {
-  try {
-    const { data, error } = await supabase
-      .from("information_schema.columns")
-      .select("column_name")
-      .eq("table_name", tableName)
-      .eq("column_name", columnName)
-      .single()
-
-    return !error && data
-  } catch (error) {
-    console.log(`Column ${columnName} does not exist in table ${tableName}`)
-    return false
-  }
-}
-
 // Helper function to send confirmation email to user
 async function sendUserConfirmationEmail(email: string, name: string, items: ItemData[]) {
   console.log("Attempting to send user confirmation email to:", email)
@@ -304,19 +287,6 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
     // Format phone number if needed
     const formattedPhone = formatPhoneNumber(contactInfo.phone)
 
-    // Check which columns exist in the database
-    const imagePathsExists = await checkColumnExists(supabase, "sell_items", "image_paths")
-    const imageUrlsExists = await checkColumnExists(supabase, "sell_items", "image_urls")
-    const photoCountExists = await checkColumnExists(supabase, "sell_items", "photo_count")
-    const itemIssuesExists = await checkColumnExists(supabase, "sell_items", "item_issues")
-
-    console.log("Column existence check:", {
-      imagePathsExists,
-      imageUrlsExists,
-      photoCountExists,
-      itemIssuesExists,
-    })
-
     // Process each item directly without separate contact table
     const itemResults = []
 
@@ -332,135 +302,131 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           continue // Skip this item
         }
 
-        // Prepare data for insertion - use only the columns that exist in the table
-        const itemData: Record<string, any> = {
-          item_name: item.name || "Unnamed Item",
-          item_description: item.description || "",
-          item_condition: item.condition || "unknown",
-          email: contactInfo.email,
-          phone: formattedPhone,
-          full_name: contactInfo.fullName,
-          status: "pending",
-        }
-
-        // Add optional fields only if they have values
-        if (contactInfo.address) {
-          itemData.address = contactInfo.address
-        }
-
-        if (contactInfo.pickupDate) {
-          itemData.pickup_date = contactInfo.pickupDate
-        }
-
-        // Add image data only if the columns exist
-        if (imagePathsExists && item.imagePaths && item.imagePaths.length > 0) {
-          itemData.image_paths = JSON.stringify(item.imagePaths)
-        }
-
-        if (imageUrlsExists && item.imageUrls && item.imageUrls.length > 0) {
-          itemData.image_urls = JSON.stringify(item.imageUrls)
-        }
-
-        // Keep single image fields for backward compatibility
-        if (item.imagePath) {
-          itemData.image_path = item.imagePath
-        }
-
-        if (item.imageUrl) {
-          itemData.image_url = fixImageUrl(item.imageUrl)
-        }
-
-        // Add photo count for tracking if column exists
-        if (photoCountExists) {
-          if (item.photos && item.photos.length > 0) {
-            itemData.photo_count = item.photos.length + (item.imageUrl ? 1 : 0)
-          } else if (item.imageUrl) {
-            itemData.photo_count = 1
+        // First, try to insert with all fields
+        try {
+          // Prepare data for insertion
+          const itemData = {
+            item_name: item.name || "Unnamed Item",
+            item_description: item.description || "",
+            item_condition: item.condition || "unknown",
+            item_issues: item.issues || "",
+            email: contactInfo.email,
+            phone: formattedPhone,
+            full_name: contactInfo.fullName,
+            status: "pending",
+            address: contactInfo.address || null,
+            pickup_date: contactInfo.pickupDate || null,
+            image_path: item.imagePath || null,
+            image_url: item.imageUrl ? fixImageUrl(item.imageUrl) : null,
+            estimated_price: item.estimatedPrice || null,
           }
-        }
 
-        if (item.estimatedPrice) {
-          itemData.estimated_price = item.estimatedPrice
-        }
+          // Insert data into Supabase
+          const { data, error } = await supabase.from("sell_items").insert([itemData]).select()
 
-        // Use the correct column name for issues
-        if (itemIssuesExists && item.issues) {
-          itemData.item_issues = item.issues
-        } else if (item.issues) {
-          // Fallback to a generic description field or skip
-          console.log("item_issues column doesn't exist, adding to description")
-          itemData.item_description = `${itemData.item_description}\n\nIssues: ${item.issues}`
-        }
-
-        console.log("Attempting to insert item data:", itemData)
-
-        // Insert data into Supabase
-        const { data, error } = await supabase.from("sell_items").insert([itemData]).select()
-
-        if (error) {
-          console.error("Error submitting item to Supabase:", error)
-          console.error("Error details:", JSON.stringify(error, null, 2))
-
-          // If the error is about a column not existing, try a more minimal approach
-          if (error.message && (error.message.includes("column") || error.code === "42703")) {
-            console.log("Column error detected, trying minimal insertion with only essential fields")
-
-            const minimalData = {
-              item_name: item.name || "Unnamed Item",
-              item_description: item.description || "",
-              item_condition: item.condition || "unknown",
-              email: contactInfo.email,
-              phone: formattedPhone,
-              full_name: contactInfo.fullName,
-              status: "pending",
-              // Add image data to minimal submission only if columns exist
-              ...(item.imagePath && { image_path: item.imagePath }),
-              ...(item.imageUrl && { image_url: fixImageUrl(item.imageUrl) }),
-            }
-
-            // Add issues to description if item_issues column doesn't exist
-            if (item.issues && !itemIssuesExists) {
-              minimalData.item_description = `${minimalData.item_description}\n\nIssues: ${item.issues}`
-            }
-
-            const { data: minimalResult, error: minimalError } = await supabase
-              .from("sell_items")
-              .insert([minimalData])
-              .select()
-
-            if (minimalError) {
-              console.error("Error with minimal submission:", minimalError)
-              console.error("Minimal error details:", JSON.stringify(minimalError, null, 2))
-
-              // If table doesn't exist, return a helpful error
-              if (minimalError.code === "PGRST116") {
-                return {
-                  success: false,
-                  message: "Database table 'sell_items' does not exist. Please contact support.",
-                  code: minimalError.code,
-                }
-              }
-
-              return {
-                success: false,
-                message: `Database error: ${minimalError.message}`,
-                code: minimalError.code,
-              }
-            } else {
-              console.log("Successfully submitted with minimal fields")
-              itemResults.push({ success: true, name: item.name, id: minimalResult?.[0]?.id })
-            }
-          } else {
-            // If it's some other error, return it
-            return {
-              success: false,
-              message: `Database error: ${error.message}`,
-              code: error.code,
-            }
+          if (error) {
+            // If there's an error, we'll try a fallback approach
+            throw error
           }
-        } else {
+
           console.log("Successfully submitted item:", data?.[0])
           itemResults.push({ success: true, name: item.name, id: data?.[0]?.id })
+        } catch (initialError) {
+          console.error("Error with initial submission:", initialError)
+
+          // Fallback: Try to determine which columns exist and only use those
+          try {
+            // Get the table structure to see which columns exist
+            const { data: tableInfo, error: tableError } = await supabase.from("sell_items").select("*").limit(1)
+
+            if (tableError) {
+              throw tableError
+            }
+
+            // Extract column names from the first row
+            const availableColumns = tableInfo && tableInfo.length > 0 ? Object.keys(tableInfo[0]) : []
+            console.log("Available columns:", availableColumns)
+
+            // Build a data object with only the columns that exist
+            const safeData: Record<string, any> = {}
+
+            // Required fields
+            safeData.item_name = item.name || "Unnamed Item"
+            safeData.item_description = item.description || ""
+            safeData.item_condition = item.condition || "unknown"
+            safeData.email = contactInfo.email
+            safeData.phone = formattedPhone
+            safeData.full_name = contactInfo.fullName
+            safeData.status = "pending"
+
+            // Optional fields - only add if the column exists
+            if (availableColumns.includes("address") && contactInfo.address) {
+              safeData.address = contactInfo.address
+            }
+
+            if (availableColumns.includes("pickup_date") && contactInfo.pickupDate) {
+              safeData.pickup_date = contactInfo.pickupDate
+            }
+
+            if (availableColumns.includes("item_issues") && item.issues) {
+              safeData.item_issues = item.issues
+            } else if (item.issues) {
+              // If item_issues column doesn't exist, append to description
+              safeData.item_description += `\n\nIssues: ${item.issues}`
+            }
+
+            if (availableColumns.includes("image_path") && item.imagePath) {
+              safeData.image_path = item.imagePath
+            }
+
+            if (availableColumns.includes("image_url") && item.imageUrl) {
+              safeData.image_url = fixImageUrl(item.imageUrl)
+            }
+
+            if (availableColumns.includes("estimated_price") && item.estimatedPrice) {
+              safeData.estimated_price = item.estimatedPrice
+            }
+
+            // Try inserting with only available columns
+            const { data: safeResult, error: safeError } = await supabase.from("sell_items").insert([safeData]).select()
+
+            if (safeError) {
+              throw safeError
+            }
+
+            console.log("Successfully submitted item with safe fields:", safeResult?.[0])
+            itemResults.push({ success: true, name: item.name, id: safeResult?.[0]?.id })
+          } catch (fallbackError) {
+            console.error("Error with fallback submission:", fallbackError)
+
+            // Last resort: Try with absolute minimal fields
+            try {
+              const minimalData = {
+                item_name: item.name || "Unnamed Item",
+                item_description: `${item.description || ""}\n\n${item.issues ? `Issues: ${item.issues}` : ""}`,
+                item_condition: item.condition || "unknown",
+                email: contactInfo.email,
+                phone: formattedPhone,
+                full_name: contactInfo.fullName,
+                status: "pending",
+              }
+
+              const { data: minimalResult, error: minimalError } = await supabase
+                .from("sell_items")
+                .insert([minimalData])
+                .select()
+
+              if (minimalError) {
+                throw minimalError
+              }
+
+              console.log("Successfully submitted with minimal fields:", minimalResult?.[0])
+              itemResults.push({ success: true, name: item.name, id: minimalResult?.[0]?.id })
+            } catch (minimalError) {
+              console.error("Error with minimal submission:", minimalError)
+              itemResults.push({ success: false, name: item.name, error: "Database error" })
+            }
+          }
         }
       } catch (itemProcessError) {
         console.error("Error processing item:", itemProcessError)
@@ -468,7 +434,7 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
       }
     }
 
-    console.log("Successfully submitted items to Supabase")
+    console.log("Submission results:", itemResults)
 
     // Send both confirmation emails
     let userEmailSent = false
