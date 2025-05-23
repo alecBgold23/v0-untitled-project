@@ -62,6 +62,11 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState(null)
   const [activeTab, setActiveTab] = useState("upload")
+  // Add this to the state declarations at the top of the component
+  const [emailStatus, setEmailStatus] = useState({
+    userEmailSent: false,
+    adminEmailSent: false,
+  })
 
   // Call onLoad when component is mounted
   useEffect(() => {
@@ -1059,6 +1064,18 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
         return
       }
 
+      // Check if emails were sent successfully
+      let emailMessage = ""
+      if (result.userEmailSent && result.adminEmailSent) {
+        emailMessage = "Confirmation emails have been sent to you and our team."
+      } else if (result.userEmailSent) {
+        emailMessage = "A confirmation email has been sent to your email address."
+      } else if (result.adminEmailSent) {
+        emailMessage = "Our team has been notified of your submission."
+      } else {
+        emailMessage = "Your items were submitted successfully, but confirmation emails could not be sent."
+      }
+
       // Set form as submitted
       setFormSubmitted(true)
       // Scroll to top after submission is successful
@@ -1067,8 +1084,14 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
 
       toast({
         title: "Success!",
-        description: "Your items have been submitted successfully. We'll contact you soon.",
+        description: `Your items have been submitted successfully. ${emailMessage}`,
         variant: "default",
+      })
+
+      // Add this inside the completeFormSubmission function after the successful submission
+      setEmailStatus({
+        userEmailSent: result.userEmailSent || false,
+        adminEmailSent: result.adminEmailSent || false,
       })
     } catch (error) {
       console.error("Error submitting form:", error)
@@ -2426,9 +2449,18 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                 <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-md max-w-md mx-auto flex items-center gap-3">
                   <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
                   <p className="text-sm text-slate-600 dark:text-slate-400 text-left">
-                    We've sent a confirmation email to{" "}
-                    <span className="font-medium text-slate-900 dark:text-white">{email}</span> with the details of your
-                    submission.
+                    {submitResult && submitResult.userEmailSent ? (
+                      <>
+                        We've sent a confirmation email to{" "}
+                        <span className="font-medium text-slate-900 dark:text-white">{email}</span> with the details of
+                        your submission.
+                      </>
+                    ) : (
+                      <>
+                        Your submission was successful, but we couldn't send a confirmation email. Please keep your
+                        submission reference for your records.
+                      </>
+                    )}
                   </p>
                 </div>
 

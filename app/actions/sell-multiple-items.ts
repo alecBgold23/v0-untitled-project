@@ -3,9 +3,9 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { revalidatePath } from "next/cache"
 import { isBlockedContent } from "@/lib/content-filter"
-import { OpenAI } from "openai"
 import { fixImageUrl } from "@/lib/fix-image-urls"
-import { sendEmail } from "@/lib/nodemailer"
+import { Resend } from "resend"
+import { sendConfirmationEmail } from "./send-confirmation-email"
 
 interface ItemData {
   name: string
@@ -32,50 +32,11 @@ interface ContactInfo {
   pickupDate: string
 }
 
-// Initialize OpenAI client with proper API key
-const getOpenAIClient = () => {
-  // First try to get the pricing-specific key, then fall back to the general key
-  const apiKey = process.env.PRICING_OPENAI_API_KEY || process.env.OPENAI_API_KEY
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY || "re_ScJSZp6x_8Gq33AABtqtiMLPUGqGaicCt")
 
-  if (!apiKey) {
-    console.error("OpenAI API key is not set")
-    return null
-  }
-
-  console.log(`OpenAI API key being used at: ${new Date().toISOString()}`)
-
-  return new OpenAI({
-    apiKey,
-  })
-}
-
-// Helper function to generate AI description if needed
-async function generateItemDescription(itemName, itemDescription) {
-  try {
-    const openai = getOpenAIClient()
-    if (!openai) return null
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are a helpful assistant that creates detailed item descriptions for selling items.",
-        },
-        {
-          role: "user",
-          content: `Create a detailed description for this item: ${itemName}. Current description: ${itemDescription}`,
-        },
-      ],
-      max_tokens: 150,
-    })
-
-    return response.choices[0]?.message?.content || null
-  } catch (error) {
-    console.error("Error generating item description:", error)
-    return null
-  }
-}
+// Admin email to receive notifications
+const adminEmail = process.env.ADMIN_EMAIL || "alecgold808@gmail.com"
 
 // Helper function to format phone number
 function formatPhoneNumber(phone) {
@@ -99,45 +60,196 @@ function formatPhoneNumber(phone) {
   return cleaned
 }
 
-// Helper function to send confirmation email directly
-async function sendConfirmationEmailDirect(email: string, name: string, items: ItemData[]) {
+// Helper function to send confirmation email to user
+async function sendUserConfirmationEmail(email: string, name: string, items: ItemData[]) {
+  console.log("Attempting to send user confirmation email to:", email)
+
   try {
-    // Create email content
+    // Create email content with item prices
     const itemsList = items
       .map(
         (item, index) => `
       ${index + 1}. ${item.name}
          - Description: ${item.description}
          - Condition: ${item.condition}
-         ${item.estimatedPrice ? `- Estimated Price: ${item.estimatedPrice}` : ""}
+         ${item.estimatedPrice ? `- Estimated Price: ${item.estimatedPrice}` : "- Price: To be determined"}
          ${item.issues ? `- Issues: ${item.issues}` : ""}
     `,
       )
       .join("\n")
 
-    const emailContent = `
-      Dear ${name},
+    const totalEstimatedValue = items
+      .filter((item) => item.estimatedPrice)
+      .reduce((total, item) => {
+        const price = Number.parseFloat(item.estimatedPrice?.replace(/[^0-9.]/g, "") || "0")
+        return total + price
+      }, 0)
 
-      Thank you for submitting your items for sale! We have received the following items:
-
-      ${itemsList}
-
-      We will review your submission and contact you within 24-48 hours with next steps.
-
-      Best regards,
-      The Sales Team
+    // HTML version of the email for better formatting
+    const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+      <h2 style="color: #4f46e5; text-align: center;">Item Submission Confirmation</h2>
+      <p>Dear ${name},</p>
+      <p>Thank you for submitting your items for sale! We have received the following ${items.length} item(s):</p>
+      
+      <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        ${items
+          .map(
+            (item, index) => `
+          <div style="margin-bottom: 15px; padding-bottom: 15px; ${index < items.length - 1 ? "border-bottom: 1px solid #e5e7eb;" : ""}">
+            <h3 style="margin-top: 0; color: #4f46e5;">${index + 1}. ${item.name}</h3>
+            <p><strong>Description:</strong> ${item.description}</p>
+            <p><strong>Condition:</strong> ${item.condition}</p>
+            ${item.estimatedPrice ? `<p><strong>Estimated Price:</strong> ${item.estimatedPrice}</p>` : "<p><strong>Price:</strong> To be determined</p>"}
+            ${item.issues ? `<p><strong>Issues:</strong> ${item.issues}</p>` : ""}
+            ${item.imageUrl ? `<p><img src="${item.imageUrl}" alt="${item.name}" style="max-width: 200px; max-height: 200px; border-radius: 5px;"></p>` : ""}
+          </div>
+        `,
+          )
+          .join("")}
+        
+        ${totalEstimatedValue > 0 ? `<p style="font-weight: bold; margin-top: 15px;">Total Estimated Value: $${totalEstimatedValue.toFixed(2)}</p>` : ""}
+      </div>
+      
+      <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #4f46e5;">What happens next:</h3>
+        <ol>
+          <li>Our team will review your submission within 24-48 hours</li>
+          <li>We'll contact you to schedule a pickup or drop-off</li>
+          <li>Final pricing will be determined after physical inspection</li>
+          <li>Payment will be processed once items are sold</li>
+        </ol>
+      </div>
+      
+      <p>If you have any questions, please don't hesitate to contact us.</p>
+      
+      <p><strong>Best regards,</strong><br>The Sales Team</p>
+      
+      <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">
+        <p><strong>Contact Information:</strong><br>
+        Email: ${process.env.CONTACT_EMAIL || "support@yourcompany.com"}<br>
+        Phone: ${process.env.CONTACT_PHONE || "(555) 123-4567"}</p>
+        
+        <p style="text-align: center; margin-top: 20px; font-size: 12px;">
+          &copy; ${new Date().getFullYear()} BluBerry. All rights reserved.
+        </p>
+      </div>
+    </div>
     `
 
-    // Use the existing sendEmail function from lib/nodemailer
-    const result = await sendEmail({
-      to: email,
-      subject: "Item Submission Confirmation",
-      text: emailContent,
-    })
+    // Try sending email via Resend
+    try {
+      console.log("Attempting to send email via Resend...")
+      const result = await resend.emails.send({
+        from: "BluBerry <onboarding@resend.dev>",
+        to: email,
+        subject: "Item Submission Confirmation - Your Items Have Been Received",
+        html: htmlContent,
+      })
 
-    return result
+      console.log("Resend email result:", result)
+      return { success: true, id: result.id }
+    } catch (error) {
+      console.error("Error sending user confirmation email with Resend:", error)
+      return { success: false, error: error.message }
+    }
   } catch (error) {
-    console.error("Error sending email directly:", error)
+    console.error("Error in sendUserConfirmationEmail:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Helper function to send notification email to admin
+async function sendAdminNotificationEmail(contactInfo: ContactInfo, items: ItemData[]) {
+  console.log("Attempting to send admin notification email")
+
+  try {
+    if (!adminEmail) {
+      console.log("No admin email configured, skipping admin notification")
+      return { success: false, error: "No admin email configured" }
+    }
+
+    console.log("Sending admin notification to:", adminEmail)
+
+    // Create detailed submission summary for admin
+    const totalEstimatedValue = items
+      .filter((item) => item.estimatedPrice)
+      .reduce((total, item) => {
+        const price = Number.parseFloat(item.estimatedPrice?.replace(/[^0-9.]/g, "") || "0")
+        return total + price
+      }, 0)
+
+    // HTML version for better formatting
+    const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+      <h2 style="color: #4f46e5; text-align: center;">New Item Submission Received</h2>
+      
+      <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #4f46e5;">Customer Information</h3>
+        <p><strong>Name:</strong> ${contactInfo.fullName}</p>
+        <p><strong>Email:</strong> ${contactInfo.email}</p>
+        <p><strong>Phone:</strong> ${contactInfo.phone}</p>
+        <p><strong>Address:</strong> ${contactInfo.address || "Not provided"}</p>
+        <p><strong>Preferred Pickup Date:</strong> ${contactInfo.pickupDate || "Not specified"}</p>
+      </div>
+      
+      <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #4f46e5;">Submission Details</h3>
+        <p><strong>Number of Items:</strong> ${items.length}</p>
+        <p><strong>Total Estimated Value:</strong> ${totalEstimatedValue > 0 ? `$${totalEstimatedValue.toFixed(2)}` : "Not calculated"}</p>
+        <p><strong>Submission Time:</strong> ${new Date().toLocaleString()}</p>
+      </div>
+      
+      <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #4f46e5;">Items Submitted</h3>
+        ${items
+          .map(
+            (item, index) => `
+          <div style="margin-bottom: 15px; padding-bottom: 15px; ${index < items.length - 1 ? "border-bottom: 1px solid #e5e7eb;" : ""}">
+            <h4 style="margin-top: 0; color: #4f46e5;">${index + 1}. ${item.name}</h4>
+            <p><strong>Description:</strong> ${item.description}</p>
+            <p><strong>Condition:</strong> ${item.condition}</p>
+            ${item.estimatedPrice ? `<p><strong>Estimated Price:</strong> ${item.estimatedPrice}</p>` : "<p><strong>Price:</strong> Not estimated</p>"}
+            ${item.issues ? `<p><strong>Issues:</strong> ${item.issues}</p>` : "<p><strong>Issues:</strong> None reported</p>"}
+            ${item.imageUrl ? `<p><strong>Image:</strong> <a href="${item.imageUrl}" target="_blank">View Image</a></p>` : "<p><strong>Image:</strong> No image provided</p>"}
+          </div>
+        `,
+          )
+          .join("")}
+      </div>
+      
+      <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #4f46e5;">Action Required</h3>
+        <ol>
+          <li>Review the submitted items</li>
+          <li>Contact the customer within 24-48 hours</li>
+          <li>Schedule pickup or drop-off</li>
+          <li>Conduct physical inspection and final pricing</li>
+        </ol>
+      </div>
+      
+      <p style="font-weight: bold;">Customer Contact: ${contactInfo.email} | ${contactInfo.phone}</p>
+    </div>
+    `
+
+    // Try sending via Resend
+    try {
+      console.log("Attempting to send admin email via Resend...")
+      const result = await resend.emails.send({
+        from: "BluBerry Item Submission <onboarding@resend.dev>",
+        to: adminEmail,
+        subject: `New Item Submission from ${contactInfo.fullName} - ${items.length} Items`,
+        html: htmlContent,
+      })
+
+      console.log("Admin email result:", result)
+      return { success: true, id: result.id }
+    } catch (error) {
+      console.error("Error sending admin notification email with Resend:", error)
+      return { success: false, error: error.message }
+    }
+  } catch (error) {
+    console.error("Error in sendAdminNotificationEmail:", error)
     return { success: false, error: error.message }
   }
 }
@@ -190,19 +302,10 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           continue // Skip this item
         }
 
-        // Enhance description with AI if needed
-        let enhancedDescription = item.description
-        if (item.description && item.description.length < 50 && item.name) {
-          const aiDescription = await generateItemDescription(item.name, item.description)
-          if (aiDescription) {
-            enhancedDescription = aiDescription
-          }
-        }
-
         // Prepare data for insertion - use only the columns that exist in the table
         const itemData: Record<string, any> = {
           item_name: item.name || "Unnamed Item",
-          item_description: enhancedDescription || item.description || "",
+          item_description: item.description || "",
           item_condition: item.condition || "unknown",
           email: contactInfo.email,
           phone: formattedPhone,
@@ -305,38 +408,96 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
 
     console.log("Successfully submitted items to Supabase")
 
-    // Send confirmation email (optional - don't fail if this doesn't work)
-    let emailSent = false
+    // Send both confirmation emails
+    let userEmailSent = false
+    let adminEmailSent = false
+
     try {
-      console.log("Attempting to send confirmation email...")
+      console.log("Attempting to send confirmation emails...")
 
-      // Try direct email sending
-      const emailResult = await sendConfirmationEmailDirect(contactInfo.email, contactInfo.fullName, items)
+      // First try using the dedicated sendConfirmationEmail function
+      try {
+        console.log("Trying to use sendConfirmationEmail function...")
 
-      if (emailResult.success) {
-        console.log("Confirmation email sent successfully")
-        emailSent = true
-      } else {
-        console.log("Email sending failed:", emailResult.error)
+        // Prepare the first item data for the confirmation email
+        const firstItem = items[0] || { name: "Item", description: "", condition: "", issues: "" }
+
+        // Create a data object that matches what sendConfirmationEmail expects
+        const emailData = {
+          fullName: contactInfo.fullName,
+          email: contactInfo.email,
+          itemName: firstItem.name,
+          itemCategory: firstItem.description.split(" ")[0] || "Item", // Use first word of description as category
+          itemCondition: firstItem.condition,
+          itemDescription: firstItem.description,
+          itemIssues: firstItem.issues,
+          phone: contactInfo.phone,
+          address: contactInfo.address,
+          pickupDate: contactInfo.pickupDate,
+          imageUrl: firstItem.imageUrl || "",
+        }
+
+        const confirmationResult = await sendConfirmationEmail(emailData)
+
+        if (confirmationResult.success) {
+          console.log("Emails sent successfully via sendConfirmationEmail")
+          userEmailSent = true
+          adminEmailSent = true
+        } else {
+          console.log("sendConfirmationEmail failed, falling back to direct methods")
+          throw new Error("sendConfirmationEmail failed")
+        }
+      } catch (confirmationError) {
+        console.log("Error using sendConfirmationEmail, falling back to direct methods:", confirmationError)
+
+        // Fall back to direct email sending methods
+        // Send confirmation email to user
+        const userEmailResult = await sendUserConfirmationEmail(contactInfo.email, contactInfo.fullName, items)
+        if (userEmailResult.success) {
+          console.log("User confirmation email sent successfully")
+          userEmailSent = true
+        } else {
+          console.log("User email sending failed:", userEmailResult.error)
+        }
+
+        // Send notification email to admin
+        const adminEmailResult = await sendAdminNotificationEmail(contactInfo, items)
+        if (adminEmailResult.success) {
+          console.log("Admin notification email sent successfully")
+          adminEmailSent = true
+        } else {
+          console.log("Admin email sending failed:", adminEmailResult.error)
+        }
       }
     } catch (error) {
-      console.log("Email sending failed, but continuing with submission:", error.message)
-      // Don't return error here - email is optional
+      console.error("Email sending error:", error)
+      console.log("Email sending failed, but continuing with submission")
     }
 
     // Revalidate the path to update UI
     revalidatePath("/sell-multiple-items")
 
     const successfulItems = itemResults.filter((r) => r.success).length
-    const message = emailSent
-      ? `Successfully submitted ${successfulItems} item(s) and sent confirmation email`
-      : `Successfully submitted ${successfulItems} item(s) (confirmation email could not be sent)`
+
+    // Create detailed success message
+    let message = `Successfully submitted ${successfulItems} item(s)`
+
+    if (userEmailSent && adminEmailSent) {
+      message += " and sent confirmation emails"
+    } else if (userEmailSent) {
+      message += " and sent confirmation email to you"
+    } else if (adminEmailSent) {
+      message += " and notified our team"
+    } else {
+      message += " (confirmation emails could not be sent)"
+    }
 
     return {
       success: true,
       message,
       itemResults,
-      emailSent,
+      userEmailSent,
+      adminEmailSent,
     }
   } catch (error) {
     console.error("Unexpected error in sellMultipleItems:", error)
