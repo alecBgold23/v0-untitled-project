@@ -6,7 +6,47 @@ if (!EBAY_APP_ID) {
   throw new Error("Missing EBAY_APP_ID in environment variables")
 }
 
+// Simple in-memory rate limiter
+class RateLimiter {
+  tokens: number
+  lastRefill: number
+  tokensPerInterval: number
+  interval: number
+
+  constructor(tokensPerInterval: number, interval: number) {
+    this.tokensPerInterval = tokensPerInterval
+    this.interval = interval
+    this.tokens = tokensPerInterval
+    this.lastRefill = Date.now()
+  }
+
+  removeTokens(count: number) {
+    this.refillTokens()
+    if (this.tokens >= count) {
+      this.tokens -= count
+      return true
+    }
+    return false
+  }
+
+  refillTokens() {
+    const now = Date.now()
+    const elapsed = now - this.lastRefill
+    if (elapsed > this.interval) {
+      this.tokens = this.tokensPerInterval
+      this.lastRefill = now
+    }
+  }
+}
+
+// Allow 100 requests per hour — adjust as needed
+const limiter = new RateLimiter(100, 60 * 60 * 1000)
+
 export async function GET(request: Request) {
+  if (!limiter.removeTokens(1)) {
+    return NextResponse.json({ error: "Rate limit exceeded, try again later" }, { status: 429 })
+  }
+
   const { searchParams } = new URL(request.url)
   const title = searchParams.get("title")
 
