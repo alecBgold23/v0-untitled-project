@@ -655,20 +655,30 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
 
           for (const file of files) {
             try {
-              // Upload to Supabase
+              // Upload to Supabase first
               const uploadResult = await uploadImageToSupabase(file, email || "anonymous")
 
               if (uploadResult.success) {
-                // Create photo object with Supabase URL
+                // Create photo object with safe blob URL handling
+                let previewUrl = ""
+                try {
+                  previewUrl = URL.createObjectURL(file)
+                } catch (blobError) {
+                  console.warn("Could not create blob URL for preview:", blobError)
+                  // Use the uploaded URL as fallback
+                  previewUrl = uploadResult.url
+                }
+
                 const photoObject = {
                   file,
                   name: file.name,
                   id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                   size: file.size,
                   type: file.type,
-                  previewUrl: URL.createObjectURL(file), // For local preview
+                  previewUrl: previewUrl,
                   supabaseUrl: uploadResult.url, // The correct Supabase URL
                   supabasePath: uploadResult.path, // The file path in Supabase
+                  uploaded: true, // Flag to indicate successful upload
                 }
                 newPhotos.push(photoObject)
                 console.log("Successfully uploaded:", uploadResult.url)
@@ -1390,13 +1400,17 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
   useEffect(() => {
     return () => {
       try {
-        // Revoke all created object URLs
+        // Revoke all created object URLs safely
         const items = getItems()
         items.forEach((item) => {
           if (item && item.photos) {
             item.photos.forEach((photo) => {
-              if (photo && photo.previewUrl) {
-                URL.revokeObjectURL(photo.previewUrl)
+              if (photo && photo.previewUrl && photo.previewUrl.startsWith("blob:")) {
+                try {
+                  URL.revokeObjectURL(photo.previewUrl)
+                } catch (err) {
+                  console.warn("Could not revoke blob URL:", err)
+                }
               }
             })
           }
@@ -1991,23 +2005,26 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                         {item.photos.map((photo, photoIndex) => (
                                           <div key={photo.id || photoIndex} className="relative group">
                                             <div className="w-24 h-24 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                                              {photo.previewUrl ? (
+                                              {photo.supabaseUrl ? (
                                                 <img
-                                                  src={photo.previewUrl || "/placeholder.svg"}
+                                                  src={photo.supabaseUrl || "/placeholder.svg"}
                                                   alt={`Preview ${photoIndex + 1}`}
                                                   className="w-full h-full object-cover"
                                                   onError={(e) => {
                                                     console.error(`Error loading image ${photoIndex}:`, e)
-                                                    e.currentTarget.style.display = "none"
-                                                    e.currentTarget.parentElement.innerHTML = `
-                                                      <div class="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="h-8 w-8 text-slate-400">
-                                                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                                                          <circle cx="9" cy="9" r="2"></circle>
-                                                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
-                                                        </svg>
-                                                      </div>
-                                                    `
+                                                    // Fallback to placeholder
+                                                    e.currentTarget.src =
+                                                      "/placeholder.svg?height=96&width=96&query=image"
+                                                  }}
+                                                  onLoad={() => {
+                                                    // Revoke blob URL after successful load to prevent memory leaks
+                                                    if (photo.previewUrl && photo.previewUrl.startsWith("blob:")) {
+                                                      try {
+                                                        URL.revokeObjectURL(photo.previewUrl)
+                                                      } catch (err) {
+                                                        console.warn("Could not revoke blob URL:", err)
+                                                      }
+                                                    }
                                                   }}
                                                 />
                                               ) : (
@@ -2024,8 +2041,8 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                             >
                                               <X className="w-3 h-3" />
                                             </button>
-                                            {photo.supabaseUrl && (
-                                              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-1 text-center">
+                                            {photo.uploaded && (
+                                              <div className="absolute bottom-0 left-0 right-0 bg-green-600 bg-opacity-75 text-white text-xs p-1 text-center">
                                                 Uploaded
                                               </div>
                                             )}
