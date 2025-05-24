@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import redis from "@/lib/redis"  // <-- added this import for redis
 
 const EBAY_APP_ID = process.env.EBAY_APP_ID
 
@@ -54,6 +55,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing 'title' query parameter" }, { status: 400 })
   }
 
+  // --- ADD cache GET ---
+  const cacheKey = `price-estimate:${title.toLowerCase()}`
+  const cached = await redis.get(cacheKey)
+  if (cached) {
+    console.log("Cache hit for", title)
+    return NextResponse.json(JSON.parse(cached))
+  }
+  console.log("Cache miss for", title)
+  // ---------------------
+
   try {
     // Build eBay Finding API URL
     const endpoint = "https://svcs.ebay.com/services/search/FindingService/v1"
@@ -81,12 +92,16 @@ export async function GET(request: Request) {
     const items = data.findItemsByKeywordsResponse?.[0]?.searchResult?.[0]?.item || []
 
     if (items.length === 0) {
-      return NextResponse.json({
+      const result = {
         averagePrice: null,
         priceRange: null,
         confidence: "low",
         items: [],
-      })
+      }
+      // --- ADD cache SET ---
+      await redis.set(cacheKey, JSON.stringify(result), { ex: 3600 })
+      // ---------------------
+      return NextResponse.json(result)
     }
 
     // Extract prices from items
@@ -98,12 +113,16 @@ export async function GET(request: Request) {
       .filter((p: number) => !isNaN(p))
 
     if (prices.length === 0) {
-      return NextResponse.json({
+      const result = {
         averagePrice: null,
         priceRange: null,
         confidence: "low",
         items,
-      })
+      }
+      // --- ADD cache SET ---
+      await redis.set(cacheKey, JSON.stringify(result), { ex: 3600 })
+      // ---------------------
+      return NextResponse.json(result)
     }
 
     // Calculate average price and range
@@ -113,12 +132,18 @@ export async function GET(request: Request) {
 
     const priceRange = `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`
 
-    return NextResponse.json({
+    const result = {
       averagePrice: Number.parseFloat(avgPrice.toFixed(2)),
       priceRange,
       confidence: "high",
       items,
-    })
+    }
+
+    // --- ADD cache SET ---
+    await redis.set(cacheKey, JSON.stringify(result), { ex: 3600 })
+    // ---------------------
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error("eBay price estimate API error:", error)
     return NextResponse.json({ error: "Failed to fetch eBay price data" }, { status: 500 })
