@@ -37,8 +37,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { uploadImagePrivate } from "@/app/actions/upload-image-private"
-import { uploadImageFallback } from "@/app/actions/upload-image-fallback"
 import { sellMultipleItems } from "../app/actions/sell-multiple-items"
 import { detectCategory, adjustForCondition } from "@/lib/enhanced-pricing"
 import { Input } from "@/components/ui/input"
@@ -52,6 +50,88 @@ import { estimateItemPriceFromAPI } from "@/lib/client-price-estimator"
 interface SellMultipleItemsFormProps {
   onError?: (error: Error) => void
   onLoad?: () => void
+}
+
+// Create Supabase client for image uploads
+// Import Supabase client
+import supabase from "@/lib/supabase"
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+
+// Function to create correct image URL with bucket name
+function createCorrectImageUrl(filePath: string): string {
+  if (!filePath) return ""
+
+  // Extract project ID from Supabase URL
+  const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+  if (!projectId) return ""
+
+  // Remove any leading slashes from filePath
+  const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath
+
+  // Return the correct URL format with item_images bucket
+  return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
+}
+
+// Function to upload image to Supabase with correct URL
+async function uploadImageToSupabase(file: File, userId = "anonymous") {
+  try {
+    // Validate file
+    if (!file) {
+      throw new Error("No file provided")
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      throw new Error("File must be an image")
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error("File size must be less than 5MB")
+    }
+
+    // Create unique filename
+    const fileExt = file.name.split(".").pop()
+    const sanitizedUserId = userId.replace(/[^a-zA-Z0-9]/g, "_")
+    const timestamp = Date.now()
+    const randomId = Math.random().toString(36).substring(2, 15)
+    const fileName = `${sanitizedUserId}_${timestamp}_${randomId}.${fileExt}`
+
+    console.log("Uploading to item_images bucket:", fileName)
+
+    // Upload to item_images bucket
+    const { data, error } = await supabase.storage.from("item_images").upload(fileName, file, {
+      cacheControl: "3600",
+      upsert: true,
+    })
+
+    if (error) {
+      console.error("Error uploading to item_images bucket:", error)
+      throw new Error(`Upload failed: ${error.message}`)
+    }
+
+    // Create the correct public URL
+    const correctUrl = createCorrectImageUrl(data.path)
+
+    console.log("Upload successful!")
+    console.log("File path:", data.path)
+    console.log("Correct URL:", correctUrl)
+
+    return {
+      success: true,
+      path: data.path,
+      url: correctUrl,
+      publicUrl: correctUrl,
+      bucket: "item_images",
+    }
+  } catch (error) {
+    console.error("Upload error:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown upload error",
+    }
+  }
 }
 
 export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleItemsFormProps) {
@@ -546,7 +626,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
 
   // Handle file upload for a specific item
   const handleFileUpload = useCallback(
-    (e, index) => {
+    async (e, index) => {
       try {
         const files = Array.from(e.target.files || [])
         if (files.length > 0) {
@@ -566,54 +646,88 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
             return
           }
 
-          // Create file objects with preview URLs
-          const newPhotos = files.map((file) => {
-            // Create a safe URL for preview
-            const previewUrl = URL.createObjectURL(file)
-
-            return {
-              file,
-              name: file.name,
-              id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              size: file.size,
-              type: file.type,
-              previewUrl,
-            }
-          })
-
-          // Add to item photos
-          const updatedItems = [...items]
-          updatedItems[index] = {
-            ...updatedItems[index],
-            photos: [...(updatedItems[index].photos || []), ...newPhotos],
-          }
-          setItems(updatedItems)
-
-          // Reset the input value to prevent duplicate uploads
-          if (e.target) {
-            e.target.value = null
-          }
-
-          // Validate the item after adding photos
-          setTimeout(() => validateItem(updatedItems[index], index), 100)
-
-          // Show success toast
+          // Show uploading toast
           toast({
-            title: "Files Added",
-            description: `Successfully added ${newPhotos.length} file${newPhotos.length > 1 ? "s" : ""} to item ${index + 1}. Images will be uploaded to the "item_images" bucket when you submit the form.`,
+            title: "Uploading Images",
+            description: `Uploading ${files.length} image(s) to item_images bucket...`,
             variant: "default",
           })
+
+          // Upload files to Supabase and create photo objects
+          const newPhotos = []
+
+          for (const file of files) {
+            try {
+              // Upload to Supabase
+              const uploadResult = await uploadImageToSupabase(file, email || "anonymous")
+
+              if (uploadResult.success) {
+                // Create photo object with Supabase URL
+                const photoObject = {
+                  file,
+                  name: file.name,
+                  id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  size: file.size,
+                  type: file.type,
+                  previewUrl: URL.createObjectURL(file), // For local preview
+                  supabaseUrl: uploadResult.url, // The correct Supabase URL
+                  supabasePath: uploadResult.path, // The file path in Supabase
+                }
+                newPhotos.push(photoObject)
+                console.log("Successfully uploaded:", uploadResult.url)
+              } else {
+                console.error("Upload failed:", uploadResult.error)
+                toast({
+                  title: "Upload Failed",
+                  description: `Failed to upload ${file.name}: ${uploadResult.error}`,
+                  variant: "destructive",
+                })
+              }
+            } catch (uploadError) {
+              console.error("Error uploading file:", uploadError)
+              toast({
+                title: "Upload Error",
+                description: `Error uploading ${file.name}`,
+                variant: "destructive",
+              })
+            }
+          }
+
+          if (newPhotos.length > 0) {
+            // Add to item photos
+            const updatedItems = [...items]
+            updatedItems[index] = {
+              ...updatedItems[index],
+              photos: [...(updatedItems[index].photos || []), ...newPhotos],
+            }
+            setItems(updatedItems)
+
+            // Reset the input value to prevent duplicate uploads
+            if (e.target) {
+              e.target.value = null
+            }
+
+            // Validate the item after adding photos
+            setTimeout(() => validateItem(updatedItems[index], index), 100)
+
+            // Show success toast
+            toast({
+              title: "Upload Complete",
+              description: `Successfully uploaded ${newPhotos.length} image(s) to item_images bucket.`,
+              variant: "default",
+            })
+          }
         }
       } catch (error) {
         console.error("Error adding files:", error)
         toast({
           title: "Error",
-          description: "There was a problem adding your files. Please try again.",
+          description: "There was a problem uploading your files. Please try again.",
           variant: "destructive",
         })
       }
     },
-    [getItems, setItems, toast, validateItem],
+    [getItems, setItems, toast, validateItem, email],
   )
 
   // Handle image URL input for a specific item
@@ -853,13 +967,13 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     [validateStep1, scrollToFormTop],
   )
 
-  // Upload images for all items
-  const uploadItemImages = useCallback(async () => {
+  // Upload images for all items - now they're already uploaded to Supabase
+  const prepareItemsForSubmission = useCallback(async () => {
     try {
       const items = getItems()
       const updatedItems = [...items]
 
-      // Process each item
+      // Process each item to collect image URLs
       for (let i = 0; i < items.length; i++) {
         const item = items[i]
         if (!item) continue
@@ -874,78 +988,13 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           imageUrls.push(item.imageUrl)
         }
 
-        // Skip if no photos and no image URL
-        if ((!item.photos || item.photos.length === 0) && (!item.imageUrl || item.imageUrl.trim() === "")) {
-          continue
-        }
-
-        // Upload all photos for this item
-        for (let j = 0; j < (item.photos || []).length; j++) {
-          const photo = item.photos[j]
-          if (!photo || !photo.file) {
-            console.warn(`Photo ${j + 1} for item ${i + 1} is missing a file property`)
-            continue
-          }
-
-          try {
-            // Log upload attempt with more detail
-            console.log(
-              `Attempting to upload image ${j + 1} for item ${i + 1}: ${photo.file.name} (${(photo.file.size / 1024 / 1024).toFixed(2)}MB)`,
-            )
-
-            // Add validation before upload
-            if (!isValidFile(photo.file)) {
-              console.error(`Photo ${j + 1} for item ${i + 1} is invalid or corrupted`)
-              toast({
-                title: "Invalid File",
-                description: `Photo ${j + 1} for item ${i + 1} is invalid. Skipping this file.`,
-                variant: "destructive",
-              })
-              continue
+        // Collect URLs from uploaded photos (they're already uploaded to Supabase)
+        if (item.photos && item.photos.length > 0) {
+          for (const photo of item.photos) {
+            if (photo.supabaseUrl) {
+              imagePaths.push(photo.supabasePath || "")
+              imageUrls.push(photo.supabaseUrl)
             }
-
-            // Log upload attempt
-            console.log(`Attempting to upload image ${j + 1} for item ${i + 1}: ${photo.file.name}`)
-
-            // Try primary upload method first
-            let uploadResult = await uploadImagePrivate(photo.file, email || "anonymous")
-
-            // If primary method fails, try fallback method
-            if (!uploadResult.success) {
-              console.log(`Primary upload method failed, trying fallback for image ${j + 1} for item ${i + 1}`)
-              uploadResult = await uploadImageFallback(photo.file, email || "anonymous")
-            }
-
-            if (uploadResult.success) {
-              // Add path and URL to arrays
-              imagePaths.push(uploadResult.path || "")
-              imageUrls.push(uploadResult.url || uploadResult.signedUrl || "")
-
-              // If this is a local fallback (base64), store it differently
-              if (uploadResult.isLocalFallback) {
-                console.log(`Using local fallback for image ${j + 1} for item ${i + 1}`)
-              } else {
-                console.log(
-                  `Successfully uploaded image ${j + 1} for item ${i + 1} to bucket: ${uploadResult.bucket || "item_images"}`,
-                )
-              }
-            } else {
-              console.error(`Failed to upload image ${j + 1} for item ${i + 1}:`, uploadResult.error)
-              toast({
-                title: "Upload Warning",
-                description: `Failed to upload image ${j + 1} for item ${i + 1}. Continuing with other images.`,
-                variant: "warning",
-              })
-              // Continue with other images even if one fails
-            }
-          } catch (error) {
-            console.error(`Error uploading image ${j + 1} for item ${i + 1}:`, error)
-            toast({
-              title: "Upload Error",
-              description: `Error uploading image ${j + 1} for item ${i + 1}. Continuing with other images.`,
-              variant: "destructive",
-            })
-            // Continue with other images even if one fails
           }
         }
 
@@ -966,37 +1015,17 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       setItems(updatedItems)
       return updatedItems
     } catch (error) {
-      console.error("Error uploading item images:", error)
+      console.error("Error preparing items for submission:", error)
       toast({
-        title: "Upload Error",
-        description: "There was a problem uploading your images. Please try again.",
+        title: "Preparation Error",
+        description: "There was a problem preparing your items for submission.",
         variant: "destructive",
       })
       return getItems()
     }
-  }, [email, getItems, setItems, toast])
+  }, [getItems, setItems, toast])
 
-  // Add this helper function to validate files before upload
-  const isValidFile = (file) => {
-    // Check if file exists
-    if (!file) return false
-
-    // Check if file size is reasonable (less than 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      console.error(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
-      return false
-    }
-
-    // Check if file type is an image
-    if (!file.type.startsWith("image/")) {
-      console.error(`File ${file.name} is not an image (${file.type})`)
-      return false
-    }
-
-    return true
-  }
-
-  // Also update the completeFormSubmission function to handle upload failures gracefully
+  // Complete form submission
   const completeFormSubmission = useCallback(async () => {
     setIsSubmitting(true)
 
@@ -1011,8 +1040,8 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
         pickupDate,
       })
 
-      // First, upload images for all items
-      const itemsWithImages = await uploadItemImages()
+      // Prepare items (images are already uploaded)
+      const itemsWithImages = await prepareItemsForSubmission()
 
       // Check if any items have images
       const hasAnyImages = itemsWithImages.some(
@@ -1023,10 +1052,10 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       )
 
       if (!hasAnyImages) {
-        console.warn("No images were successfully uploaded. Proceeding with submission anyway.")
+        console.warn("No images found. Proceeding with submission anyway.")
         toast({
           title: "Warning",
-          description: "No images were successfully uploaded. Your items will be submitted without images.",
+          description: "No images were found. Your items will be submitted without images.",
           variant: "warning",
         })
       }
@@ -1041,6 +1070,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           name: photo.name || "",
           type: photo.type || "",
           size: photo.size || 0,
+          supabaseUrl: photo.supabaseUrl || "",
         })),
         // Single image fields for backward compatibility
         imagePath: item.imagePath || "",
@@ -1132,7 +1162,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     scrollToTop,
     toast,
     totalEstimate.price,
-    uploadItemImages,
+    prepareItemsForSubmission,
   ])
 
   // Handle form submission
@@ -1895,7 +1925,8 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                             Click to Upload Images
                                           </p>
                                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                            {(item.photos || []).length} photos uploaded (max 10)
+                                            {(item.photos || []).length} photos uploaded (max 10) - uploads to
+                                            item_images bucket
                                           </p>
                                         </div>
                                         <input
@@ -1957,7 +1988,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                   {item.photos && item.photos.length > 0 && (
                                     <div className="mt-4">
                                       <Label className="text-sm font-medium mb-2 block text-slate-900 dark:text-slate-100">
-                                        Uploaded Photos ({item.photos.length})
+                                        Uploaded Photos ({item.photos.length}) - Stored in item_images bucket
                                       </Label>
                                       <div className="flex flex-wrap gap-3">
                                         {item.photos.map((photo, photoIndex) => (
@@ -1996,6 +2027,11 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                             >
                                               <X className="w-3 h-3" />
                                             </button>
+                                            {photo.supabaseUrl && (
+                                              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-1 text-center">
+                                                Uploaded
+                                              </div>
+                                            )}
                                           </div>
                                         ))}
                                       </div>

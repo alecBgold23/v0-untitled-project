@@ -22,28 +22,31 @@ function ensureCorrectImageUrl(url: string, bucket = "item_images"): string {
   if (!url) return ""
 
   // If it already has the correct format with item_images, return it
-  if (url.includes(`/public/${bucket}/`)) return url
+  if (url.includes(`/storage/v1/object/public/${bucket}/`)) return url
 
-  // Get the Supabase project ID
-  const projectId = getSupabaseProjectId(url)
-  if (!projectId) return url
+  // Get the Supabase project ID from the URL
+  const projectIdMatch = url.match(/https:\/\/([^.]+)\.supabase\.co/)
+  if (!projectIdMatch) return url
+
+  const projectId = projectIdMatch[1]
 
   // Extract the file path - get everything after the last slash
-  const filePath = url.split("/").pop() || ""
+  const pathParts = url.split("/")
+  const fileName = pathParts[pathParts.length - 1]
 
-  // Construct the correct URL format
-  return `https://${projectId}.supabase.co/storage/v1/object/public/${bucket}/uploads/${filePath}`
+  // Construct the correct URL format with bucket name
+  return `https://${projectId}.supabase.co/storage/v1/object/public/${bucket}/${fileName}`
 }
 
 // Function to ensure the URL has the correct format with bucket name
 function ensureCorrectUrlFormat(url: string, bucket = "item_images"): string {
   if (!url) return url
 
-  // If the URL already contains the bucket name, return it
-  if (url.includes(`/public/${bucket}/`)) return url
+  // If the URL already contains the correct bucket path, return it
+  if (url.includes(`/storage/v1/object/public/${bucket}/`)) return url
 
   // Extract the Supabase project URL
-  const projectUrlMatch = url.match(/(https:\/\/[^/]+)/)
+  const projectUrlMatch = url.match(/(https:\/\/[^.]+\.supabase\.co)/)
   if (!projectUrlMatch) return url
 
   const projectUrl = projectUrlMatch[1]
@@ -52,7 +55,7 @@ function ensureCorrectUrlFormat(url: string, bucket = "item_images"): string {
   const pathParts = url.split("/")
   const fileName = pathParts[pathParts.length - 1]
 
-  // Construct the correct URL format
+  // Construct the correct URL format with bucket name
   return `${projectUrl}/storage/v1/object/public/${bucket}/${fileName}`
 }
 
@@ -161,8 +164,8 @@ export async function uploadImageToSupabase(fileBuffer: Buffer, fileName: string
 
     // Upload the file
     const { data, error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
-      contentType: "image/jpeg", // Adjust if needed
-      upsert: true, // Changed to true to overwrite if file exists
+      contentType: "image/jpeg",
+      upsert: true,
     })
 
     if (uploadError) {
@@ -172,19 +175,21 @@ export async function uploadImageToSupabase(fileBuffer: Buffer, fileName: string
 
     console.log(`Successfully uploaded image to ${bucket} bucket with path: ${filePath}`)
 
-    // Get the public URL directly
+    // Get the public URL and ensure correct format
     const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePath)
 
-    // Ensure the URL has the correct format
-    const correctUrl = ensureCorrectUrlFormat(publicUrlData.publicUrl, bucket)
+    // Extract project ID from Supabase URL
+    const projectId = process.env.SUPABASE_URL?.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+
+    // Construct the correct URL format
+    const correctUrl = `https://${projectId}.supabase.co/storage/v1/object/public/${bucket}/${filePath}`
 
     console.log("Image upload successful with URL:", correctUrl)
 
-    // Replace the existing return statement with this:
     return {
       image_path: filePath,
-      image_url: ensureCorrectImageUrl(publicUrlData.publicUrl, bucket),
-      publicUrl: ensureCorrectImageUrl(publicUrlData.publicUrl, bucket),
+      image_url: correctUrl,
+      publicUrl: correctUrl,
       success: true,
     }
   } catch (error) {

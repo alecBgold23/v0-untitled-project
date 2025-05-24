@@ -1,28 +1,44 @@
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Function to create correct Supabase storage URL
+export function createSupabaseImageUrl(filePath: string, bucket = "item_images"): string {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+  if (!supabaseUrl) return ""
 
-// Client-side Supabase client (uses anon key)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+  // Extract project ID from Supabase URL
+  const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+  if (!projectId) return ""
 
-// Client-side function to create a new client instance
-export function createSupabaseClient() {
-  return createClient(supabaseUrl, supabaseAnonKey)
+  // Ensure filePath doesn't start with slash
+  const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath
+
+  // Return the correct URL format
+  return `https://${projectId}.supabase.co/storage/v1/object/public/${bucket}/${cleanPath}`
 }
 
-// Server-side Supabase client (uses service role key for bypassing RLS)
 export function createSupabaseServerClient() {
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Missing Supabase environment variables")
+  }
+
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
-      autoRefreshToken: false,
       persistSession: false,
+      autoRefreshToken: false,
     },
   })
 }
 
-// Re-export createClient from supabase for direct use
-export { createClient } from "@supabase/supabase-js"
+// Create the default Supabase client for browser use
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Export the client as default and named export
 export default supabase
+export { supabase }
+export { createClient }
