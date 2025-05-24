@@ -888,19 +888,9 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           }
 
           try {
-            // Log upload attempt with more detail
-            console.log(
-              `Attempting to upload image ${j + 1} for item ${i + 1}: ${photo.file.name} (${(photo.file.size / 1024 / 1024).toFixed(2)}MB)`,
-            )
-
-            // Add validation before upload
+            // Validate file before upload
             if (!isValidFile(photo.file)) {
               console.error(`Photo ${j + 1} for item ${i + 1} is invalid or corrupted`)
-              toast({
-                title: "Invalid File",
-                description: `Photo ${j + 1} for item ${i + 1} is invalid. Skipping this file.`,
-                variant: "destructive",
-              })
               continue
             }
 
@@ -957,8 +947,6 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           // Keep the first image as the main image for backward compatibility
           imagePath: imagePaths.length > 0 ? imagePaths[0] : "",
           imageUrl: imageUrls.length > 0 ? imageUrls[0] : "",
-          // Add a flag to indicate images were processed
-          imagesProcessed: true,
         }
       }
 
@@ -1042,10 +1030,8 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           type: photo.type || "",
           size: photo.size || 0,
         })),
-        // Single image fields for backward compatibility
         imagePath: item.imagePath || "",
         imageUrl: item.imageUrl || "", // This will map to image_url in the database
-        // Multiple image fields
         imagePaths: item.imagePaths || [],
         imageUrls: item.imageUrls || [],
         estimatedPrice: priceEstimates[index]?.price || totalEstimate.price || "$0", // Include the price estimate
