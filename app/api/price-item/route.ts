@@ -1,3 +1,4 @@
+import { generateCombinedPriceEstimate } from "@/lib/pricing"
 import { NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
 import { generatePriceEstimate } from "@/lib/openai-pricing"
@@ -108,17 +109,21 @@ export async function POST(request: Request) {
 
     try {
       // Generate price estimate using OpenAI with tech database enabled
-      const { price, source, confidence } = await generatePriceEstimate(fullDescription, condition || "used", true)
-
+      const { price, source, reasoning } = await generateCombinedPriceEstimate(
+        itemName || "",
+        description || "",
+        condition || "used",
+        defects || ""
+      )
       console.log("Generated price estimate:", price, "Source:", source)
 
       // Save price to Supabase
-      const saveResult = await savePriceToSupabase(itemId, price, source, confidence, itemName, description)
+      const saveResult = await savePriceToSupabase(itemId, price, source, 0.9, itemName, description)
 
       return NextResponse.json({
         price: price,
         source: source,
-        confidence: confidence,
+        confidence: 0.9,
         savedToSupabase: saveResult.success,
         supabaseData: saveResult.data,
       })

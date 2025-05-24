@@ -1,9 +1,8 @@
 "use server"
 
-import { getSupabaseAdmin } from "@/lib/supabase-admin"
+import { createSupabaseServerClient } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
 import { isBlockedContent } from "@/lib/content-filter"
-import { fixImageUrl } from "@/lib/fix-image-urls"
 import { Resend } from "resend"
 import { sendConfirmationEmail } from "./send-confirmation-email"
 
@@ -65,19 +64,6 @@ async function sendUserConfirmationEmail(email: string, name: string, items: Ite
   console.log("Attempting to send user confirmation email to:", email)
 
   try {
-    // Create email content with item prices
-    const itemsList = items
-      .map(
-        (item, index) => `
-      ${index + 1}. ${item.name}
-         - Description: ${item.description}
-         - Condition: ${item.condition}
-         ${item.estimatedPrice ? `- Estimated Price: ${item.estimatedPrice}` : "- Price: To be determined"}
-         ${item.issues ? `- Issues: ${item.issues}` : ""}
-    `,
-      )
-      .join("\n")
-
     const totalEstimatedValue = items
       .filter((item) => item.estimatedPrice)
       .reduce((total, item) => {
@@ -117,7 +103,6 @@ async function sendUserConfirmationEmail(email: string, name: string, items: Ite
           <li>Our team will review your submission within 24-48 hours</li>
           <li>We'll contact you to schedule a pickup or drop-off</li>
           <li>Final pricing will be determined after physical inspection</li>
-          <li>Payment will be processed once items are sold</li>
         </ol>
       </div>
       
@@ -171,7 +156,6 @@ async function sendAdminNotificationEmail(contactInfo: ContactInfo, items: ItemD
 
     console.log("Sending admin notification to:", adminEmail)
 
-    // Create detailed submission summary for admin
     const totalEstimatedValue = items
       .filter((item) => item.estimatedPrice)
       .reduce((total, item) => {
@@ -218,16 +202,6 @@ async function sendAdminNotificationEmail(contactInfo: ContactInfo, items: ItemD
           .join("")}
       </div>
       
-      <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: #4f46e5;">Action Required</h3>
-        <ol>
-          <li>Review the submitted items</li>
-          <li>Contact the customer within 24-48 hours</li>
-          <li>Schedule pickup or drop-off</li>
-          <li>Conduct physical inspection and final pricing</li>
-        </ol>
-      </div>
-      
       <p style="font-weight: bold;">Customer Contact: ${contactInfo.email} | ${contactInfo.phone}</p>
     </div>
     `
@@ -255,7 +229,10 @@ async function sendAdminNotificationEmail(contactInfo: ContactInfo, items: ItemD
 }
 
 export async function sellMultipleItems(items: ItemData[], contactInfo: ContactInfo) {
-  console.log("Starting submission to Supabase via sell-multiple-items:", { items, contactInfo })
+  console.log("Starting submission to Supabase via sell-multiple-items:", {
+    itemCount: items.length,
+    contactInfo: { ...contactInfo, phone: contactInfo.phone ? "***" : "missing" },
+  })
 
   try {
     // Validate inputs
@@ -281,16 +258,21 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
       }
     }
 
-    // Create Supabase client
-    const supabase = getSupabaseAdmin()
+    // Create Supabase server client (bypasses RLS)
+    const supabase = createSupabaseServerClient()
+    console.log("Created Supabase server client")
 
     // Format phone number if needed
     const formattedPhone = formatPhoneNumber(contactInfo.phone)
+    console.log("Phone formatted:", formattedPhone ? "success" : "failed")
 
     // Process each item directly without separate contact table
     const itemResults = []
 
-    for (const item of items) {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      console.log(`Processing item ${i + 1}/${items.length}: ${item.name}`)
+
       try {
         // Check for blocked content
         if (
@@ -299,114 +281,50 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
           isBlockedContent(item.issues || "")
         ) {
           console.warn("Blocked content detected in item:", item.name)
+          itemResults.push({ success: false, name: item.name, error: "Content policy violation" })
           continue // Skip this item
         }
 
-        // Prepare data for insertion - use only the columns that exist in the table
-        const itemData: Record<string, any> = {
+        // Prepare data for insertion
+        const itemData = {
           item_name: item.name || "Unnamed Item",
           item_description: item.description || "",
           item_condition: item.condition || "unknown",
+          item_issues: item.issues || "None",
           email: contactInfo.email,
           phone: formattedPhone,
           full_name: contactInfo.fullName,
           status: "pending",
+          address: contactInfo.address || null,
+          pickup_date: contactInfo.pickupDate || null,
+          image_path: item.imagePath || null,
+          image_url: item.imageUrl || null,
+          estimated_price: item.estimatedPrice || null,
         }
 
-        // Add optional fields only if they have values
-        if (contactInfo.address) {
-          itemData.address = contactInfo.address
-        }
+        console.log(`Attempting to insert item ${i + 1} with data:`, {
+          ...itemData,
+          item_description: itemData.item_description?.substring(0, 100) + "...",
+        })
 
-        if (contactInfo.pickupDate) {
-          itemData.pickup_date = contactInfo.pickupDate
-        }
-
-        if (item.imagePath) {
-          itemData.image_path = item.imagePath
-        }
-
-        if (item.imageUrl) {
-          itemData.image_url = fixImageUrl(item.imageUrl)
-        }
-
-        if (item.estimatedPrice) {
-          itemData.estimated_price = item.estimatedPrice
-        }
-
-        if (item.issues) {
-          itemData.item_issues = item.issues
-        }
-
-        console.log("Attempting to insert item data:", itemData)
-
-        // Insert data into Supabase
+        // Insert data into Supabase using service role (bypasses RLS)
         const { data, error } = await supabase.from("sell_items").insert([itemData]).select()
 
         if (error) {
-          console.error("Error submitting item to Supabase:", error)
+          console.error(`Error submitting item ${i + 1} to Supabase:`, error)
           console.error("Error details:", JSON.stringify(error, null, 2))
-
-          // If the error is about a column not existing, try a more minimal approach
-          if (error.message && (error.message.includes("column") || error.code === "42703")) {
-            console.log("Column error detected, trying minimal insertion with only essential fields")
-
-            const minimalData = {
-              item_name: item.name || "Unnamed Item",
-              item_description: item.description || "",
-              item_condition: item.condition || "unknown",
-              email: contactInfo.email,
-              phone: formattedPhone,
-              full_name: contactInfo.fullName,
-              status: "pending",
-            }
-
-            const { data: minimalResult, error: minimalError } = await supabase
-              .from("sell_items")
-              .insert([minimalData])
-              .select()
-
-            if (minimalError) {
-              console.error("Error with minimal submission:", minimalError)
-              console.error("Minimal error details:", JSON.stringify(minimalError, null, 2))
-
-              // If table doesn't exist, return a helpful error
-              if (minimalError.code === "PGRST116") {
-                return {
-                  success: false,
-                  message: "Database table 'sell_items' does not exist. Please contact support.",
-                  code: minimalError.code,
-                }
-              }
-
-              return {
-                success: false,
-                message: `Database error: ${minimalError.message}`,
-                code: minimalError.code,
-              }
-            } else {
-              console.log("Successfully submitted with minimal fields")
-              itemResults.push({ success: true, name: item.name, id: minimalResult?.[0]?.id })
-            }
-          } else {
-            // If it's some other error, return it
-            return {
-              success: false,
-              message: `Database error: ${error.message}`,
-              code: error.code,
-            }
-          }
+          itemResults.push({ success: false, name: item.name, error: error.message })
         } else {
-          console.log("Successfully submitted item:", data?.[0])
+          console.log(`Successfully submitted item ${i + 1}:`, data?.[0]?.id)
           itemResults.push({ success: true, name: item.name, id: data?.[0]?.id })
         }
       } catch (itemProcessError) {
-        console.error("Error processing item:", itemProcessError)
+        console.error(`Error processing item ${i + 1}:`, itemProcessError)
         itemResults.push({ success: false, name: item.name, error: "Processing error" })
       }
     }
 
-    console.log("Successfully submitted items to Supabase")
+    console.log("All items processed. Results:", itemResults)
 
     // Send both confirmation emails
     let userEmailSent = false
@@ -452,21 +370,21 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
 
         // Fall back to direct email sending methods
         // Send confirmation email to user
-        const userEmailResult = await sendUserConfirmationEmail(contactInfo.email, contactInfo.fullName, items)
-        if (userEmailResult.success) {
-          console.log("User confirmation email sent successfully")
-          userEmailSent = true
-        } else {
-          console.log("User email sending failed:", userEmailResult.error)
+        try {
+          const userEmailResult = await sendUserConfirmationEmail(contactInfo.email, contactInfo.fullName, items)
+          userEmailSent = userEmailResult.success
+          console.log("User email result:", userEmailResult.success ? "sent" : userEmailResult.error)
+        } catch (userEmailError) {
+          console.error("User email failed:", userEmailError)
         }
 
         // Send notification email to admin
-        const adminEmailResult = await sendAdminNotificationEmail(contactInfo, items)
-        if (adminEmailResult.success) {
-          console.log("Admin notification email sent successfully")
-          adminEmailSent = true
-        } else {
-          console.log("Admin email sending failed:", adminEmailResult.error)
+        try {
+          const adminEmailResult = await sendAdminNotificationEmail(contactInfo, items)
+          adminEmailSent = adminEmailResult.success
+          console.log("Admin email result:", adminEmailResult.success ? "sent" : adminEmailResult.error)
+        } catch (adminEmailError) {
+          console.error("Admin email failed:", adminEmailError)
         }
       }
     } catch (error) {
@@ -475,12 +393,25 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
     }
 
     // Revalidate the path to update UI
-    revalidatePath("/sell-multiple-items")
+    try {
+      revalidatePath("/sell-multiple-items")
+    } catch (revalidateError) {
+      console.warn("Failed to revalidate path:", revalidateError)
+    }
 
     const successfulItems = itemResults.filter((r) => r.success).length
+    const failedItems = itemResults.filter((r) => !r.success).length
 
     // Create detailed success message
-    let message = `Successfully submitted ${successfulItems} item(s)`
+    let message = ""
+    if (successfulItems > 0) {
+      message = `Successfully submitted ${successfulItems} item(s)`
+      if (failedItems > 0) {
+        message += ` (${failedItems} failed)`
+      }
+    } else {
+      message = "Failed to submit items to database"
+    }
 
     if (userEmailSent && adminEmailSent) {
       message += " and sent confirmation emails"
@@ -488,12 +419,22 @@ export async function sellMultipleItems(items: ItemData[], contactInfo: ContactI
       message += " and sent confirmation email to you"
     } else if (adminEmailSent) {
       message += " and notified our team"
-    } else {
+    } else if (successfulItems > 0) {
       message += " (confirmation emails could not be sent)"
     }
 
+    const isSuccess = successfulItems > 0
+
+    console.log("Final result:", {
+      success: isSuccess,
+      successfulItems,
+      failedItems,
+      userEmailSent,
+      adminEmailSent,
+    })
+
     return {
-      success: true,
+      success: isSuccess,
       message,
       itemResults,
       userEmailSent,
