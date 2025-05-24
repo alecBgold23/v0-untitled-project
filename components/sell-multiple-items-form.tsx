@@ -52,10 +52,6 @@ interface SellMultipleItemsFormProps {
   onLoad?: () => void
 }
 
-// Create Supabase client for image uploads
-// Import Supabase client
-import supabase from "@/lib/supabase"
-
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 
 // Function to create correct image URL with bucket name
@@ -73,7 +69,7 @@ function createCorrectImageUrl(filePath: string): string {
   return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
 }
 
-// Function to upload image to Supabase with correct URL
+// Function to upload image to Supabase via server action
 async function uploadImageToSupabase(file: File, userId = "anonymous") {
   try {
     // Validate file
@@ -91,38 +87,39 @@ async function uploadImageToSupabase(file: File, userId = "anonymous") {
       throw new Error("File size must be less than 5MB")
     }
 
-    // Create unique filename
-    const fileExt = file.name.split(".").pop()
-    const sanitizedUserId = userId.replace(/[^a-zA-Z0-9]/g, "_")
-    const timestamp = Date.now()
-    const randomId = Math.random().toString(36).substring(2, 15)
-    const fileName = `${sanitizedUserId}_${timestamp}_${randomId}.${fileExt}`
+    console.log("Uploading to item_images bucket via server action:", file.name)
 
-    console.log("Uploading to item_images bucket:", fileName)
+    // Convert file to FormData for server upload
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("userId", userId)
 
-    // Upload to item_images bucket
-    const { data, error } = await supabase.storage.from("item_images").upload(fileName, file, {
-      cacheControl: "3600",
-      upsert: true,
+    // Upload via server action
+    const response = await fetch("/api/upload-image", {
+      method: "POST",
+      body: formData,
     })
 
-    if (error) {
-      console.error("Error uploading to item_images bucket:", error)
-      throw new Error(`Upload failed: ${error.message}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Upload failed: ${errorText}`)
     }
 
-    // Create the correct public URL
-    const correctUrl = createCorrectImageUrl(data.path)
+    const result = await response.json()
+
+    if (!result.success) {
+      throw new Error(result.error || "Upload failed")
+    }
 
     console.log("Upload successful!")
-    console.log("File path:", data.path)
-    console.log("Correct URL:", correctUrl)
+    console.log("File path:", result.path)
+    console.log("Public URL:", result.url)
 
     return {
       success: true,
-      path: data.path,
-      url: correctUrl,
-      publicUrl: correctUrl,
+      path: result.path,
+      url: result.url,
+      publicUrl: result.url,
       bucket: "item_images",
     }
   } catch (error) {
