@@ -29,6 +29,7 @@ import {
   Upload,
   LinkIcon,
   ExternalLink,
+  ShoppingCart,
 } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import { useToast } from "@/hooks/use-toast"
@@ -38,14 +39,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { sellMultipleItems } from "../app/actions/sell-multiple-items"
-import { detectCategory, adjustForCondition } from "@/lib/enhanced-pricing"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-// Add import for content filter at the top of the file
-import { isBlockedContent } from "@/lib/content-filter"
-import { estimateItemPriceFromAPI } from "@/lib/client-price-estimator"
+import { getEbayPriceEstimate } from "@/lib/ebay-price-estimator"
 
 interface SellMultipleItemsFormProps {
   onError?: (error: Error) => void
@@ -174,6 +172,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
   // Price estimate state
   const [priceEstimates, setPriceEstimates] = useState([])
   const [totalEstimate, setTotalEstimate] = useState({ price: "$0", minPrice: 0, maxPrice: 0 })
+  const [isCalculatingPrices, setIsCalculatingPrices] = useState(false)
 
   // Multiple items state - using a stable reference with useRef
   const itemsRef = useRef([
@@ -301,87 +300,37 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     [getItems, setItems],
   )
 
-  // Calculate price estimates for all items using enhanced pricing
+  // NEW: Calculate price estimates using eBay-first approach
   const calculatePriceEstimates = useCallback(async () => {
     try {
       const items = getItems()
+      if (items.length === 0) return
+
+      setIsCalculatingPrices(true)
+      console.log("Starting eBay-first price estimation for", items.length, "items")
+
       const newEstimates = []
 
-      // Process each item
-      for (const item of items) {
-        // Check for blocked content first
-        if (
-          isBlockedContent(item.name || "") ||
-          isBlockedContent(item.description || "") ||
-          isBlockedContent(item.issues || "")
-        ) {
-          newEstimates.push({
-            price: "$0",
-            minPrice: 0,
-            maxPrice: 0,
-            confidence: "high",
-            source: "content_filter",
-            category: "blocked_content",
-          })
-          continue
-        }
+      // Process each item with eBay-first estimation
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
 
         try {
-          // Try to get estimate from API
-          const apiEstimate = await estimateItemPriceFromAPI(
-            item.description || "",
+          console.log(`Estimating price for item ${i + 1}:`, item.name)
+
+          const estimate = await getEbayPriceEstimate(
             item.name || "",
-            item.condition || "used",
+            item.description || "",
+            item.condition || "good",
             item.issues || "",
           )
 
-          if (apiEstimate.error) {
-            console.warn("API price estimation failed, falling back to local estimation:", apiEstimate.error)
-
-            // Use the enhanced category detection as fallback
-            const { category, basePrice, confidence } = detectCategory(item.description || "", item.name || "")
-
-            // Adjust price based on condition
-            const adjustedPrice = adjustForCondition(
-              basePrice,
-              item.condition || "",
-              item.description || "",
-              item.issues || "",
-            )
-
-            // Add some natural variation (±10%)
-            const variation = 0.9 + Math.random() * 0.2
-            const finalPrice = Math.round(adjustedPrice * variation)
-            const minPrice = Math.round(finalPrice * 0.85)
-            const maxPrice = Math.round(finalPrice * 1.15)
-
-            // Map confidence value to low/medium/high
-            let confidenceLevel = "medium"
-            if (confidence > 0.8) confidenceLevel = "high"
-            else if (confidence < 0.6) confidenceLevel = "low"
-
-            newEstimates.push({
-              price: `$${finalPrice}`,
-              minPrice,
-              maxPrice,
-              confidence: confidenceLevel,
-              source: "enhanced",
-              category,
-            })
-          } else {
-            // Use the API estimate
-            newEstimates.push({
-              price: apiEstimate.price,
-              minPrice: apiEstimate.minPrice || 0,
-              maxPrice: apiEstimate.maxPrice || 0,
-              confidence: "high",
-              source: apiEstimate.source || "api",
-            })
-          }
+          console.log(`Price estimate for item ${i + 1}:`, estimate)
+          newEstimates.push(estimate)
         } catch (itemError) {
-          console.error("Error estimating price for item:", itemError)
+          console.error(`Error estimating price for item ${i + 1}:`, itemError)
 
-          // Fallback to a basic estimate
+          // Fallback estimate for this item
           newEstimates.push({
             price: "$25",
             minPrice: 20,
@@ -399,20 +348,30 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       const totalMax = newEstimates.reduce((sum, est) => sum + (est.maxPrice || 0), 0)
       const totalPrice = `$${Math.round((totalMin + totalMax) / 2)}`
 
+      // Determine overall confidence
+      const hasLowConfidence = newEstimates.some((e) => e.confidence === "low")
+      const allHighConfidence = newEstimates.every((e) => e.confidence === "high")
+      const overallConfidence = hasLowConfidence ? "low" : allHighConfidence ? "high" : "medium"
+
       setTotalEstimate({
         price: totalPrice,
         minPrice: totalMin,
         maxPrice: totalMax,
-        confidence: newEstimates.some((e) => e.confidence === "low")
-          ? "low"
-          : newEstimates.every((e) => e.confidence === "high")
-            ? "high"
-            : "medium",
+        confidence: overallConfidence,
       })
+
+      console.log("Price estimation complete. Total:", totalPrice)
     } catch (error) {
       console.error("Error calculating price estimates:", error)
+      toast({
+        title: "Price Estimation Error",
+        description: "Unable to calculate price estimates. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsCalculatingPrices(false)
     }
-  }, [getItems])
+  }, [getItems, toast])
 
   // Validate step 1 (all items)
   useEffect(() => {
@@ -444,9 +403,13 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     }
   }, [fullName, email, phone, address, pickupDate, termsAccepted])
 
-  // Update price estimates when items change
+  // Update price estimates when items change (with debounce)
   useEffect(() => {
-    calculatePriceEstimates()
+    const timeoutId = setTimeout(() => {
+      calculatePriceEstimates()
+    }, 1000) // 1 second debounce
+
+    return () => clearTimeout(timeoutId)
   }, [itemsVersion, calculatePriceEstimates])
 
   // Add a new item
@@ -1320,10 +1283,8 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           }
         }, 800)
       }
-
-      setTimeout(calculatePriceEstimates, 100)
     },
-    [getItems, updateItemField, fetchNameSuggestion, calculatePriceEstimates],
+    [getItems, updateItemField, fetchNameSuggestion],
   )
 
   // Handle description input change
@@ -1331,10 +1292,8 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     (e, index) => {
       const value = e.target.value
       updateItemField(index, "description", value)
-
-      setTimeout(calculatePriceEstimates, 100)
     },
-    [updateItemField, calculatePriceEstimates],
+    [updateItemField],
   )
 
   // Handle issues input change
@@ -1342,20 +1301,16 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     (e, index) => {
       const value = e.target.value
       updateItemField(index, "issues", value)
-
-      setTimeout(calculatePriceEstimates, 100)
     },
-    [updateItemField, calculatePriceEstimates],
+    [updateItemField],
   )
 
   // Handle condition selection
   const handleConditionSelect = useCallback(
     (index, conditionValue) => {
       updateItemField(index, "condition", conditionValue)
-
-      setTimeout(calculatePriceEstimates, 100)
     },
-    [updateItemField, calculatePriceEstimates],
+    [updateItemField],
   )
 
   // Apply suggestion for a specific item
@@ -2071,18 +2026,35 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                   </div>
                                 </div>
 
-                                {/* Price estimate for this item */}
+                                {/* NEW: Enhanced price estimate display with eBay data badges */}
                                 {priceEstimates[index] && (
-                                  <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                    <div className="flex justify-between items-center">
+                                  <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                                    <div className="flex justify-between items-start mb-3">
                                       <div className="flex items-center gap-2">
-                                        <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                        <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                                         <span className="text-sm font-medium text-green-600 dark:text-green-400">
                                           Estimated Value
                                         </span>
+                                        {/* NEW: Source badge */}
+                                        {priceEstimates[index].source === "ebay" && (
+                                          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                                            <ShoppingCart className="mr-1 h-3 w-3" />
+                                            eBay Data
+                                          </Badge>
+                                        )}
+                                        {priceEstimates[index].source === "openai" && (
+                                          <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                                            AI Estimate
+                                          </Badge>
+                                        )}
+                                        {priceEstimates[index].source === "local" && (
+                                          <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300 border-gray-200 dark:border-gray-800">
+                                            Local Estimate
+                                          </Badge>
+                                        )}
                                       </div>
                                       <div className="text-right">
-                                        <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                                        <div className="text-xl font-bold text-green-600 dark:text-green-400">
                                           {priceEstimates[index].price}
                                         </div>
                                         {priceEstimates[index].source === "content_filter" ? (
@@ -2095,6 +2067,37 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                           </div>
                                         )}
                                       </div>
+                                    </div>
+
+                                    {/* NEW: eBay reference count */}
+                                    {priceEstimates[index].source === "ebay" &&
+                                      priceEstimates[index].referenceCount !== undefined && (
+                                        <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                                          <Info className="h-3 w-3" />
+                                          <span>
+                                            Based on {priceEstimates[index].referenceCount} similar eBay listings
+                                          </span>
+                                        </div>
+                                      )}
+
+                                    {/* Confidence indicator */}
+                                    <div className="mt-2 flex items-center gap-2">
+                                      <span className="text-xs text-slate-600 dark:text-slate-400">Confidence:</span>
+                                      <Badge
+                                        className={`text-xs ${
+                                          priceEstimates[index].confidence === "high"
+                                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                            : priceEstimates[index].confidence === "medium"
+                                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+                                              : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
+                                        }`}
+                                      >
+                                        {priceEstimates[index].confidence === "high"
+                                          ? "High"
+                                          : priceEstimates[index].confidence === "medium"
+                                            ? "Medium"
+                                            : "Low"}
+                                      </Badge>
                                     </div>
                                   </div>
                                 )}
@@ -2136,6 +2139,12 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                       <span className="text-green-600 dark:text-green-400 font-medium">
                                         {priceEstimates[index].price}
                                       </span>
+                                      {/* Source indicator in collapsed view */}
+                                      {priceEstimates[index].source === "ebay" && (
+                                        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs">
+                                          eBay
+                                        </Badge>
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -2157,18 +2166,43 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                         </Button>
                       </div>
 
-                      {/* Price Estimate Section */}
-                      <div className="mt-6 p-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
-                        <div className="flex items-center gap-2 mb-3">
-                          <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      {/* NEW: Enhanced Price Estimate Section with eBay integration status */}
+                      <div className="mt-6 p-6 rounded-lg border border-green-200 dark:border-green-800 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20">
+                        <div className="flex items-center gap-2 mb-4">
+                          <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
                           <h3 className="text-lg font-medium text-slate-900 dark:text-white">Total Estimated Value</h3>
+                          {isCalculatingPrices && (
+                            <div className="flex items-center gap-2 ml-auto">
+                              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                              <span className="text-sm text-blue-600 dark:text-blue-400">Calculating prices...</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                           <div>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                               Based on the information you've provided, we estimate your items are worth approximately:
                             </p>
+                            {/* NEW: Show pricing sources used */}
+                            <div className="flex flex-wrap gap-2">
+                              {priceEstimates.some((e) => e.source === "ebay") && (
+                                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                                  <ShoppingCart className="mr-1 h-3 w-3" />
+                                  eBay Market Data
+                                </Badge>
+                              )}
+                              {priceEstimates.some((e) => e.source === "openai") && (
+                                <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                                  AI Analysis
+                                </Badge>
+                              )}
+                              {priceEstimates.some((e) => e.source === "local") && (
+                                <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300 border-gray-200 dark:border-gray-800">
+                                  Category Analysis
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                           <div className="text-center">
                             <div className="text-3xl font-bold text-green-600 dark:text-green-400">
@@ -2201,7 +2235,8 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                         <div className="mt-4 text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2">
                           <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                           <p>
-                            This is just an estimate. The final offer may vary based on physical inspection. Adding more
+                            This estimate uses real eBay market data when available, supplemented by AI analysis and
+                            category-based pricing. The final offer may vary based on physical inspection. Adding more
                             details and photos will help us provide a more accurate estimate.
                           </p>
                         </div>
@@ -2349,6 +2384,19 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                   {totalEstimate.price}
                                 </span>
                               </p>
+                              {/* NEW: Show pricing method summary */}
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {priceEstimates.some((e) => e.source === "ebay") && (
+                                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs">
+                                    eBay Data
+                                  </Badge>
+                                )}
+                                {priceEstimates.some((e) => e.source === "openai") && (
+                                  <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 text-xs">
+                                    AI
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                             <div>
                               <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">Item Details:</p>
@@ -2391,12 +2439,19 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                           {(item.photos?.length || 0) + (item.imageUrl ? 1 : 0)}
                                         </p>
                                         {priceEstimates[index] && (
-                                          <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                                            <span className="font-medium text-slate-900 dark:text-white">
+                                          <div className="flex items-center gap-2 mt-1">
+                                            <span className="font-medium text-slate-900 dark:text-white text-sm">
                                               Estimate:
-                                            </span>{" "}
-                                            {priceEstimates[index].price}
-                                          </p>
+                                            </span>
+                                            <span className="text-green-600 dark:text-green-400 text-sm">
+                                              {priceEstimates[index].price}
+                                            </span>
+                                            {priceEstimates[index].source === "ebay" && (
+                                              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs">
+                                                eBay
+                                              </Badge>
+                                            )}
+                                          </div>
                                         )}
                                       </div>
                                     </AccordionContent>
