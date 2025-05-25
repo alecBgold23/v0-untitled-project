@@ -93,11 +93,11 @@ export async function getItem(params: GetItemParams) {
  * @returns Array of completed items with prices
  */
 export async function getPriceEstimates(query: string, categoryId?: string, condition?: string) {
-  // Build filter for completed and sold items
-  let filter = "soldItems:SOLD_ITEMS"
+  // Build filter for completed and sold items - Browse API uses different filters
+  let filter = "buyingOptions:{AUCTION|FIXED_PRICE}"
 
   if (condition) {
-    filter += `,itemFilter.conditionIds:{${condition}}`
+    filter += `,conditionIds:{${getEbayConditionId(condition)}}`
   }
 
   try {

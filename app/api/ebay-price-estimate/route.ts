@@ -1,10 +1,5 @@
 import { NextResponse } from "next/server"
-
-const EBAY_APP_ID = process.env.EBAY_APP_ID
-
-if (!EBAY_APP_ID) {
-  throw new Error("Missing EBAY_APP_ID in environment variables")
-}
+import { getEbayOAuthToken } from "@/lib/ebay-auth"
 
 // Simple in-memory rate limiter
 class RateLimiter {
@@ -39,7 +34,7 @@ class RateLimiter {
   }
 }
 
-// Allow 100 requests per hour — adjust as needed
+// Allow 100 requests per hour
 const limiter = new RateLimiter(100, 60 * 60 * 1000)
 
 export async function GET(request: Request) {
@@ -55,30 +50,34 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Build eBay Finding API URL
-    const endpoint = "https://svcs.ebay.com/services/search/FindingService/v1"
+    // Get OAuth token
+    const token = await getEbayOAuthToken()
+
+    // Build Browse API URL with query parameters
     const params = new URLSearchParams({
-      "OPERATION-NAME": "findItemsByKeywords",
-      "SERVICE-VERSION": "1.0.0",
-      "SECURITY-APPNAME": EBAY_APP_ID,
-      "RESPONSE-DATA-FORMAT": "JSON",
-      "REST-PAYLOAD": "true",
-      keywords: title,
-      "paginationInput.entriesPerPage": "20",
-      "itemFilter(0).name": "Condition",
-      "itemFilter(0).value": "Used",
+      q: title,
+      limit: "20",
+      filter: "conditionIds:{3000|4000|5000}", // Used conditions
     })
 
-    const url = `${endpoint}?${params.toString()}`
-    const response = await fetch(url)
+    const url = `https://api.ebay.com/buy/browse/v1/item_summary/search?${params.toString()}`
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+      },
+    })
 
     if (!response.ok) {
-      throw new Error(`eBay API error: ${response.statusText}`)
+      const errorText = await response.text()
+      console.error("eBay Browse API error:", errorText)
+      throw new Error(`eBay API error: ${response.status} - ${errorText}`)
     }
 
     const data = await response.json()
-
-    const items = data.findItemsByKeywordsResponse?.[0]?.searchResult?.[0]?.item || []
+    const items = data.itemSummaries || []
 
     if (items.length === 0) {
       return NextResponse.json({
@@ -91,10 +90,10 @@ export async function GET(request: Request) {
 
     const prices = items
       .map((item: any) => {
-        const priceString = item.sellingStatus?.[0]?.currentPrice?.[0]?._ || "0"
-        return Number.parseFloat(priceString)
+        const priceValue = item.price?.value
+        return priceValue ? Number.parseFloat(priceValue) : null
       })
-      .filter((p: number) => !isNaN(p))
+      .filter((p: number | null) => p !== null && !isNaN(p))
 
     if (prices.length === 0) {
       return NextResponse.json({
@@ -119,6 +118,12 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error("eBay price estimate API error:", error)
-    return NextResponse.json({ error: "Failed to fetch eBay price data" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Failed to fetch eBay price data",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
