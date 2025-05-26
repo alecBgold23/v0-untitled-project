@@ -44,8 +44,20 @@ export async function getEbayPriceEstimate(
       throw new Error("No search query available")
     }
 
-    // Call our eBay price estimate endpoint (GET method)
-    const ebayResponse = await fetch(`/api/ebay-price-estimate?title=${encodeURIComponent(searchQuery.trim())}`, {
+    // Build query parameters for improved API
+    const queryParams = new URLSearchParams({
+      title: searchQuery.trim(),
+      condition: condition || "all",
+    })
+
+    // Add category if we can detect it
+    const detectedCategory = detectCategoryFromDescription(description, itemName)
+    if (detectedCategory) {
+      queryParams.append("category", detectedCategory)
+    }
+
+    // Call our improved eBay price estimate endpoint
+    const ebayResponse = await fetch(`/api/ebay-price-estimate?${queryParams.toString()}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -57,18 +69,21 @@ export async function getEbayPriceEstimate(
       const ebayData = await ebayResponse.json()
       console.log("eBay API response:", ebayData)
 
-      if (ebayData.averagePrice && ebayData.averagePrice > 0) {
-        const avgPrice = Math.round(ebayData.averagePrice)
-        const minPrice = Math.round(avgPrice * 0.8) // 20% below average
-        const maxPrice = Math.round(avgPrice * 1.2) // 20% above average
+      // Use median price as primary (more robust than average)
+      const primaryPrice = ebayData.medianPrice || ebayData.averagePrice
+
+      if (primaryPrice && primaryPrice > 0) {
+        const price = Math.round(primaryPrice)
+        const minPrice = Math.round(price * 0.85) // 15% below median
+        const maxPrice = Math.round(price * 1.15) // 15% above median
 
         return {
-          price: `$${avgPrice}`,
+          price: `$${price}`,
           minPrice,
           maxPrice,
           confidence: ebayData.confidence === "high" ? "high" : "medium",
           source: "ebay",
-          referenceCount: ebayData.items?.length || 0,
+          referenceCount: ebayData.sampleSize || 0,
           priceRange: ebayData.priceRange,
         }
       }
@@ -184,4 +199,40 @@ export async function getMultipleEbayPriceEstimates(
   }
 
   return estimates
+}
+
+// Helper function to detect category from description
+function detectCategoryFromDescription(description: string, itemName: string): string | null {
+  const text = `${description} ${itemName}`.toLowerCase()
+
+  // Electronics keywords
+  if (
+    text.match(
+      /\b(iphone|samsung|laptop|computer|tablet|tv|camera|headphones|speaker|gaming|xbox|playstation|nintendo)\b/,
+    )
+  ) {
+    return "electronics"
+  }
+
+  // Automotive keywords
+  if (text.match(/\b(car|truck|auto|vehicle|engine|tire|wheel|brake|transmission|honda|toyota|ford|bmw|mercedes)\b/)) {
+    return "automotive"
+  }
+
+  // Jewelry keywords
+  if (text.match(/\b(ring|necklace|bracelet|watch|diamond|gold|silver|jewelry|rolex|cartier)\b/)) {
+    return "jewelry"
+  }
+
+  // Clothing keywords
+  if (text.match(/\b(shirt|pants|dress|shoes|jacket|coat|jeans|nike|adidas|gucci|louis vuitton)\b/)) {
+    return "clothing"
+  }
+
+  // Collectibles keywords
+  if (text.match(/\b(vintage|antique|collectible|rare|signed|autograph|comic|card|coin|stamp)\b/)) {
+    return "collectibles"
+  }
+
+  return null
 }

@@ -176,51 +176,104 @@ export async function getItemPriceEstimate(description: string, categoryId?: str
 }
 
 /**
- * Maps a human-readable condition to eBay condition ID
+ * Maps a human-readable condition to eBay condition ID with comprehensive mapping
  * @param condition Human-readable condition (e.g., "New", "Used", "Like New")
  * @returns eBay condition ID
  */
 export function getEbayConditionId(condition: string): string {
-  const conditionLower = condition.toLowerCase()
+  const conditionLower = condition.toLowerCase().trim()
 
-  // eBay condition IDs
+  // eBay condition IDs - comprehensive mapping
   // https://developer.ebay.com/api-docs/sell/inventory/types/slr:ConditionEnum
-  if (conditionLower.includes("new") && conditionLower.includes("sealed")) {
+
+  // New conditions
+  if (conditionLower.includes("brand new") || conditionLower === "new") {
     return "1000" // New
   }
 
-  if (conditionLower.includes("new")) {
-    return "1000" // New
+  if (conditionLower.includes("new with defects") || conditionLower.includes("new other")) {
+    return "1500" // New with defects
   }
 
-  if (conditionLower.includes("like new") || conditionLower.includes("open box")) {
-    return "1500" // New - Open box
+  if (conditionLower.includes("new without tags") || conditionLower.includes("new no tags")) {
+    return "1750" // New without tags
   }
 
-  if (conditionLower.includes("excellent") || conditionLower.includes("mint")) {
-    return "1750" // New - Other
+  if (conditionLower.includes("like new") || conditionLower.includes("open box") || conditionLower.includes("mint")) {
+    return "1500" // New with defects (closest to like new)
   }
 
-  if (conditionLower.includes("very good")) {
+  // Refurbished conditions
+  if (conditionLower.includes("certified refurbished") || conditionLower.includes("manufacturer refurbished")) {
     return "2000" // Certified Refurbished
   }
 
-  if (conditionLower.includes("good")) {
+  if (conditionLower.includes("excellent refurbished") || conditionLower.includes("refurbished excellent")) {
     return "2500" // Excellent - Refurbished
   }
 
+  if (conditionLower.includes("very good refurbished") || conditionLower.includes("refurbished very good")) {
+    return "2750" // Very Good - Refurbished
+  }
+
+  if (conditionLower.includes("good refurbished") || conditionLower.includes("refurbished good")) {
+    return "3000" // Good - Refurbished
+  }
+
+  // Used conditions
+  if (conditionLower.includes("excellent") && !conditionLower.includes("refurbished")) {
+    return "4000" // Very Good
+  }
+
+  if (conditionLower.includes("very good") && !conditionLower.includes("refurbished")) {
+    return "4000" // Very Good
+  }
+
+  if (conditionLower.includes("good") && !conditionLower.includes("refurbished")) {
+    return "5000" // Good
+  }
+
   if (conditionLower.includes("fair") || conditionLower.includes("acceptable")) {
-    return "3000" // Very Good - Refurbished
+    return "6000" // Acceptable
   }
 
-  if (conditionLower.includes("poor")) {
-    return "4000" // Good - Refurbished
-  }
-
-  if (conditionLower.includes("parts") || conditionLower.includes("not working")) {
+  if (conditionLower.includes("poor") || conditionLower.includes("heavily used")) {
     return "7000" // For parts or not working
   }
 
-  // Default to used
-  return "3000"
+  if (conditionLower.includes("parts") || conditionLower.includes("not working") || conditionLower.includes("broken")) {
+    return "7000" // For parts or not working
+  }
+
+  // Default to Good for unspecified used items
+  return "5000" // Good
+}
+
+/**
+ * Get comprehensive condition filter for eBay search
+ * @param condition User-specified condition preference
+ * @returns eBay condition filter string
+ */
+export function getConditionFilter(condition?: string): string {
+  if (!condition || condition.toLowerCase() === "all") {
+    // Include all conditions for maximum sample size
+    return "conditionIds:{1000|1500|1750|2000|2500|2750|3000|4000|5000|6000|7000}"
+  }
+
+  const conditionLower = condition.toLowerCase()
+
+  if (conditionLower.includes("new")) {
+    return "conditionIds:{1000|1500|1750}" // All new conditions
+  }
+
+  if (conditionLower.includes("refurbished")) {
+    return "conditionIds:{2000|2500|2750|3000}" // All refurbished conditions
+  }
+
+  if (conditionLower.includes("used")) {
+    return "conditionIds:{4000|5000|6000}" // All used conditions
+  }
+
+  // Default to specific condition
+  return `conditionIds:{${getEbayConditionId(condition)}}`
 }

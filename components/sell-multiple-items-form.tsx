@@ -43,7 +43,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { getImprovedEbayPriceEstimate } from "@/lib/ebay-price-estimator-improved"
+import { getEbayPriceEstimate } from "@/lib/ebay-price-estimator"
 
 interface SellMultipleItemsFormProps {
   onError?: (error: Error) => void
@@ -300,61 +300,43 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     [getItems, setItems],
   )
 
-  // NEW: Calculate price estimates using improved eBay-first approach
+  // NEW: Calculate price estimates using eBay-first approach
   const calculatePriceEstimates = useCallback(async () => {
     try {
       const items = getItems()
       if (items.length === 0) return
 
       setIsCalculatingPrices(true)
-      console.log("Starting improved eBay-first price estimation for", items.length, "items")
+      console.log("Starting eBay-first price estimation for", items.length, "items")
 
       const newEstimates = []
 
-      // Process each item with improved eBay-first estimation
+      // Process each item with eBay-first estimation
       for (let i = 0; i < items.length; i++) {
         const item = items[i]
 
         try {
           console.log(`Estimating price for item ${i + 1}:`, item.name)
 
-          const estimate = await getImprovedEbayPriceEstimate(
+          const estimate = await getEbayPriceEstimate(
             item.name || "",
             item.description || "",
             item.condition || "good",
             item.issues || "",
-            true, // Include shipping in price calculation
           )
 
-          console.log(`Improved price estimate for item ${i + 1}:`, estimate)
-
-          // Convert the improved estimate to match the expected format
-          const formattedEstimate = {
-            price: estimate.price,
-            medianPrice: estimate.medianPrice,
-            minPrice: estimate.minPrice,
-            maxPrice: estimate.maxPrice,
-            confidence: estimate.confidence,
-            source: estimate.source,
-            referenceCount: estimate.referenceCount,
-            priceRange: estimate.priceRange,
-            analysis: estimate.analysis,
-          }
-
-          newEstimates.push(formattedEstimate)
+          console.log(`Price estimate for item ${i + 1}:`, estimate)
+          newEstimates.push(estimate)
         } catch (itemError) {
           console.error(`Error estimating price for item ${i + 1}:`, itemError)
 
           // Fallback estimate for this item
           newEstimates.push({
             price: "$25",
-            medianPrice: "$25",
             minPrice: 20,
             maxPrice: 30,
             confidence: "low",
             source: "fallback",
-            referenceCount: 0,
-            priceRange: "$20 - $30",
           })
         }
       }
@@ -366,16 +348,10 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       const totalMax = newEstimates.reduce((sum, est) => sum + (est.maxPrice || 0), 0)
       const totalPrice = `$${Math.round((totalMin + totalMax) / 2)}`
 
-      // Determine overall confidence based on source quality
-      const ebayCount = newEstimates.filter((e) => e.source?.includes("ebay")).length
-      const totalCount = newEstimates.length
-
-      let overallConfidence = "low"
-      if (ebayCount / totalCount >= 0.7) {
-        overallConfidence = "high"
-      } else if (ebayCount / totalCount >= 0.4) {
-        overallConfidence = "medium"
-      }
+      // Determine overall confidence
+      const hasLowConfidence = newEstimates.some((e) => e.confidence === "low")
+      const allHighConfidence = newEstimates.every((e) => e.confidence === "high")
+      const overallConfidence = hasLowConfidence ? "low" : allHighConfidence ? "high" : "medium"
 
       setTotalEstimate({
         price: totalPrice,
@@ -384,7 +360,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
         confidence: overallConfidence,
       })
 
-      console.log("Improved price estimation complete. Total:", totalPrice)
+      console.log("Price estimation complete. Total:", totalPrice)
     } catch (error) {
       console.error("Error calculating price estimates:", error)
       toast({
@@ -2050,23 +2026,17 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                   </div>
                                 </div>
 
-                                {/* Enhanced price estimate display with improved eBay data */}
+                                {/* NEW: Enhanced price estimate display with eBay data badges */}
                                 {priceEstimates[index] && (
                                   <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg border border-green-200 dark:border-green-800">
                                     <div className="flex justify-between items-start mb-3">
                                       <div className="flex items-center gap-2">
                                         <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                                         <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                                          Market Value Estimate
+                                          Estimated Value
                                         </span>
-                                        {/* Enhanced source badges */}
-                                        {priceEstimates[index].source === "ebay_improved" && (
-                                          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800">
-                                            <ShoppingCart className="mr-1 h-3 w-3" />
-                                            Enhanced eBay Data
-                                          </Badge>
-                                        )}
-                                        {priceEstimates[index].source === "ebay_basic" && (
+                                        {/* NEW: Source badge */}
+                                        {priceEstimates[index].source === "ebay" && (
                                           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                                             <ShoppingCart className="mr-1 h-3 w-3" />
                                             eBay Data
@@ -2093,50 +2063,22 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                           </div>
                                         ) : (
                                           <div className="text-xs text-slate-600 dark:text-slate-400">
-                                            {priceEstimates[index].medianPrice &&
-                                              priceEstimates[index].medianPrice !== priceEstimates[index].price && (
-                                                <div>Median: {priceEstimates[index].medianPrice}</div>
-                                              )}
-                                            <div>
-                                              Range: ${priceEstimates[index].minPrice} - $
-                                              {priceEstimates[index].maxPrice}
-                                            </div>
+                                            Range: ${priceEstimates[index].minPrice} - ${priceEstimates[index].maxPrice}
                                           </div>
                                         )}
                                       </div>
                                     </div>
 
-                                    {/* Enhanced eBay reference count and analysis */}
-                                    {priceEstimates[index].source?.includes("ebay") &&
+                                    {/* NEW: eBay reference count */}
+                                    {priceEstimates[index].source === "ebay" &&
                                       priceEstimates[index].referenceCount !== undefined && (
-                                        <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-2">
+                                        <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
                                           <Info className="h-3 w-3" />
                                           <span>
                                             Based on {priceEstimates[index].referenceCount} similar eBay listings
                                           </span>
                                         </div>
                                       )}
-
-                                    {/* Show analysis data if available */}
-                                    {priceEstimates[index].analysis && (
-                                      <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">
-                                        <div className="flex items-center gap-4">
-                                          {priceEstimates[index].analysis.outliers !== undefined && (
-                                            <span>Outliers removed: {priceEstimates[index].analysis.outliers}</span>
-                                          )}
-                                          {priceEstimates[index].analysis.priceDistribution && (
-                                            <span>
-                                              Price spread:{" "}
-                                              {Object.values(priceEstimates[index].analysis.priceDistribution).reduce(
-                                                (a, b) => a + b,
-                                                0,
-                                              )}{" "}
-                                              items analyzed
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )}
 
                                     {/* Confidence indicator */}
                                     <div className="mt-2 flex items-center gap-2">
@@ -2197,6 +2139,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                       <span className="text-green-600 dark:text-green-400 font-medium">
                                         {priceEstimates[index].price}
                                       </span>
+                                      {/* Source indicator in collapsed view */}
                                       {priceEstimates[index].source === "ebay" && (
                                         <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs">
                                           eBay
@@ -2223,17 +2166,15 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                         </Button>
                       </div>
 
-                      {/* Enhanced Price Estimate Section with improved eBay integration status */}
+                      {/* NEW: Enhanced Price Estimate Section with eBay integration status */}
                       <div className="mt-6 p-6 rounded-lg border border-green-200 dark:border-green-800 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20">
                         <div className="flex items-center gap-2 mb-4">
                           <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
-                          <h3 className="text-lg font-medium text-slate-900 dark:text-white">
-                            Total Market Value Estimate
-                          </h3>
+                          <h3 className="text-lg font-medium text-slate-900 dark:text-white">Total Estimated Value</h3>
                           {isCalculatingPrices && (
                             <div className="flex items-center gap-2 ml-auto">
                               <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                              <span className="text-sm text-blue-600 dark:text-blue-400">Analyzing market data...</span>
+                              <span className="text-sm text-blue-600 dark:text-blue-400">Calculating prices...</span>
                             </div>
                           )}
                         </div>
@@ -2241,17 +2182,11 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                           <div>
                             <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                              Based on current market data analysis, we estimate your items are worth approximately:
+                              Based on the information you've provided, we estimate your items are worth approximately:
                             </p>
-                            {/* Enhanced pricing sources used */}
+                            {/* NEW: Show pricing sources used */}
                             <div className="flex flex-wrap gap-2">
-                              {priceEstimates.some((e) => e.source === "ebay_improved") && (
-                                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800">
-                                  <ShoppingCart className="mr-1 h-3 w-3" />
-                                  Enhanced eBay Analysis
-                                </Badge>
-                              )}
-                              {priceEstimates.some((e) => e.source === "ebay_basic") && (
+                              {priceEstimates.some((e) => e.source === "ebay") && (
                                 <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                                   <ShoppingCart className="mr-1 h-3 w-3" />
                                   eBay Market Data
@@ -2300,10 +2235,9 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                         <div className="mt-4 text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2">
                           <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                           <p>
-                            This estimate uses enhanced eBay market analysis with outlier detection and multiple search
-                            strategies, supplemented by AI analysis when needed. The final offer may vary based on
-                            physical inspection. Adding more details and photos will help us provide a more accurate
-                            estimate.
+                            This estimate uses real eBay market data when available, supplemented by AI analysis and
+                            category-based pricing. The final offer may vary based on physical inspection. Adding more
+                            details and photos will help us provide a more accurate estimate.
                           </p>
                         </div>
                       </div>
