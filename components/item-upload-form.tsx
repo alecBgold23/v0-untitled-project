@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Upload, ImageIcon, CheckCircle2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { estimateItemPrice, type PriceEstimateResult } from "@/lib/client-price-estimator"
+import { estimateItemPrice } from "@/lib/client-price-estimator"
 
 export default function ItemUploadForm() {
   const router = useRouter()
@@ -36,7 +36,17 @@ export default function ItemUploadForm() {
   const [formSuccess, setFormSuccess] = useState(false)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
   const [uploadedBucket, setUploadedBucket] = useState<string | null>(null)
-  const [priceEstimate, setPriceEstimate] = useState<PriceEstimateResult | null>(null)
+  const [priceEstimate, setPriceEstimate] = useState<{
+    price: string
+    minPrice: string
+    maxPrice: string
+    confidence: string
+    source?: string
+    referenceCount?: number
+    medianPrice?: string
+    priceRange?: string
+    analysis?: any
+  } | null>(null)
   const [isEstimating, setIsEstimating] = useState(false)
   const [estimateError, setEstimateError] = useState<string | null>(null)
 
@@ -176,8 +186,8 @@ export default function ItemUploadForm() {
     }
   }, [imagePreview])
 
-  // Get AI price estimate
-  const getAIPriceEstimate = async () => {
+  // Get improved eBay price estimate
+  const getImprovedPriceEstimate = async () => {
     if (!formData.itemName && !formData.itemDescription) {
       setEstimateError("Please provide an item name or description first")
       return
@@ -187,34 +197,35 @@ export default function ItemUploadForm() {
     setEstimateError(null)
 
     try {
-      const response = await fetch("/api/price-item", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          description: `${formData.itemName} ${formData.itemDescription}`.trim(),
-          condition: formData.itemCondition || "used",
-        }),
-      })
+      // Use the improved eBay pricing function
+      const { getImprovedEbayPriceEstimate } = await import("@/lib/ebay-price-estimator-improved")
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
-      }
+      const result = await getImprovedEbayPriceEstimate(
+        formData.itemName,
+        formData.itemDescription,
+        formData.itemCondition || "good",
+        formData.itemIssues || "None",
+        false, // includeShipping
+      )
 
-      const data = await response.json()
+      console.log("Improved pricing result:", result)
 
-      // Format the price estimate
+      // Format the price estimate with enhanced data
       const formattedEstimate = {
-        price: data.estimatedPrice || "$0",
-        minPrice: data.minPrice || "0",
-        maxPrice: data.maxPrice || "0",
-        confidence: data.confidence || "low",
+        price: result.price,
+        minPrice: result.minPrice.toString(),
+        maxPrice: result.maxPrice.toString(),
+        confidence: result.confidence,
+        source: result.source,
+        referenceCount: result.referenceCount,
+        medianPrice: result.medianPrice,
+        priceRange: result.priceRange,
+        analysis: result.analysis,
       }
 
       setPriceEstimate(formattedEstimate)
     } catch (error) {
-      console.error("Error estimating price:", error)
+      console.error("Error getting improved price estimate:", error)
       setEstimateError(`Error estimating price: ${error instanceof Error ? error.message : "Unknown error"}`)
 
       // Set fallback estimate
@@ -223,6 +234,10 @@ export default function ItemUploadForm() {
         minPrice: "0",
         maxPrice: "100",
         confidence: "low",
+        source: "fallback",
+        referenceCount: 0,
+        medianPrice: "$50",
+        priceRange: "$0 - $100",
       })
     } finally {
       setIsEstimating(false)
@@ -426,7 +441,7 @@ export default function ItemUploadForm() {
             </div>
           </div>
 
-          {/* Price Estimate Section */}
+          {/* Enhanced Price Estimate Section */}
           <div className="p-4 border rounded-md bg-muted/30">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-medium">Estimated Value</h3>
@@ -434,7 +449,7 @@ export default function ItemUploadForm() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={getAIPriceEstimate}
+                onClick={getImprovedPriceEstimate}
                 disabled={isEstimating || (!formData.itemName && !formData.itemDescription)}
               >
                 {isEstimating ? (
@@ -443,7 +458,7 @@ export default function ItemUploadForm() {
                     Estimating...
                   </>
                 ) : (
-                  "Get AI Estimate"
+                  "Get Market Price"
                 )}
               </Button>
             </div>
@@ -451,33 +466,94 @@ export default function ItemUploadForm() {
             {estimateError ? (
               <p className="text-sm text-red-500">{estimateError}</p>
             ) : priceEstimate ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold">{priceEstimate.price}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Range: ${priceEstimate.minPrice} - ${priceEstimate.maxPrice}
-                  </p>
+              <div className="space-y-3">
+                {/* Main Price Display */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold">{priceEstimate.price}</p>
+                    {priceEstimate.medianPrice && priceEstimate.medianPrice !== priceEstimate.price && (
+                      <p className="text-lg text-muted-foreground">Median: {priceEstimate.medianPrice}</p>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      Range: {priceEstimate.priceRange || `$${priceEstimate.minPrice} - $${priceEstimate.maxPrice}`}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        priceEstimate.confidence === "high"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                          : priceEstimate.confidence === "medium"
+                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                      }`}
+                    >
+                      {priceEstimate.confidence?.charAt(0).toUpperCase() + priceEstimate.confidence?.slice(1)}{" "}
+                      confidence
+                    </span>
+                    {priceEstimate.source && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Source:{" "}
+                        {priceEstimate.source === "ebay_improved"
+                          ? "eBay Market Data"
+                          : priceEstimate.source === "ebay_basic"
+                            ? "eBay Basic"
+                            : priceEstimate.source === "openai"
+                              ? "AI Analysis"
+                              : "Local Database"}
+                      </p>
+                    )}
+                    {priceEstimate.referenceCount && priceEstimate.referenceCount > 0 && (
+                      <p className="text-xs text-muted-foreground">Based on {priceEstimate.referenceCount} listings</p>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      priceEstimate.confidence === "high"
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                        : priceEstimate.confidence === "medium"
-                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                    }`}
-                  >
-                    {priceEstimate.confidence?.charAt(0).toUpperCase() + priceEstimate.confidence?.slice(1)} confidence
-                  </span>
-                  <p className="text-xs text-muted-foreground mt-1">Based on provided details</p>
-                </div>
+
+                {/* Analysis Details */}
+                {priceEstimate.analysis && (
+                  <div className="pt-2 border-t border-muted">
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      {priceEstimate.analysis.conditionBreakdown && (
+                        <div>
+                          <p className="font-medium mb-1">Condition Breakdown:</p>
+                          {Object.entries(priceEstimate.analysis.conditionBreakdown).map(([condition, count]) => (
+                            <p key={condition} className="text-muted-foreground">
+                              {condition}: {count}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      {priceEstimate.analysis.priceDistribution && (
+                        <div>
+                          <p className="font-medium mb-1">Price Distribution:</p>
+                          <p className="text-muted-foreground">
+                            Under $50: {priceEstimate.analysis.priceDistribution.under50}
+                          </p>
+                          <p className="text-muted-foreground">
+                            $50-$100: {priceEstimate.analysis.priceDistribution.between50and100}
+                          </p>
+                          <p className="text-muted-foreground">
+                            $100-$200: {priceEstimate.analysis.priceDistribution.between100and200}
+                          </p>
+                          <p className="text-muted-foreground">
+                            Over $200: {priceEstimate.analysis.priceDistribution.over200}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {priceEstimate.analysis.outliers > 0 && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {priceEstimate.analysis.outliers} outlier(s) removed for accuracy
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">Add item details above to see an estimated value</p>
             )}
             <p className="text-xs mt-2 text-muted-foreground">
-              Click "Get AI Estimate" for a more accurate price based on current market data
+              Click "Get Market Price" for accurate pricing based on current eBay market data
             </p>
           </div>
 
