@@ -64,7 +64,7 @@ function createCorrectImageUrl(filePath: string): string {
   const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath
 
   // Return the correct URL format with item_images bucket
-  return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
+  return `https://${projectId}.supabase.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
 }
 
 // Function to upload image to Supabase via server action
@@ -300,32 +300,88 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     [getItems, setItems],
   )
 
-  // NEW: Calculate price estimates using eBay-first approach
+  // NEW: Calculate price estimates using OpenAI-first approach with eBay fallback
   const calculatePriceEstimates = useCallback(async () => {
     try {
       const items = getItems()
       if (items.length === 0) return
 
       setIsCalculatingPrices(true)
-      console.log("Starting eBay-first price estimation for", items.length, "items")
+      console.log("Starting OpenAI-first price estimation for", items.length, "items")
 
       const newEstimates = []
 
-      // Process each item with eBay-first estimation
+      // Process each item with OpenAI-first estimation
       for (let i = 0; i < items.length; i++) {
         const item = items[i]
 
         try {
           console.log(`Estimating price for item ${i + 1}:`, item.name)
 
-          const estimate = await getEbayPriceEstimate(
-            item.name || "",
-            item.description || "",
-            item.condition || "good",
-            item.issues || "",
-          )
+          // Try OpenAI first (primary)
+          let estimate
+          try {
+            const response = await fetch("/api/estimate-price", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                itemName: item.name || "",
+                description: item.description || "",
+                condition: item.condition || "good",
+                issues: item.issues || "",
+              }),
+            })
 
-          console.log(`Price estimate for item ${i + 1}:`, estimate)
+            if (response.ok) {
+              const data = await response.json()
+              if (data.success && data.price) {
+                estimate = {
+                  price: `$${data.price}`,
+                  minPrice: Math.round(data.price * 0.8),
+                  maxPrice: Math.round(data.price * 1.2),
+                  confidence: data.confidence || "medium",
+                  source: "openai_primary",
+                  referenceCount: 1,
+                }
+                console.log(`OpenAI estimate for item ${i + 1}:`, estimate)
+              }
+            }
+          } catch (openaiError) {
+            console.log(`OpenAI failed for item ${i + 1}, trying eBay fallback:`, openaiError)
+          }
+
+          // If OpenAI failed, try eBay fallback
+          if (!estimate) {
+            try {
+              const ebayEstimate = await getEbayPriceEstimate(
+                item.name || "",
+                item.description || "",
+                item.condition || "good",
+                item.issues || "",
+              )
+
+              estimate = {
+                ...ebayEstimate,
+                source: "ebay_fallback",
+              }
+              console.log(`eBay fallback estimate for item ${i + 1}:`, estimate)
+            } catch (ebayError) {
+              console.error(`Both OpenAI and eBay failed for item ${i + 1}:`, ebayError)
+            }
+          }
+
+          // Final fallback if both fail
+          if (!estimate) {
+            estimate = {
+              price: "$25",
+              minPrice: 20,
+              maxPrice: 30,
+              confidence: "low",
+              source: "fallback",
+              referenceCount: 0,
+            }
+          }
+
           newEstimates.push(estimate)
         } catch (itemError) {
           console.error(`Error estimating price for item ${i + 1}:`, itemError)
@@ -337,6 +393,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
             maxPrice: 30,
             confidence: "low",
             source: "fallback",
+            referenceCount: 0,
           })
         }
       }
@@ -348,10 +405,17 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
       const totalMax = newEstimates.reduce((sum, est) => sum + (est.maxPrice || 0), 0)
       const totalPrice = `$${Math.round((totalMin + totalMax) / 2)}`
 
-      // Determine overall confidence
-      const hasLowConfidence = newEstimates.some((e) => e.confidence === "low")
-      const allHighConfidence = newEstimates.every((e) => e.confidence === "high")
-      const overallConfidence = hasLowConfidence ? "low" : allHighConfidence ? "high" : "medium"
+      // Determine overall confidence based on source quality
+      const openaiCount = newEstimates.filter((e) => e.source === "openai_primary").length
+      const ebayCount = newEstimates.filter((e) => e.source === "ebay_fallback").length
+      const totalCount = newEstimates.length
+
+      let overallConfidence = "low"
+      if (openaiCount / totalCount >= 0.7) {
+        overallConfidence = "high"
+      } else if ((openaiCount + ebayCount) / totalCount >= 0.5) {
+        overallConfidence = "medium"
+      }
 
       setTotalEstimate({
         price: totalPrice,
@@ -2035,19 +2099,20 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                         <span className="text-sm font-medium text-green-600 dark:text-green-400">
                                           Estimated Value
                                         </span>
-                                        {/* NEW: Source badge */}
-                                        {priceEstimates[index].source === "ebay" && (
+                                        {/* Enhanced source badges */}
+                                        {priceEstimates[index].source === "openai_primary" && (
+                                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-800">
+                                            <Sparkles className="mr-1 h-3 w-3" />
+                                            AI Analysis (Primary)
+                                          </Badge>
+                                        )}
+                                        {priceEstimates[index].source === "ebay_fallback" && (
                                           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                                             <ShoppingCart className="mr-1 h-3 w-3" />
-                                            eBay Data
+                                            eBay Data (Fallback)
                                           </Badge>
                                         )}
-                                        {priceEstimates[index].source === "openai" && (
-                                          <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 border-purple-200 dark:border-purple-800">
-                                            AI Estimate
-                                          </Badge>
-                                        )}
-                                        {priceEstimates[index].source === "local" && (
+                                        {priceEstimates[index].source === "fallback" && (
                                           <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300 border-gray-200 dark:border-gray-800">
                                             Local Estimate
                                           </Badge>
@@ -2070,7 +2135,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                     </div>
 
                                     {/* NEW: eBay reference count */}
-                                    {priceEstimates[index].source === "ebay" &&
+                                    {priceEstimates[index].source === "ebay_fallback" &&
                                       priceEstimates[index].referenceCount !== undefined && (
                                         <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
                                           <Info className="h-3 w-3" />
@@ -2140,7 +2205,12 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                         {priceEstimates[index].price}
                                       </span>
                                       {/* Source indicator in collapsed view */}
-                                      {priceEstimates[index].source === "ebay" && (
+                                      {priceEstimates[index].source === "openai_primary" && (
+                                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-xs">
+                                          AI
+                                        </Badge>
+                                      )}
+                                      {priceEstimates[index].source === "ebay_fallback" && (
                                         <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs">
                                           eBay
                                         </Badge>
@@ -2184,22 +2254,23 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                             <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                               Based on the information you've provided, we estimate your items are worth approximately:
                             </p>
-                            {/* NEW: Show pricing sources used */}
+                            {/* Show pricing sources used */}
                             <div className="flex flex-wrap gap-2">
-                              {priceEstimates.some((e) => e.source === "ebay") && (
+                              {priceEstimates.some((e) => e.source === "openai_primary") && (
+                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-800">
+                                  <Sparkles className="mr-1 h-3 w-3" />
+                                  AI Analysis (Primary)
+                                </Badge>
+                              )}
+                              {priceEstimates.some((e) => e.source === "ebay_fallback") && (
                                 <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                                   <ShoppingCart className="mr-1 h-3 w-3" />
-                                  eBay Market Data
+                                  eBay Data (Fallback)
                                 </Badge>
                               )}
-                              {priceEstimates.some((e) => e.source === "openai") && (
-                                <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 border-purple-200 dark:border-purple-800">
-                                  AI Analysis
-                                </Badge>
-                              )}
-                              {priceEstimates.some((e) => e.source === "local") && (
+                              {priceEstimates.some((e) => e.source === "fallback") && (
                                 <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300 border-gray-200 dark:border-gray-800">
-                                  Category Analysis
+                                  Local Estimates
                                 </Badge>
                               )}
                             </div>
@@ -2384,16 +2455,17 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                   {totalEstimate.price}
                                 </span>
                               </p>
-                              {/* NEW: Show pricing method summary */}
+                              {/* Show pricing method summary */}
                               <div className="mt-2 flex flex-wrap gap-1">
-                                {priceEstimates.some((e) => e.source === "ebay") && (
-                                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs">
-                                    eBay Data
+                                {priceEstimates.some((e) => e.source === "openai_primary") && (
+                                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-xs">
+                                    <Sparkles className="mr-1 h-3 w-3" />
+                                    AI Analysis (Primary)
                                   </Badge>
                                 )}
-                                {priceEstimates.some((e) => e.source === "openai") && (
-                                  <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 text-xs">
-                                    AI
+                                {priceEstimates.some((e) => e.source === "ebay_fallback") && (
+                                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs">
+                                    eBay Data
                                   </Badge>
                                 )}
                               </div>
@@ -2446,7 +2518,12 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                             <span className="text-green-600 dark:text-green-400 text-sm">
                                               {priceEstimates[index].price}
                                             </span>
-                                            {priceEstimates[index].source === "ebay" && (
+                                            {priceEstimates[index].source === "openai_primary" && (
+                                              <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-xs">
+                                                AI
+                                              </Badge>
+                                            )}
+                                            {priceEstimates[index].source === "ebay_fallback" && (
                                               <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs">
                                                 eBay
                                               </Badge>
