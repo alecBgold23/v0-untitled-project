@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react";
 import Image from "next/image"
 import { MoreHorizontal, Package, Users, DollarSign, CheckCircle } from "lucide-react"
 
@@ -43,71 +43,23 @@ interface ItemSubmission {
   description: string
 }
 
-const mockSubmissions: ItemSubmission[] = [
-  {
-    id: "1",
-    customerName: "Sarah Johnson",
-    customerEmail: "sarah@example.com",
-    itemName: "iPhone 14 Pro Max",
-    image: "/placeholder.svg?height=80&width=80&query=iPhone",
-    condition: "Like New",
-    price: 899,
-    status: "pending",
-    submittedAt: "2024-01-15",
-    description: "Barely used iPhone 14 Pro Max in excellent condition with original box and accessories.",
-  },
-  {
-    id: "2",
-    customerName: "Mike Chen",
-    customerEmail: "mike@example.com",
-    itemName: "MacBook Air M2",
-    image: "/placeholder.svg?height=80&width=80&query=MacBook",
-    condition: "Good",
-    price: 1200,
-    status: "approved",
-    submittedAt: "2024-01-14",
-    description: "MacBook Air M2 with minor wear on corners but fully functional.",
-  },
-  {
-    id: "3",
-    customerName: "Emily Davis",
-    customerEmail: "emily@example.com",
-    itemName: "Sony WH-1000XM4 Headphones",
-    image: "/placeholder.svg?height=80&width=80&query=headphones",
-    condition: "New",
-    price: 280,
-    status: "listed",
-    submittedAt: "2024-01-13",
-    description: "Brand new Sony noise-canceling headphones, never opened.",
-  },
-  {
-    id: "4",
-    customerName: "David Wilson",
-    customerEmail: "david@example.com",
-    itemName: "Nintendo Switch OLED",
-    image: "/placeholder.svg?height=80&width=80&query=Nintendo+Switch",
-    condition: "Good",
-    price: 320,
-    status: "pending",
-    submittedAt: "2024-01-12",
-    description: "Nintendo Switch OLED with some light scratches on the back.",
-  },
-  {
-    id: "5",
-    customerName: "Lisa Brown",
-    customerEmail: "lisa@example.com",
-    itemName: 'iPad Pro 12.9"',
-    image: "/placeholder.svg?height=80&width=80&query=iPad",
-    condition: "Like New",
-    price: 950,
-    status: "rejected",
-    submittedAt: "2024-01-11",
-    description: "iPad Pro with Apple Pencil, minimal usage.",
-  },
-]
+const mockSubmissions: ItemSubmission[] = []
 
 export default function AdminDashboard() {
   const [submissions, setSubmissions] = useState<ItemSubmission[]>(mockSubmissions)
+
+  useEffect(() => {
+    const fetchItems = async () => {
+      const res = await fetch('/api/admin/get-items');
+      if (!res.ok) {
+        console.error("Failed to fetch submissions");
+        return;
+      }
+      const items = await res.json();
+      setSubmissions(items);
+    };
+    fetchItems();
+  }, []);
 
   const updateSubmissionStatus = (id: string, newStatus: SubmissionStatus) => {
     setSubmissions((prev) =>
@@ -155,7 +107,6 @@ export default function AdminDashboard() {
       </header>
 
       <main className="flex-1 p-6">
-        {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -195,7 +146,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Submissions Table */}
         <Card>
           <CardHeader>
             <CardTitle>Item Submissions</CardTitle>
