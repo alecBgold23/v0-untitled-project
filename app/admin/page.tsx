@@ -30,17 +30,23 @@ import {
 
 type SubmissionStatus = "pending" | "approved" | "rejected" | "listed"
 
-interface ItemSubmission {
+export interface ItemSubmission {
   id: string
-  customerName: string
-  customerEmail: string
-  itemName: string
-  image: string
-  condition: "New" | "Like New" | "Good" | "Fair" | "Poor"
-  price: number
+  image_url: string | null
+  item_name: string
+  item_description: string
+  item_issues: string | null
+  full_name: string
+  email: string
+  phone: string | null
+  address: string | null
+  pickup_date: string | null
+  photo_count: number | null
   status: SubmissionStatus
-  submittedAt: string
-  description: string
+  submission_date: string
+  image_path: string | null
+  estimated_price: number | null
+  item_condition: "New" | "Like New" | "Good" | "Fair" | "Poor"
 }
 
 const mockSubmissions: ItemSubmission[] = []
@@ -171,8 +177,8 @@ export default function AdminDashboard() {
                     <TableRow key={submission.id}>
                       <TableCell>
                         <Image
-                          src={submission.image || "/placeholder.svg"}
-                          alt={submission.itemName}
+                          src={submission.image_url || "/placeholder.svg"}
+                          alt={submission.item_name}
                           width={80}
                           height={80}
                           className="rounded-lg object-cover"
@@ -180,25 +186,29 @@ export default function AdminDashboard() {
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          <div className="font-medium">{submission.itemName}</div>
-                          <div className="text-sm text-gray-500 max-w-[200px] truncate">{submission.description}</div>
+                          <div className="font-medium">{submission.item_name}</div>
+                          <div className="text-sm text-gray-500 max-w-[200px] truncate">
+                            {submission.item_description}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          <div className="font-medium">{submission.customerName}</div>
-                          <div className="text-sm text-gray-500">{submission.customerEmail}</div>
+                          <div className="font-medium">{submission.full_name}</div>
+                          <div className="text-sm text-gray-500">{submission.email}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className={`font-medium ${getConditionColor(submission.condition)}`}>
-                          {submission.condition}
+                        <span className={`font-medium ${getConditionColor(submission.item_condition)}`}>
+                          {submission.item_condition}
                         </span>
                       </TableCell>
-                      <TableCell className="font-medium">${submission.price.toLocaleString()}</TableCell>
+                      <TableCell className="font-medium">
+                        {submission.estimated_price !== null ? `$${submission.estimated_price.toLocaleString()}` : "—"}
+                      </TableCell>
                       <TableCell>{getStatusBadge(submission.status)}</TableCell>
                       <TableCell className="text-sm text-gray-500">
-                        {new Date(submission.submittedAt).toLocaleDateString()}
+                        {new Date(submission.submission_date).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -221,8 +231,7 @@ export default function AdminDashboard() {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Reject Submission</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to reject this item submission? This action cannot be
-                                      undone.
+                                      Are you sure you want to reject this item submission? This action cannot be undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
