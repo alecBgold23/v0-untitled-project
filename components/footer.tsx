@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BluberryLogoSVG } from "./blueberry-logo-svg"
-import { Facebook, Instagram, Twitter, Mail } from "lucide-react"
+import { BluberryLogoSVG } from "@/components/blueberry-logo-svg"
+import { Facebook, Instagram, Twitter, Mail } from 'lucide-react'
 
 export default function Footer() {
   const pathname = usePathname()
@@ -89,6 +89,10 @@ export default function Footer() {
           </Link>
           <Link href="/terms" className="text-xs text-muted-foreground hover:text-primary transition-colors">
             Terms of Service
+          </Link>
+          {/* Temporary admin link - remove before production */}
+          <Link href="/admin" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+            Admin
           </Link>
         </div>
 
