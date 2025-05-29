@@ -10,23 +10,23 @@ export async function POST(request: NextRequest) {
 
     const clientId = process.env.EBAY_CLIENT_ID
     const clientSecret = process.env.EBAY_CLIENT_SECRET
+    const redirectUri = process.env.EBAY_RUNAME_ID // <- Use RuName here
 
-    if (!clientId || !clientSecret) {
-      console.log("Missing eBay credentials")
+    if (!clientId || !clientSecret || !redirectUri) {
+      console.log("Missing eBay credentials or redirect URI (RuName)")
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
     const params = new URLSearchParams({
       grant_type: "authorization_code",
       code,
-      redirect_uri: process.env.NEXT_PUBLIC_SITE_URL
-        ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
-        : "https://www.bluberryhq.com/auth/callback",
+      redirect_uri: redirectUri, // <- Must match the one in your Dev Portal
     })
 
     const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64")
 
     console.log("Exchanging code for token...")
+
     const tokenRes = await fetch("https://api.ebay.com/identity/v1/oauth2/token", {
       method: "POST",
       headers: {
@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
 
     console.log("Token exchange successful")
 
-    // Return a simplified response with just what's needed
     return NextResponse.json({
       access_token: tokenData.access_token,
       expires_in: tokenData.expires_in,
