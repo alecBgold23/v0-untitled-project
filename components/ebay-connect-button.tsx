@@ -6,7 +6,7 @@ export default function EbayConnectButton() {
     new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_EBAY_CLIENT_ID!,
       response_type: "code",
-      redirect_uri: "BluBerry-BluBerry-ItemPr-pzocll", // <- your RuName here
+      redirect_uri: "https://www.bluberryhq.com/auth/callback", // <- your RuName here
       scope: [
         "https://api.ebay.com/oauth/api_scope",
         "https://api.ebay.com/oauth/api_scope/sell.inventory",
