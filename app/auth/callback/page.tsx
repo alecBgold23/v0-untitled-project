@@ -3,16 +3,30 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
+const EBAY_OAUTH_URL = `https://auth.ebay.com/oauth2/authorize?` +
+  new URLSearchParams({
+    client_id: process.env.NEXT_PUBLIC_EBAY_CLIENT_ID!, // or your env var name here
+    response_type: "code",
+    redirect_uri: "https://www.bluberryhq.com/auth/callback", // Your actual redirect URL (must match eBay app)
+    scope: [
+      "https://api.ebay.com/oauth/api_scope",
+      "https://api.ebay.com/oauth/api_scope/sell.inventory",
+      "https://api.ebay.com/oauth/api_scope/sell.account",
+      "https://api.ebay.com/oauth/api_scope/sell.fulfillment",
+      // add other scopes you need
+    ].join(" "),
+  })
+
 export default function AuthCallback() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState("Processing authorization...")
   const [error, setError] = useState("")
 
-  useEffect(() => {
-    const code = searchParams.get("code")
-    const errorParam = searchParams.get("error")
+  const code = searchParams.get("code")
+  const errorParam = searchParams.get("error")
 
+  useEffect(() => {
     if (errorParam) {
       setStatus("Authorization failed")
       setError(errorParam)
@@ -40,7 +54,6 @@ export default function AuthCallback() {
 
         if (res.ok) {
           setStatus("Authorization successful! Redirecting...")
-          // Use a timeout to ensure the state update happens before navigation
           setTimeout(() => {
             router.push("/dashboard")
           }, 1000)
@@ -56,7 +69,25 @@ export default function AuthCallback() {
     }
 
     exchangeCode()
-  }, [searchParams, router])
+  }, [code, errorParam, router])
+
+  // If missing code and no error, show the button to start authorization
+  if (!code && !errorParam) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-md text-center">
+          <h1 className="mb-4 text-2xl font-bold text-gray-800">eBay Authorization</h1>
+          <p className="mb-6 text-gray-600">To continue, please authorize BluBerry with eBay.</p>
+          <a
+            href={EBAY_OAUTH_URL}
+            className="inline-block rounded bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
+          >
+            Authorize with eBay
+          </a>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
