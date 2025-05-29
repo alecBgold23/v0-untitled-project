@@ -1,19 +1,33 @@
 "use client"
 
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 export default function AuthCallback() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const code = searchParams.get("code")
-  const error = searchParams.get("error")
+  const [status, setStatus] = useState("Processing authorization...")
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    if (!code) return
+    const code = searchParams.get("code")
+    const errorParam = searchParams.get("error")
 
-    async function exchangeCode() {
+    if (errorParam) {
+      setStatus("Authorization failed")
+      setError(errorParam)
+      return
+    }
+
+    if (!code) {
+      setStatus("Missing authorization code")
+      return
+    }
+
+    const exchangeCode = async () => {
       try {
+        setStatus("Exchanging authorization code for token...")
+
         const res = await fetch("/api/ebay/oauth-exchange", {
           method: "POST",
           headers: {
@@ -21,24 +35,36 @@ export default function AuthCallback() {
           },
           body: JSON.stringify({ code }),
         })
+
         const data = await res.json()
 
         if (res.ok) {
-          router.push("/dashboard") // or your desired page
+          setStatus("Authorization successful! Redirecting...")
+          // Use a timeout to ensure the state update happens before navigation
+          setTimeout(() => {
+            router.push("/dashboard")
+          }, 1000)
         } else {
-          console.error(data)
+          setStatus("Authorization failed")
+          setError(data.error || "Failed to exchange authorization code")
         }
       } catch (err) {
-        console.error(err)
+        setStatus("Authorization failed")
+        setError("An unexpected error occurred")
+        console.error("Fetch failed:", err)
       }
     }
 
     exchangeCode()
-  }, [code])
+  }, [searchParams, router])
 
-  if (error) {
-    return <div>Error during authorization: {error}</div>
-  }
-
-  return <div>Processing authorization...</div>
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-md">
+        <h1 className="mb-4 text-2xl font-bold text-gray-800">eBay Authorization</h1>
+        <p className="mb-4 text-gray-600">{status}</p>
+        {error && <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">Error: {error}</div>}
+      </div>
+    </div>
+  )
 }

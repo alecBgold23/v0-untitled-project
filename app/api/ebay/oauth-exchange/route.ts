@@ -3,19 +3,30 @@ import { type NextRequest, NextResponse } from "next/server"
 export async function POST(request: NextRequest) {
   try {
     const { code } = await request.json()
-    if (!code) return NextResponse.json({ error: "Missing code" }, { status: 400 })
+    if (!code) {
+      console.log("Missing authorization code")
+      return NextResponse.json({ error: "Missing authorization code" }, { status: 400 })
+    }
+
+    const clientId = process.env.EBAY_CLIENT_ID
+    const clientSecret = process.env.EBAY_CLIENT_SECRET
+
+    if (!clientId || !clientSecret) {
+      console.log("Missing eBay credentials")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
 
     const params = new URLSearchParams({
       grant_type: "authorization_code",
       code,
-      redirect_uri: "https://www.bluberryhq.com/auth/callback", // must match your registered redirect URI
+      redirect_uri: process.env.NEXT_PUBLIC_SITE_URL
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
+        : "https://www.bluberryhq.com/auth/callback",
     })
-
-    const clientId = process.env.EBAY_CLIENT_ID!
-    const clientSecret = process.env.EBAY_CLIENT_SECRET!
 
     const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64")
 
+    console.log("Exchanging code for token...")
     const tokenRes = await fetch("https://api.ebay.com/identity/v1/oauth2/token", {
       method: "POST",
       headers: {
@@ -27,13 +38,25 @@ export async function POST(request: NextRequest) {
 
     const tokenData = await tokenRes.json()
 
-    if (!tokenRes.ok) return NextResponse.json(tokenData, { status: tokenRes.status })
+    if (!tokenRes.ok) {
+      console.log("Token exchange failed:", tokenData)
+      return NextResponse.json(
+        { error: tokenData.error_description || "Token exchange failed" },
+        { status: tokenRes.status },
+      )
+    }
 
-    // Optional: Save tokens securely to Supabase, DB, etc.
+    console.log("Token exchange successful")
 
-    return NextResponse.json(tokenData)
+    // Return a simplified response with just what's needed
+    return NextResponse.json({
+      access_token: tokenData.access_token,
+      expires_in: tokenData.expires_in,
+      token_type: tokenData.token_type,
+      success: true,
+    })
   } catch (error) {
-    console.error(error)
+    console.error("OAuth exchange error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
