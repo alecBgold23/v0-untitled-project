@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js"
 
 // Initialize Supabase client with Service Role key for full DB access
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,          // Use NEXT_PUBLIC_SUPABASE_URL
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     const clientId = process.env.EBAY_CLIENT_ID
     const clientSecret = process.env.EBAY_CLIENT_SECRET
-    const redirectUri = process.env.EBAY_RUNAME_ID // <- Use RuName here
+    const redirectUri = process.env.EBAY_RUNAME_ID
 
     if (!clientId || !clientSecret || !redirectUri) {
       console.log("Missing eBay credentials or redirect URI (RuName)")
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const params = new URLSearchParams({
       grant_type: "authorization_code",
       code,
-      redirect_uri: redirectUri, // <- Must match the one in your Dev Portal
+      redirect_uri: redirectUri,
     })
 
     const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64")
@@ -55,11 +55,10 @@ export async function POST(request: NextRequest) {
 
     console.log("Token exchange successful")
 
-    // Calculate expires_at as Unix timestamp in milliseconds
     const expiresAt = Date.now() + tokenData.expires_in * 1000
 
-    // Upsert the tokens into Supabase (using fixed id 'singleton' for one row)
-    const { error } = await supabase
+    // Try saving tokens to Supabase, but do not block response if it fails
+    supabase
       .from("ebay_tokens")
       .upsert(
         {
@@ -69,16 +68,23 @@ export async function POST(request: NextRequest) {
           expires_at: expiresAt,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "id" }
+        { onConflict: "id" },
       )
+      .then(({ error }) => {
+        if (error) {
+          console.error("Supabase upsert error:", error)
+        } else {
+          console.log("Tokens saved to Supabase successfully")
+        }
+      })
+      .catch((e) => {
+        console.error("Unexpected error saving tokens to Supabase:", e)
+      })
 
-    if (error) {
-      console.error("Supabase upsert error:", error)
-      return NextResponse.json({ error: "Failed to save tokens" }, { status: 500 })
-    }
-
+    // Always return tokens to the client
     return NextResponse.json({
       access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
       expires_in: tokenData.expires_in,
       token_type: tokenData.token_type,
       success: true,
