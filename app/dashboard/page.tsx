@@ -1,46 +1,68 @@
-"use client"
+'use client'
 
-import { useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState } from 'react'
 
-export default function EbayViewTokenPage() {
-  const searchParams = useSearchParams()
-  const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [refreshToken, setRefreshToken] = useState<string | null>(null)
-  const [expiresIn, setExpiresIn] = useState<string | null>(null)
+export default function Dashboard() {
+  const [tokenData, setTokenData] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const access = searchParams.get("access_token")
-    const refresh = searchParams.get("refresh_token")
-    const expires = searchParams.get("expires_in")
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
 
-    setAccessToken(access)
-    setRefreshToken(refresh)
-    setExpiresIn(expires)
-  }, [searchParams])
+    if (!code) {
+      setError('Authorization code not found in URL.')
+      setLoading(false)
+      return
+    }
+
+    const getToken = async () => {
+      try {
+        const res = await fetch('/api/ebay/oauth-exchange', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code }),
+        })
+
+        const data = await res.json()
+
+        if (!res.ok) {
+          setError(data.error || 'Token exchange failed')
+        } else {
+          setTokenData(data)
+        }
+      } catch (err) {
+        console.error('Fetch error:', err)
+        setError('Something went wrong while fetching token.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    getToken()
+  }, [])
 
   return (
-    <div className="p-6 max-w-xl mx-auto text-center">
-      <h1 className="text-2xl font-bold mb-4">🔐 eBay OAuth Tokens</h1>
+    <div className="p-6">
+      <h1 className="text-xl font-bold mb-4">eBay Token Dashboard</h1>
 
-      {!accessToken && (
-        <p>No tokens found in URL. Please include access_token, refresh_token, and expires_in as query params.</p>
+      {loading && <p>Loading token...</p>}
+
+      {error && (
+        <div className="text-red-600">
+          <p>Error: {error}</p>
+        </div>
       )}
 
-      {accessToken && (
-        <div className="bg-gray-100 rounded p-4 text-left space-y-4">
-          <div>
-            <h2 className="font-semibold">Access Token</h2>
-            <code className="block overflow-auto break-all bg-white p-2 border rounded">{accessToken}</code>
-          </div>
-          <div>
-            <h2 className="font-semibold">Refresh Token</h2>
-            <code className="block overflow-auto break-all bg-white p-2 border rounded">{refreshToken}</code>
-          </div>
-          <div>
-            <h2 className="font-semibold">Expires In (seconds)</h2>
-            <code className="block">{expiresIn}</code>
-          </div>
+      {tokenData && (
+        <div className="text-sm space-y-2">
+          <p><strong>Access Token:</strong> {tokenData.access_token}</p>
+          <p><strong>Token Type:</strong> {tokenData.token_type}</p>
+          <p><strong>Expires In:</strong> {tokenData.expires_in} seconds</p>
+          <p><strong>Success:</strong> {tokenData.success ? '✅' : '❌'}</p>
         </div>
       )}
     </div>
