@@ -1,48 +1,29 @@
-// app/dashboard/page.tsx
 "use client"
-import { useEffect, useState } from "react"
+
+import { useSearchParams } from "next/navigation"
 
 export default function Dashboard() {
-  const [token, setToken] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token")
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const code = urlParams.get("code")
-
-    if (!code) {
-      setError("Authorization code not found in URL.")
-      setLoading(false)
-      return
-    }
-
-    // Exchange the authorization code for an access token
-    fetch("/api/ebay/oauth-exchange", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) {
-          setError(data.error)
-        } else {
-          setToken(data.access_token)
-        }
-      })
-      .catch(() => {
-        setError("Error exchanging authorization code.")
-      })
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (loading) return <p>Loading...</p>
-  if (error) return <p>Error: {error}</p>
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">eBay Access Token</h1>
-      <pre className="bg-gray-100 p-4 rounded text-sm overflow-x-scroll">{token}</pre>
+    <div className="flex min-h-screen flex-col items-center justify-center p-4">
+      <div className="w-full max-w-2xl rounded-lg border border-gray-200 bg-white p-8 shadow-md">
+        <h1 className="mb-4 text-2xl font-bold text-gray-800">Dashboard</h1>
+        {token ? (
+          <>
+            <p className="mb-2 text-gray-700 font-medium">Access Token:</p>
+            <textarea
+              className="w-full rounded border border-gray-300 p-2 text-sm font-mono"
+              rows={6}
+              readOnly
+              value={token}
+            />
+          </>
+        ) : (
+          <p className="text-gray-600">No token provided in URL.</p>
+        )}
+      </div>
     </div>
   )
 }

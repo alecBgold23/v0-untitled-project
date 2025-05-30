@@ -40,9 +40,10 @@ export default function AuthCallback() {
 
         if (res.ok) {
           setStatus("Authorization successful! Redirecting...")
-          // Use a timeout to ensure the state update happens before navigation
+          const token = data.access_token
+          // Redirect to dashboard with token in URL (optional: also pass expires_in etc.)
           setTimeout(() => {
-            router.push("/dashboard")
+            router.push(`/dashboard?token=${encodeURIComponent(token)}`)
           }, 1000)
         } else {
           setStatus("Authorization failed")
@@ -63,7 +64,11 @@ export default function AuthCallback() {
       <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-md">
         <h1 className="mb-4 text-2xl font-bold text-gray-800">eBay Authorization</h1>
         <p className="mb-4 text-gray-600">{status}</p>
-        {error && <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">Error: {error}</div>}
+        {error && (
+          <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+            Error: {error}
+          </div>
+        )}
       </div>
     </div>
   )
