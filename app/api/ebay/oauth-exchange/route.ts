@@ -57,28 +57,30 @@ export async function POST(request: NextRequest) {
 
     const expiresAt = Date.now() + tokenData.expires_in * 1000
 
-    // Try saving tokens to Supabase, but do not block response if it fails
-    supabase
+    // Explicitly define the object with correct column names for Supabase
+    const upsertPayload = {
+      id: "singleton", // primary key
+      access_token: tokenData.access_token ?? null,
+      refresh_token: tokenData.refresh_token ?? null,
+      expires_at: expiresAt ?? null,
+      updated_at: new Date().toISOString(),
+    }
+
+    console.log("Saving tokens to Supabase:", upsertPayload)
+
+    // Upsert into Supabase with full column mapping
+    await supabase
       .from("ebay_tokens")
-      .upsert(
-        {
-          id: "singleton",
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
-          expires_at: expiresAt,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "id" },
-      )
-      .then(({ error }) => {
+      .upsert(upsertPayload, { onConflict: "id" })
+      .then(({ data, error }) => {
         if (error) {
-          console.error("Supabase upsert error:", error)
+          console.error("❌ Supabase upsert error:", error.message)
         } else {
-          console.log("Tokens saved to Supabase successfully")
+          console.log("✅ Tokens saved to Supabase:", data)
         }
       })
       .catch((e) => {
-        console.error("Unexpected error saving tokens to Supabase:", e)
+        console.error("❌ Unexpected error saving tokens to Supabase:", e.message)
       })
 
     // Always return tokens to the client
