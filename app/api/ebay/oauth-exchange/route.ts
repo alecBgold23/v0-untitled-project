@@ -1,4 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
+
+// Initialize Supabase client with Service Role key for full DB access
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,6 +54,28 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Token exchange successful")
+
+    // Calculate expires_at as Unix timestamp in milliseconds
+    const expiresAt = Date.now() + tokenData.expires_in * 1000
+
+    // Upsert the tokens into Supabase (using fixed id 'singleton' for one row)
+    const { error } = await supabase
+      .from("ebay_tokens")
+      .upsert(
+        {
+          id: "singleton",
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_at: expiresAt,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      )
+
+    if (error) {
+      console.error("Supabase upsert error:", error)
+      return NextResponse.json({ error: "Failed to save tokens" }, { status: 500 })
+    }
 
     return NextResponse.json({
       access_token: tokenData.access_token,
