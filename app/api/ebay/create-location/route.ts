@@ -1,8 +1,6 @@
 import { NextRequest } from "next/server"
 
 export async function POST(request: NextRequest) {
-  console.log("✅ create-location endpoint hit")
-
   const token = process.env.EBAY_ACCESS_TOKEN
   const locationKey = "GLENVIEW_HOME_SHIP"
 
@@ -12,8 +10,8 @@ export async function POST(request: NextRequest) {
 
   const body = {
     name: "BluBerry Home Shipping",
-    locationInstructions: "Items are shipped from USPS drop-off in Glenview.",
-    locationTypes: ["WAREHOUSE"],
+    locationInstructions: "Ships from USPS drop-off in Glenview, IL.",
+    locationTypes: ["WAREHOUSE"], // eBay expects 'WAREHOUSE' for home shipping
     address: {
       addressLine1: "333 Parkview Road",
       city: "Glenview",
@@ -22,8 +20,8 @@ export async function POST(request: NextRequest) {
       country: "US"
     },
     geoCoordinates: {
-      latitude: 42.0792,
-      longitude: -87.8239
+      latitude: 42.079391,
+      longitude: -87.815622
     },
     merchantLocationStatus: "ENABLED"
   }
@@ -32,9 +30,9 @@ export async function POST(request: NextRequest) {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body)
   })
 
   const data = await res.json()
