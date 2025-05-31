@@ -1,4 +1,4 @@
-import type { NextRequest } from "next/server"
+import { NextRequest } from "next/server"
 
 export async function POST(request: NextRequest) {
   const token = process.env.EBAY_ACCESS_TOKEN
@@ -7,19 +7,15 @@ export async function POST(request: NextRequest) {
   const body = {
     name: "BluBerry Home Shipping",
     locationInstructions: "Ships from Glenview USPS drop-off.",
-    locationTypes: ["WAREHOUSE"],
+    locationTypes: ["STORE"],
     address: {
       addressLine1: "333 Parkview Road",
       city: "Glenview",
       stateOrProvince: "IL",
       postalCode: "60025",
-      country: "US",
+      country: "US"
     },
-    geoCoordinates: {
-      latitude: 42.0798,
-      longitude: -87.8255,
-    },
-    merchantLocationStatus: "ENABLED",
+    merchantLocationStatus: "ENABLED"
   }
 
   const res = await fetch(`https://api.ebay.com/sell/inventory/v1/location/${locationKey}`, {
