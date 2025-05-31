@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 
 export async function POST(request: NextRequest) {
   const token = process.env.EBAY_ACCESS_TOKEN
-  const locationKey = "GLENVIEW_HOME_SHIP"
+  const locationKey = process.env.EBAY_LOCATION_KEY
 
   if (!token) {
     return new Response(JSON.stringify({ error: "Missing eBay token" }), { status: 500 })
