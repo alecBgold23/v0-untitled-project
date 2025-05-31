@@ -10,18 +10,14 @@ export async function POST(request: NextRequest) {
 
   const body = {
     name: "BluBerry Home Shipping",
-    locationInstructions: "Ships from USPS drop-off in Glenview, IL.",
-    locationTypes: ["WAREHOUSE"], // eBay expects 'WAREHOUSE' for home shipping
+    locationInstructions: "Shipping from Glenview, IL address.",
+    locationTypes: ["WAREHOUSE"], // Use 'WAREHOUSE' if no retail store
     address: {
       addressLine1: "333 Parkview Road",
       city: "Glenview",
       stateOrProvince: "IL",
       postalCode: "60025",
       country: "US"
-    },
-    geoCoordinates: {
-      latitude: 42.079391,
-      longitude: -87.815622
     },
     merchantLocationStatus: "ENABLED"
   }
