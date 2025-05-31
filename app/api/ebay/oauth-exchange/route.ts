@@ -3,8 +3,8 @@ import { createClient } from "@supabase/supabase-js"
 
 // Initialize Supabase client with Service Role key for full DB access
 const supabase = createClient(
-  process.env.SUPABASE_URL!,          // Use NEXT_PUBLIC_SUPABASE_URL
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_URL!, // Use NEXT_PUBLIC_SUPABASE_URL
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 )
 
 export async function POST(request: NextRequest) {
@@ -93,6 +93,26 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("OAuth exchange error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+// Add a GET handler to test the Supabase connection if needed
+export async function GET() {
+  try {
+    // Test the Supabase connection
+    const { data, error } = await supabase.from("ebay_tokens").select("*").limit(1)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      message: "Supabase connection successful",
+      data,
+    })
+  } catch (error) {
+    console.error("Error testing Supabase connection:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
