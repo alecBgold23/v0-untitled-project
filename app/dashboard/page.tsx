@@ -2,6 +2,10 @@
 
 import { useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
+import { createClient } from "@supabase/supabase-js"
+
+// Initialize Supabase client
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
 export default function Dashboard() {
   const searchParams = useSearchParams()
@@ -31,32 +35,30 @@ export default function Dashboard() {
     setErrorMessage("")
 
     try {
-      const response = await fetch("/api/save-ebay-tokens", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_in: expiresIn,
-        }),
-      })
+      const expiresAt = Date.now() + expiresIn * 1000
 
-      const result = await response.json()
+      const upsertPayload = {
+        id: "singleton",
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_at: expiresAt,
+        updated_at: new Date().toISOString(),
+      }
 
-      if (!response.ok) {
-        console.error("❌ Error saving tokens:", result.error)
+      const { error } = await supabase.from("ebay_tokens").upsert(upsertPayload, { onConflict: "id" })
+
+      if (error) {
+        console.error("❌ Supabase upsert error:", error.message)
         setSaveStatus("error")
-        setErrorMessage(result.error || "Failed to save tokens")
+        setErrorMessage(error.message)
       } else {
-        console.log("✅ Tokens saved successfully")
+        console.log("✅ Tokens saved to Supabase successfully")
         setSaveStatus("success")
       }
     } catch (error) {
       console.error("❌ Unexpected error saving tokens:", error)
       setSaveStatus("error")
-      setErrorMessage("Network error occurred")
+      setErrorMessage("Unexpected error occurred")
     }
   }
 
