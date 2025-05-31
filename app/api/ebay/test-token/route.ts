@@ -1,7 +1,16 @@
-export async function GET() {
+import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
+
+export async function GET(request: NextRequest) {
   console.log("Starting eBay token test...")
 
   try {
+    // Simple test first - just return a basic response
+    return NextResponse.json({
+      message: "API endpoint is working",
+      timestamp: new Date().toISOString(),
+    })
+
     // Step 1: Check environment variables
     console.log("Checking environment variables...")
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -25,9 +34,8 @@ export async function GET() {
 
     console.log("Environment variables OK")
 
-    // Step 2: Import and create Supabase client
+    // Step 2: Create Supabase client
     console.log("Creating Supabase client...")
-    const { createClient } = await import("@supabase/supabase-js")
     const supabase = createClient(supabaseUrl, supabaseKey)
     console.log("Supabase client created")
 
@@ -106,16 +114,13 @@ export async function GET() {
     console.error("Error type:", typeof error)
     console.error("Error constructor:", error?.constructor?.name)
 
-    return new Response(
-      JSON.stringify({
-        error: "Server error",
+    return NextResponse.json(
+      {
+        error: "Failed to process request",
         message: error instanceof Error ? error.message : "Unknown error",
         type: typeof error,
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
       },
+      { status: 500 },
     )
   }
 }
