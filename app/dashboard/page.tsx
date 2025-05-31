@@ -1,29 +1,114 @@
 "use client"
 
 import { useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function Dashboard() {
   const searchParams = useSearchParams()
-  const token = searchParams.get("token")
+  const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [refreshToken, setRefreshToken] = useState<string | null>(null)
+  const [expiresIn, setExpiresIn] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle")
+  const [errorMessage, setErrorMessage] = useState<string>("")
+
+  useEffect(() => {
+    const access = searchParams.get("access_token")
+    const refresh = searchParams.get("refresh_token")
+    const expires = searchParams.get("expires_in")
+
+    setAccessToken(access)
+    setRefreshToken(refresh)
+    setExpiresIn(expires)
+
+    // Auto-save tokens if they exist
+    if (access && refresh && expires) {
+      saveTokensToSupabase(access, refresh, Number.parseInt(expires))
+    }
+  }, [searchParams])
+
+  const saveTokensToSupabase = async (accessToken: string, refreshToken: string, expiresIn: number) => {
+    setSaveStatus("saving")
+    setErrorMessage("")
+
+    try {
+      const response = await fetch("/api/save-ebay-tokens", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_in: expiresIn,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error("❌ Error saving tokens:", result.error)
+        setSaveStatus("error")
+        setErrorMessage(result.error || "Failed to save tokens")
+      } else {
+        console.log("✅ Tokens saved successfully")
+        setSaveStatus("success")
+      }
+    } catch (error) {
+      console.error("❌ Unexpected error saving tokens:", error)
+      setSaveStatus("error")
+      setErrorMessage("Network error occurred")
+    }
+  }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4">
-      <div className="w-full max-w-2xl rounded-lg border border-gray-200 bg-white p-8 shadow-md">
-        <h1 className="mb-4 text-2xl font-bold text-gray-800">Dashboard</h1>
-        {token ? (
-          <>
-            <p className="mb-2 text-gray-700 font-medium">Access Token:</p>
-            <textarea
-              className="w-full rounded border border-gray-300 p-2 text-sm font-mono"
-              rows={6}
-              readOnly
-              value={token}
-            />
-          </>
-        ) : (
-          <p className="text-gray-600">No token provided in URL.</p>
-        )}
-      </div>
+    <div className="p-6 max-w-xl mx-auto text-center">
+      <h1 className="text-2xl font-bold mb-4">🔐 eBay OAuth Dashboard</h1>
+
+      {!accessToken && (
+        <p>No tokens found in URL. Please include access_token, refresh_token, and expires_in as query params.</p>
+      )}
+
+      {accessToken && (
+        <div className="bg-gray-100 rounded p-4 text-left space-y-4">
+          <div>
+            <h2 className="font-semibold">Access Token</h2>
+            <code className="block overflow-auto break-all bg-white p-2 border rounded">{accessToken}</code>
+          </div>
+          <div>
+            <h2 className="font-semibold">Refresh Token</h2>
+            <code className="block overflow-auto break-all bg-white p-2 border rounded">{refreshToken}</code>
+          </div>
+          <div>
+            <h2 className="font-semibold">Expires In (seconds)</h2>
+            <code className="block">{expiresIn}</code>
+          </div>
+
+          {/* Save Status */}
+          <div className="mt-4 p-3 rounded border">
+            <h3 className="font-semibold mb-2">Supabase Save Status:</h3>
+            {saveStatus === "idle" && <p className="text-gray-600">Ready to save...</p>}
+            {saveStatus === "saving" && <p className="text-blue-600">💾 Saving tokens to Supabase...</p>}
+            {saveStatus === "success" && <p className="text-green-600">✅ Tokens saved successfully!</p>}
+            {saveStatus === "error" && (
+              <div>
+                <p className="text-red-600">❌ Error saving tokens:</p>
+                <p className="text-red-500 text-sm">{errorMessage}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Manual Save Button */}
+          {accessToken && refreshToken && expiresIn && (
+            <button
+              onClick={() => saveTokensToSupabase(accessToken, refreshToken, Number.parseInt(expiresIn))}
+              disabled={saveStatus === "saving"}
+              className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saveStatus === "saving" ? "Saving..." : "Save Tokens to Supabase"}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
