@@ -1,82 +1,18 @@
-import { createClient } from "@supabase/supabase-js"
+import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 
 export async function GET() {
   console.log("Starting eBay token test...")
 
   try {
-    // Simple test first - just return a basic response
-    return new Response("API endpoint is working", {
-      status: 200,
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    })
+    // Get valid token (automatically refreshes if needed)
+    const token = await getValidEbayAccessToken()
 
-    // Step 1: Check environment variables
-    console.log("Checking environment variables...")
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    console.log("Valid token obtained, testing with eBay...")
 
-    if (!supabaseUrl) {
-      console.log("Missing SUPABASE_URL")
-      return new Response("Missing SUPABASE_URL", {
-        status: 500,
-        headers: { "Content-Type": "text/plain" },
-      })
-    }
-
-    if (!supabaseKey) {
-      console.log("Missing SUPABASE_SERVICE_ROLE_KEY")
-      return new Response("Missing SUPABASE_SERVICE_ROLE_KEY", {
-        status: 500,
-        headers: { "Content-Type": "text/plain" },
-      })
-    }
-
-    console.log("Environment variables OK")
-
-    // Step 2: Create Supabase client
-    console.log("Creating Supabase client...")
-    const supabase = createClient(supabaseUrl, supabaseKey)
-    console.log("Supabase client created")
-
-    // Step 3: Query database
-    console.log("Querying database...")
-    const { data, error } = await supabase.from("ebay_tokens").select("access_token").eq("id", "singleton").single()
-
-    if (error) {
-      console.log("Database error:", error)
-      return new Response(
-        JSON.stringify({
-          error: "Database error",
-          details: error.message,
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      )
-    }
-
-    if (!data?.access_token) {
-      console.log("No access token found")
-      return new Response(
-        JSON.stringify({
-          error: "No access token found",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      )
-    }
-
-    console.log("Access token found, testing with eBay...")
-
-    // Step 4: Test with eBay
+    // Test with eBay API
     const ebayResponse = await fetch("https://api.ebay.com/sell/account/v1/fulfillment_policy", {
       headers: {
-        Authorization: `Bearer ${data.access_token}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     })
@@ -102,7 +38,7 @@ export async function GET() {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Token is valid",
+        message: "Token is valid and working",
         ebayResponse: ebayData,
       }),
       {
@@ -111,15 +47,17 @@ export async function GET() {
       },
     )
   } catch (error) {
-    console.error("Caught error:", error)
-    console.error("Error type:", typeof error)
-    console.error("Error constructor:", error?.constructor?.name)
+    console.error("Token test error:", error)
 
-    return new Response("Error occurred", {
-      status: 500,
-      headers: {
-        "Content-Type": "text/plain",
+    return new Response(
+      JSON.stringify({
+        error: "Token test failed",
+        details: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
       },
-    })
+    )
   }
 }
