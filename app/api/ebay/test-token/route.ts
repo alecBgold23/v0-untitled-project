@@ -1,69 +1,100 @@
-import type { NextRequest } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   console.log("Starting eBay token test...")
 
   try {
+    // Simple test first - just return a basic response
+    return new Response("API endpoint is working", {
+      status: 200,
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    })
+
     // Step 1: Check environment variables
     console.log("Checking environment variables...")
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    if (!supabaseUrl || !supabaseKey) {
-      console.log("Missing Supabase config")
-      return new Response("Missing Supabase environment variables", {
+    if (!supabaseUrl) {
+      console.log("Missing SUPABASE_URL")
+      return new Response("Missing SUPABASE_URL", {
         status: 500,
         headers: { "Content-Type": "text/plain" },
       })
     }
 
+    if (!supabaseKey) {
+      console.log("Missing SUPABASE_SERVICE_ROLE_KEY")
+      return new Response("Missing SUPABASE_SERVICE_ROLE_KEY", {
+        status: 500,
+        headers: { "Content-Type": "text/plain" },
+      })
+    }
+
+    console.log("Environment variables OK")
+
     // Step 2: Create Supabase client
+    console.log("Creating Supabase client...")
     const supabase = createClient(supabaseUrl, supabaseKey)
+    console.log("Supabase client created")
 
-    // Step 3: Query database for eBay token
-    const { data, error } = await supabase
-      .from("ebay_tokens")
-      .select("access_token")
-      .eq("id", "singleton")
-      .single()
+    // Step 3: Query database
+    console.log("Querying database...")
+    const { data, error } = await supabase.from("ebay_tokens").select("access_token").eq("id", "singleton").single()
 
-    if (error || !data?.access_token) {
-      console.log("Token error:", error?.message || "No token found")
+    if (error) {
+      console.log("Database error:", error)
       return new Response(
         JSON.stringify({
-          error: "No valid access token found",
-          details: error?.message || "Not set in database",
+          error: "Database error",
+          details: error.message,
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
       )
     }
 
-    const accessToken = data.access_token
+    if (!data?.access_token) {
+      console.log("No access token found")
+      return new Response(
+        JSON.stringify({
+          error: "No access token found",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      )
+    }
+
     console.log("Access token found, testing with eBay...")
 
-    // Step 4: Test token with eBay API
-    const ebayResponse = await fetch(
-      "https://api.ebay.com/sell/account/v1/fulfillment_policy?marketplace_id=EBAY_US", // ✅ FIXED
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    )
+    // Step 4: Test with eBay
+    const ebayResponse = await fetch("https://api.ebay.com/sell/account/v1/fulfillment_policy", {
+      headers: {
+        Authorization: `Bearer ${data.access_token}`,
+        "Content-Type": "application/json",
+      },
+    })
 
     const ebayData = await ebayResponse.json()
+    console.log("eBay response status:", ebayResponse.status)
 
     if (!ebayResponse.ok) {
-      console.error("eBay API error:", ebayData)
       return new Response(
         JSON.stringify({
           error: "eBay API error",
           status: ebayResponse.status,
           ebayError: ebayData,
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
       )
     }
 
@@ -71,16 +102,24 @@ export async function GET(request: NextRequest) {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "eBay token is valid",
+        message: "Token is valid",
         ebayResponse: ebayData,
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
     )
   } catch (error) {
     console.error("Caught error:", error)
-    return new Response("Server error occurred", {
+    console.error("Error type:", typeof error)
+    console.error("Error constructor:", error?.constructor?.name)
+
+    return new Response("Error occurred", {
       status: 500,
-      headers: { "Content-Type": "text/plain" },
+      headers: {
+        "Content-Type": "text/plain",
+      },
     })
   }
 }
