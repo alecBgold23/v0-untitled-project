@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server"
 
 export async function POST(request: NextRequest) {
+  console.log("✅ create-location endpoint hit")
+
   const token = process.env.EBAY_ACCESS_TOKEN
   const locationKey = "GLENVIEW_HOME_SHIP"
 
@@ -11,7 +13,7 @@ export async function POST(request: NextRequest) {
   const body = {
     name: "BluBerry Home Shipping",
     locationInstructions: "Items are shipped from USPS drop-off in Glenview.",
-    locationTypes: ["WAREHOUSE"], // "STORE" is often invalid unless you have a retail store
+    locationTypes: ["WAREHOUSE"],
     address: {
       addressLine1: "333 Parkview Road",
       city: "Glenview",
@@ -20,8 +22,8 @@ export async function POST(request: NextRequest) {
       country: "US"
     },
     geoCoordinates: {
-      latitude: 42.0792,    // Approximate Glenview latitude
-      longitude: -87.8239   // Approximate Glenview longitude
+      latitude: 42.0792,
+      longitude: -87.8239
     },
     merchantLocationStatus: "ENABLED"
   }
