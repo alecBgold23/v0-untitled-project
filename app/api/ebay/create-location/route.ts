@@ -4,6 +4,10 @@ export async function POST(request: NextRequest) {
   const token = process.env.EBAY_ACCESS_TOKEN
   const locationKey = "GLENVIEW_HOME_SHIP"
 
+  if (!token) {
+    return new Response(JSON.stringify({ error: true, message: "Missing eBay access token" }), { status: 400 })
+  }
+
   const body = {
     name: "BluBerry Home Shipping",
     locationInstructions: "Ships from Glenview USPS drop-off.",
@@ -18,6 +22,8 @@ export async function POST(request: NextRequest) {
     merchantLocationStatus: "ENABLED"
   }
 
+  console.log("Sending location request to eBay with body:", JSON.stringify(body, null, 2))
+
   const res = await fetch(`https://api.ebay.com/sell/inventory/v1/location/${locationKey}`, {
     method: "PUT",
     headers: {
@@ -28,6 +34,8 @@ export async function POST(request: NextRequest) {
   })
 
   const data = await res.json()
+  console.log("eBay response:", data)
+
   if (!res.ok) {
     return new Response(JSON.stringify({ error: true, data }), { status: res.status })
   }
