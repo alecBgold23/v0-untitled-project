@@ -40,10 +40,18 @@ export default function AuthCallback() {
 
         if (res.ok) {
           setStatus("Authorization successful! Redirecting...")
-          const token = data.access_token
-          // Redirect to dashboard with token in URL (optional: also pass expires_in etc.)
+
+          const accessToken = data.access_token
+          const refreshToken = data.refresh_token
+          const expiresIn = data.expires_in
+
+          // Redirect to dashboard passing all tokens as query parameters
           setTimeout(() => {
-            router.push(`/dashboard?token=${encodeURIComponent(token)}`)
+            router.push(
+              `/dashboard?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(
+                refreshToken
+              )}&expires_in=${encodeURIComponent(expiresIn)}`
+            )
           }, 1000)
         } else {
           setStatus("Authorization failed")
