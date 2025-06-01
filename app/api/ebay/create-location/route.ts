@@ -1,13 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken";
 
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
-    // Get valid access token (automatically refreshes if needed)
     const token = await getValidEbayAccessToken();
     const locationKey = "GLENVIEW_WAREHOUSE_001"; // Hardcoded location key
 
-    // Payload for creating/updating the location
     const body = {
       name: "BluBerry Home Shipping",
       locationInstructions: "Shipping from Glenview, IL address.",
@@ -31,7 +29,6 @@ export async function POST(request: NextRequest) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
           Accept: "application/json",
-          // Optional: Add marketplace ID header if needed
           "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
         },
         body: JSON.stringify(body),
