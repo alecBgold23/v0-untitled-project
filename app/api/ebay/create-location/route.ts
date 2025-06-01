@@ -1,28 +1,29 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken";
 
-export async function PUT(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const token = await getValidEbayAccessToken();
-    const locationKey = "GLENVIEW_WAREHOUSE_001"; // Hardcoded location key
+    const locationKey = "GLENVIEW_WAREHOUSE_001";
 
     const body = {
-      name: "BluBerry Home Shipping",
-      locationInstructions: "Shipping from Glenview, IL address.",
-      locationTypes: ["WAREHOUSE"],
-      address: {
-        city: "Glenview",
-        stateOrProvince: "IL",
-        country: "US"
+      location: {
+        address: {
+          city: "Glenview",
+          stateOrProvince: "IL",
+          country: "US"
+        }
       },
+      name: "BluBerry Home Shipping",
       merchantLocationStatus: "ENABLED",
+      locationTypes: ["WAREHOUSE"],
       phone: "847-510-3229"
     };
 
     const res = await fetch(
       `https://api.ebay.com/sell/inventory/v1/location/${locationKey}`,
       {
-        method: "PUT",
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
