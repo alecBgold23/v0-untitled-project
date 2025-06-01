@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     // Make the PUT request to eBay's API
     const res = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/location/${GLENVIEW_WAREHOUSE_001}`,
+      `https://api.ebay.com/sell/inventory/v1/location/${locationKey}`,
       {
         method: "PUT",
         headers: {
