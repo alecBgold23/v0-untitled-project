@@ -9,7 +9,13 @@ export async function POST(request: NextRequest) {
     const token = await getValidEbayAccessToken()
     console.log("Successfully obtained eBay access token")
 
-    // Payload for creating a NEW location
+    const locationKey = process.env.EBAY_LOCATION_KEY
+    if (!locationKey) {
+      console.error("EBAY_LOCATION_KEY environment variable is missing")
+      return NextResponse.json({ error: "eBay location key not configured" }, { status: 500 })
+    }
+
+    // Simplified payload for basic location creation
     const body = {
       name: "BluBerry Home Shipping",
       locationInstructions: "Shipping from Glenview, IL address.",
@@ -24,12 +30,11 @@ export async function POST(request: NextRequest) {
       merchantLocationStatus: "ENABLED",
     }
 
-    console.log("Making request to eBay API to CREATE new location")
+    console.log("Making request to eBay API with location key:", locationKey)
     console.log("Request payload:", JSON.stringify(body, null, 2))
 
-    // POST to create a NEW location (eBay will generate the location key)
-    const res = await fetch("https://api.ebay.com/sell/inventory/v1/location", {
-      method: "POST",
+    const res = await fetch(`https://api.ebay.com/sell/inventory/v1/location/${locationKey}`, {
+      method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -60,20 +65,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extract the new location key from eBay's response
-    const newLocationKey = data.merchantLocationKey || data.locationKey
-
     console.log("Location created successfully!")
-    console.log("New location key:", newLocationKey)
-
     return NextResponse.json(
       {
         success: true,
-        newLocationKey,
+        locationKey,
         data,
-        message: "New location created successfully",
+        message: "Location created successfully",
       },
-      { status: 201 }, // 201 for resource creation
+      { status: 200 },
     )
   } catch (error) {
     console.error("Unexpected error in create-location:", error)
