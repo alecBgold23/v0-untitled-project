@@ -4,7 +4,6 @@ export async function GET() {
   console.log("Starting eBay token test...")
 
   try {
-    // ✅ Step 1: Check environment variables
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -17,10 +16,8 @@ export async function GET() {
       })
     }
 
-    // ✅ Step 2: Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // ✅ Step 3: Query Supabase for access token
     const { data, error } = await supabase
       .from("ebay_tokens")
       .select("access_token")
@@ -44,8 +41,7 @@ export async function GET() {
       )
     }
 
-    // ✅ Step 4: Test token by hitting eBay API
-    const ebayResponse = await fetch("https://api.ebay.com/sell/account/v1/fulfillment_policy", {
+    const ebayResponse = await fetch("https://api.ebay.com/sell/account/v1/fulfillment_policy?marketplace_id=EBAY_US", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
@@ -66,7 +62,6 @@ export async function GET() {
       )
     }
 
-    // ✅ Success
     return new Response(
       JSON.stringify({
         success: true,
