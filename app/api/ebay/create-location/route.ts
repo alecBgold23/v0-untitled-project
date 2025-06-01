@@ -11,11 +11,12 @@ export async function PUT(request: NextRequest) {
       locationInstructions: "Shipping from Glenview, IL address.",
       locationTypes: ["WAREHOUSE"],
       address: {
-        addressLine1: "333 Parkview Road",
         city: "Glenview",
         stateOrProvince: "IL",
-        postalCode: "60025",
-        country: "US",
+        country: "US"
+        // Optionally, you could use postalCode and country instead:
+        // postalCode: "60025",
+        // country: "US"
       },
       merchantLocationStatus: "ENABLED",
     };
