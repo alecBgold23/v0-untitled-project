@@ -14,14 +14,11 @@ export async function PUT(request: NextRequest) {
         city: "Glenview",
         stateOrProvince: "IL",
         country: "US"
-        // Optionally, you could use postalCode and country instead:
-        // postalCode: "60025",
-        // country: "US"
       },
       merchantLocationStatus: "ENABLED",
+      phone: "847-510-3229"
     };
 
-    // Make the PUT request to eBay's API
     const res = await fetch(
       `https://api.ebay.com/sell/inventory/v1/location/${locationKey}`,
       {
@@ -29,8 +26,7 @@ export async function PUT(request: NextRequest) {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+          Accept: "application/json"
         },
         body: JSON.stringify(body),
       }
