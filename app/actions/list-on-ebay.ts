@@ -1,7 +1,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
-import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
+import { getEbayAccessToken } from "@/lib/ebay/auth"
 import { createInventoryItem, createOffer, publishOffer } from "@/lib/ebay/listing"
 
 export async function listItemOnEbay(itemId: string) {
@@ -10,8 +10,7 @@ export async function listItemOnEbay(itemId: string) {
 
   if (error || !data) throw new Error("Item not found")
 
-  // Get valid token (automatically refreshes if needed)
-  const token = await getValidEbayAccessToken()
+  const token = await getEbayAccessToken()
 
   const sku = `item-${data.id}`
   const imageUrls = data.image_url ? [data.image_url] : []
