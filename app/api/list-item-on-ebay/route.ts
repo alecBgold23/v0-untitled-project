@@ -2,7 +2,6 @@ import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 
-// Initialize Supabase client
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function POST(request: Request) {
@@ -15,50 +14,58 @@ export async function POST(request: Request) {
     }
 
     // 2. Fetch the full item data from Supabase
-    const { data: submission, error: fetchError } = await supabase.from("sell_items").select("*").eq("id", id).single()
+    const { data: submission, error } = await supabase.from("sell_items").select("*").eq("id", id).single()
 
-    if (fetchError || !submission) {
+    if (error || !submission) {
       return NextResponse.json({ error: "Item not found or error fetching data" }, { status: 404 })
     }
 
-    // 3. Get valid eBay access token
-    const accessToken = await getValidEbayAccessToken()
+    // 3. Get a valid eBay access token (with auto-refresh if needed)
+    const { accessToken, error: tokenError } = await getValidEbayAccessToken()
 
-    if (!accessToken) {
-      return NextResponse.json({ error: "Failed to get valid eBay access token" }, { status: 401 })
+    if (tokenError || !accessToken) {
+      return NextResponse.json({ error: `Failed to get eBay access token: ${tokenError}` }, { status: 500 })
     }
 
-    // 4. Prepare data for eBay listing
-    const sku = `item-${submission.id}`
-    const imageUrls = submission.image_url ? [submission.image_url] : []
+    // 4. Prepare the inventory item data
+    const sku = `SKU-${submission.id}-${Date.now()}`
+    const title = submission.item_name.substring(0, 80) // eBay title max length is 80
 
-    // Map condition to eBay condition codes
-    const mapConditionToCode = (condition: string) => {
-      const normalized = condition.toLowerCase().trim()
-      switch (normalized) {
-        case "like new":
-          return 1000 // New
-        case "excellent":
-          return 4000 // Very Good
-        case "good":
-          return 5000 // Good
-        case "fair":
-          return 6000 // Acceptable
-        case "poor":
-          return 7000 // For parts or not working
-        default:
-          return 3000 // Used
+    // Handle multiple images if available
+    let imageUrls: string[] = []
+    if (submission.image_url) {
+      imageUrls.push(submission.image_url)
+    }
+
+    // Check if there are additional images stored in image_urls field
+    if (submission.image_urls) {
+      try {
+        // Try to parse as JSON
+        const parsedUrls = JSON.parse(submission.image_urls)
+        if (Array.isArray(parsedUrls)) {
+          imageUrls = [...imageUrls, ...parsedUrls]
+        }
+      } catch {
+        // If not JSON, try comma-separated
+        const additionalUrls = submission.image_urls.split(",").map((url) => url.trim())
+        imageUrls = [...imageUrls, ...additionalUrls]
       }
     }
 
-    // 5. Step 1: Create or Replace Inventory Item
-    const inventoryItemPayload = {
-      condition: mapConditionToCode(submission.item_condition),
+    // Remove duplicates
+    imageUrls = [...new Set(imageUrls)]
+
+    // Prepare inventory item data
+    const inventoryItem = {
       product: {
-        title: submission.item_name,
+        title,
         description: submission.item_description,
-        imageUrls: imageUrls,
+        aspects: {
+          Condition: [submission.item_condition || "Used"],
+        },
+        imageUrls,
       },
+      condition: submission.item_condition === "Like New" ? "NEW_OTHER" : "USED_EXCELLENT",
       availability: {
         shipToLocationAvailability: {
           quantity: 1,
@@ -66,84 +73,86 @@ export async function POST(request: Request) {
       },
     }
 
+    // 5. Create or replace inventory item
+    console.log("Creating inventory item on eBay...")
     const inventoryResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
       method: "PUT",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify(inventoryItemPayload),
+      body: JSON.stringify(inventoryItem),
     })
 
     if (!inventoryResponse.ok) {
-      const errorText = await inventoryResponse.text()
-      console.error("❌ Failed to create inventory item:", errorText)
-      throw new Error(`Failed to create inventory item: ${inventoryResponse.statusText}`)
+      const errorData = await inventoryResponse.json()
+      console.error("eBay inventory item creation failed:", errorData)
+      return NextResponse.json(
+        { error: `Failed to create inventory item: ${JSON.stringify(errorData)}` },
+        { status: 500 },
+      )
     }
 
-    console.log("✅ Inventory item created for SKU:", sku)
-
-    // 6. Step 2: Create Offer
-    const offerPayload = {
-      sku: sku,
+    // 6. Create an offer for the inventory item
+    console.log("Creating offer on eBay...")
+    const offerData = {
+      sku,
       marketplaceId: "EBAY_US",
       format: "FIXED_PRICE",
       availableQuantity: 1,
+      categoryId: "9355", // Default category - Electronics
+      listingDescription: submission.item_description,
+      listingPolicies: {
+        fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
+        paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID,
+        returnPolicyId: process.env.EBAY_RETURN_POLICY_ID,
+      },
       pricingSummary: {
         price: {
-          value: submission.estimated_price?.toFixed(2) || "0.00",
           currency: "USD",
+          value: submission.estimated_price?.toString() || "99.99",
         },
       },
-      listingPolicies: {
-        fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID!,
-        paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID!,
-        returnPolicyId: process.env.EBAY_RETURN_POLICY_ID!,
-      },
-      merchantLocationKey: process.env.EBAY_LOCATION_KEY!,
+      merchantLocationKey: process.env.EBAY_LOCATION_KEY,
     }
 
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify(offerPayload),
+      body: JSON.stringify(offerData),
     })
 
     if (!offerResponse.ok) {
-      const errorText = await offerResponse.text()
-      console.error("❌ Failed to create offer:", errorText)
-      throw new Error(`Failed to create offer: ${offerResponse.statusText}`)
+      const errorData = await offerResponse.json()
+      console.error("eBay offer creation failed:", errorData)
+      return NextResponse.json({ error: `Failed to create offer: ${JSON.stringify(errorData)}` }, { status: 500 })
     }
 
     const offerResult = await offerResponse.json()
     const offerId = offerResult.offerId
 
-    console.log("✅ Offer created:", offerId)
-
-    // 7. Step 3: Publish Offer
+    // 7. Publish the offer to create the actual listing
+    console.log("Publishing offer on eBay...")
     const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
       },
     })
 
     if (!publishResponse.ok) {
-      const errorText = await publishResponse.text()
-      console.error("❌ Failed to publish offer:", errorText)
-      throw new Error(`Failed to publish offer: ${publishResponse.statusText}`)
+      const errorData = await publishResponse.json()
+      console.error("eBay offer publishing failed:", errorData)
+      return NextResponse.json({ error: `Failed to publish offer: ${JSON.stringify(errorData)}` }, { status: 500 })
     }
 
     const publishResult = await publishResponse.json()
     const listingId = publishResult.listingId
 
-    console.log("✅ Offer published:", offerId, "Listing ID:", listingId)
-
-    // 8. Update status and store eBay data in Supabase
+    // 8. Update the database with eBay listing information
     const { error: updateError } = await supabase
       .from("sell_items")
       .update({
@@ -155,21 +164,19 @@ export async function POST(request: Request) {
 
     if (updateError) {
       console.error("Failed to update database:", updateError)
-      return NextResponse.json({ error: "Failed to update status in Supabase" }, { status: 500 })
+      return NextResponse.json({ error: "Item was listed on eBay but failed to update database" }, { status: 500 })
     }
 
-    // 9. Return success
+    // 9. Return success with listing details
     return NextResponse.json({
       success: true,
-      offerId: offerId,
-      listingId: listingId,
       message: "Item successfully listed on eBay",
+      ebay_offer_id: offerId,
+      ebay_listing_id: listingId,
+      ebay_listing_url: `https://www.ebay.com/itm/${listingId}`,
     })
-  } catch (e: any) {
+  } catch (e) {
     console.error("Error listing item on eBay:", e)
-    return NextResponse.json(
-      { error: "Failed to list item on eBay: " + (e.message || "Unknown error") },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Internal server error" }, { status: 500 })
   }
 }

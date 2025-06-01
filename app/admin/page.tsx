@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { MoreHorizontal, Package, Users, DollarSign, CheckCircle, Loader2 } from "lucide-react"
+import { MoreHorizontal, Package, Users, DollarSign, CheckCircle, Loader2, AlertCircle, X } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +28,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 type SubmissionStatus = "pending" | "approved" | "rejected" | "listed"
 
@@ -46,6 +56,7 @@ export interface ItemSubmission {
   submission_date: string
   image_path: string | null
   image_url: string | null
+  image_urls?: string | null // For multiple images
   estimated_price: number | null
   item_condition: "Like New" | "Excellent" | "Good" | "Fair" | "Poor"
 }
@@ -56,6 +67,8 @@ export default function AdminDashboard() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [listingLoading, setListingLoading] = useState<string | null>(null)
   const [listingError, setListingError] = useState<string | null>(null)
+  const [selectedItem, setSelectedItem] = useState<ItemSubmission | null>(null)
+  const [itemImages, setItemImages] = useState<string[]>([])
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -80,7 +93,27 @@ export default function AdminDashboard() {
           console.error("Failed to fetch submissions:", error)
           setFetchError(error.message)
         } else {
-          setSubmissions(data || [])
+          // Process image URLs to ensure they're from the item_images bucket
+          const processedData = data?.map((item) => {
+            // Ensure image_url is from the item_images bucket
+            let imageUrl = item.image_url
+            if (imageUrl && !imageUrl.includes("/item_images/")) {
+              // Extract the file name from the URL
+              const fileName = imageUrl.split("/").pop()
+              // Reconstruct the URL to point to the item_images bucket
+              const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+              if (projectId && fileName) {
+                imageUrl = `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${fileName}`
+              }
+            }
+
+            return {
+              ...item,
+              image_url: imageUrl,
+            }
+          })
+
+          setSubmissions(processedData || [])
         }
       } catch (error) {
         console.error("Unexpected error fetching submissions:", error)
@@ -104,6 +137,8 @@ export default function AdminDashboard() {
     setListingError(null)
 
     try {
+      console.log(`🚀 Starting eBay listing process for item ID: ${id}`)
+
       const response = await fetch("/api/list-item-on-ebay", {
         method: "POST",
         headers: {
@@ -114,15 +149,55 @@ export default function AdminDashboard() {
 
       const result = await response.json()
 
+      console.log(`📡 API Response Status: ${response.status}`)
+      console.log(`📡 API Response Data:`, result)
+
       if (!response.ok) {
-        throw new Error(result.error || "Failed to list item on eBay")
+        const errorMessage = result.error || `HTTP ${response.status}: ${response.statusText}`
+        console.error(`❌ eBay listing failed for item ${id}:`, errorMessage)
+        throw new Error(errorMessage)
       }
+
+      // Success case
+      console.log(`✅ Successfully listed item ${id} on eBay:`, {
+        offerId: result.ebay_offer_id,
+        listingId: result.ebay_listing_id,
+        listingUrl: result.ebay_listing_url,
+      })
 
       // Update local state only after successful API call
       updateSubmissionStatus(id, "listed")
+
+      // Show success message (optional)
+      if (result.ebay_listing_url) {
+        console.log(`🔗 eBay listing URL: ${result.ebay_listing_url}`)
+      }
     } catch (error) {
-      console.error("Error listing item on eBay:", error)
-      setListingError(error instanceof Error ? error.message : "Failed to list item on eBay")
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
+      console.error(`❌ Error listing item ${id} on eBay:`, {
+        error: errorMessage,
+        timestamp: new Date().toISOString(),
+        itemId: id,
+      })
+
+      // Set user-friendly error message
+      let userErrorMessage = "Failed to list item on eBay"
+
+      if (errorMessage.includes("access token")) {
+        userErrorMessage = "eBay authentication failed. Please check your eBay connection."
+      } else if (errorMessage.includes("inventory item")) {
+        userErrorMessage = "Failed to create item inventory on eBay. Check item details."
+      } else if (errorMessage.includes("offer")) {
+        userErrorMessage = "Failed to create eBay offer. Check pricing and policies."
+      } else if (errorMessage.includes("publish")) {
+        userErrorMessage = "Failed to publish listing on eBay. Item created but not live."
+      } else if (errorMessage.includes("database")) {
+        userErrorMessage = "Item listed on eBay but failed to update our records."
+      } else {
+        userErrorMessage = `eBay listing failed: ${errorMessage}`
+      }
+
+      setListingError(userErrorMessage)
     } finally {
       setListingLoading(null)
     }
@@ -149,6 +224,37 @@ export default function AdminDashboard() {
       Poor: "text-red-600",
     }
     return colors[condition as keyof typeof colors] || "text-gray-600"
+  }
+
+  const viewItemDetails = (item: ItemSubmission) => {
+    setSelectedItem(item)
+
+    // Parse multiple images if available
+    let images: string[] = []
+    if (item.image_urls) {
+      try {
+        // Try to parse as JSON array
+        const parsed = JSON.parse(item.image_urls)
+        if (Array.isArray(parsed)) {
+          images = parsed
+        }
+      } catch {
+        // If not JSON, try comma-separated
+        images = item.image_urls.split(",").map((url) => url.trim())
+      }
+    }
+
+    // Add the main image if it exists and isn't already in the array
+    if (item.image_url && !images.includes(item.image_url)) {
+      images.unshift(item.image_url)
+    }
+
+    // If still no images, use a placeholder
+    if (images.length === 0) {
+      images = ["/placeholder.svg"]
+    }
+
+    setItemImages(images)
   }
 
   const stats = {
@@ -215,10 +321,19 @@ export default function AdminDashboard() {
           <CardContent>
             {listingError && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-red-600 text-sm">{listingError}</p>
-                <Button size="sm" variant="outline" onClick={() => setListingError(null)} className="mt-2">
-                  Dismiss
-                </Button>
+                <div className="flex items-start">
+                  <AlertCircle className="h-5 w-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
+                  <div className="flex-grow">
+                    <h4 className="text-sm font-medium text-red-800 mb-1">eBay Listing Failed</h4>
+                    <p className="text-red-700 text-sm mb-2">{listingError}</p>
+                    <p className="text-red-600 text-xs">
+                      Check the browser console (F12) for detailed error logs. Contact support if the issue persists.
+                    </p>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => setListingError(null)} className="h-6 w-6 p-0 ml-2">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
             {fetchError ? (
@@ -261,12 +376,25 @@ export default function AdminDashboard() {
                             <div className="text-sm text-gray-500 max-w-[200px] truncate">
                               {submission.item_description}
                             </div>
+                            {submission.item_issues && (
+                              <div className="text-xs text-red-500 max-w-[200px] truncate">
+                                Issues: {submission.item_issues}
+                              </div>
+                            )}
+                            <Button
+                              variant="link"
+                              className="text-xs p-0 h-auto"
+                              onClick={() => viewItemDetails(submission)}
+                            >
+                              View Details
+                            </Button>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
                             <div className="font-medium">{submission.full_name}</div>
                             <div className="text-sm text-gray-500">{submission.email}</div>
+                            {submission.phone && <div className="text-xs text-gray-500">{submission.phone}</div>}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -347,7 +475,9 @@ export default function AdminDashboard() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem>View details</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => viewItemDetails(submission)}>
+                                  View details
+                                </DropdownMenuItem>
                                 <DropdownMenuItem>Contact customer</DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem>Edit submission</DropdownMenuItem>
@@ -365,6 +495,125 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Item Details Dialog */}
+      {selectedItem && (
+        <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{selectedItem.item_name}</DialogTitle>
+              <DialogDescription>
+                Submitted by {selectedItem.full_name} on {new Date(selectedItem.submission_date).toLocaleDateString()}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 flex-grow overflow-hidden">
+              <div className="space-y-4 overflow-y-auto">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Images</h3>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {itemImages.map((url, index) => (
+                      <div key={index} className="relative aspect-square rounded-md overflow-hidden border">
+                        <Image
+                          src={url || "/placeholder.svg"}
+                          alt={`${selectedItem.item_name} - Image ${index + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Customer Information</h3>
+                  <div className="mt-1 text-sm">
+                    <p>
+                      <span className="font-medium">Name:</span> {selectedItem.full_name}
+                    </p>
+                    <p>
+                      <span className="font-medium">Email:</span> {selectedItem.email}
+                    </p>
+                    {selectedItem.phone && (
+                      <p>
+                        <span className="font-medium">Phone:</span> {selectedItem.phone}
+                      </p>
+                    )}
+                    {selectedItem.address && (
+                      <p>
+                        <span className="font-medium">Address:</span> {selectedItem.address}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Item Details</h3>
+                    <div className="mt-1">
+                      <p>
+                        <span className="font-medium">Condition:</span> {selectedItem.item_condition}
+                      </p>
+                      <p>
+                        <span className="font-medium">Estimated Price:</span>{" "}
+                        {selectedItem.estimated_price
+                          ? `$${selectedItem.estimated_price.toLocaleString()}`
+                          : "Not estimated"}
+                      </p>
+                      <p>
+                        <span className="font-medium">Status:</span> {selectedItem.status}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Description</h3>
+                    <div className="mt-1 text-sm whitespace-pre-wrap bg-gray-50 p-3 rounded-md border">
+                      {selectedItem.item_description}
+                    </div>
+                  </div>
+
+                  {selectedItem.item_issues && (
+                    <div>
+                      <h3 className="text-sm font-medium text-red-500">Known Issues</h3>
+                      <div className="mt-1 text-sm whitespace-pre-wrap bg-red-50 p-3 rounded-md border border-red-100 text-red-800">
+                        {selectedItem.item_issues}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+
+            <DialogFooter>
+              {selectedItem.status === "approved" && (
+                <Button
+                  onClick={() => {
+                    listItemOnEbay(selectedItem.id)
+                    setSelectedItem(null)
+                  }}
+                  disabled={listingLoading === selectedItem.id}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {listingLoading === selectedItem.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Listing on eBay...
+                    </>
+                  ) : (
+                    "List on eBay"
+                  )}
+                </Button>
+              )}
+              <DialogClose asChild>
+                <Button variant="outline">Close</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
