@@ -19,9 +19,6 @@ function mapConditionToEbay(condition: string): number {
   return conditionMap[condition] || 7000
 }
 
-}
-
-
 // Get appropriate category ID based on item name/description
 function getCategoryId(itemName: string, description: string): string {
   const text = `${itemName} ${description}`.toLowerCase()

@@ -64,7 +64,7 @@ function createCorrectImageUrl(filePath: string): string {
   const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath
 
   // Return the correct URL format with item_images bucket
-  return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
+  return `https://${projectId}.supabase.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
 }
 
 // Function to upload image to Supabase via server action
@@ -2074,7 +2074,8 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                                   onError={(e) => {
                                                     console.error(`Error loading image ${photoIndex}:`, e)
                                                     // Fallback to placeholder
-                                                    e.currentTarget.src = "/placeholder.svg?height=96&width=96"
+                                                    e.currentTarget.src =
+                                                      "/placeholder.svg?height=96&width=96&query=image"
                                                   }}
                                                   onLoad={() => {
                                                     // Revoke blob URL after successful load to prevent memory leaks
