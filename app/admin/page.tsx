@@ -69,6 +69,8 @@ export default function AdminDashboard() {
   const [listingError, setListingError] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<ItemSubmission | null>(null)
   const [itemImages, setItemImages] = useState<string[]>([])
+  const [editingDescription, setEditingDescription] = useState<string | null>(null)
+  const [editedDescription, setEditedDescription] = useState<string>("")
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -291,6 +293,38 @@ export default function AdminDashboard() {
     })
   }
 
+  const updateItemDescription = async (id: string, newDescription: string) => {
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+      const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+      const { error } = await supabase.from("sell_items").update({ item_description: newDescription }).eq("id", id)
+
+      if (error) throw error
+
+      // Update local state
+      setSubmissions((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, item_description: newDescription } : item)),
+      )
+
+      setEditingDescription(null)
+      setEditedDescription("")
+    } catch (error) {
+      console.error("Failed to update description:", error)
+    }
+  }
+
+  const startEditingDescription = (id: string, currentDescription: string) => {
+    setEditingDescription(id)
+    setEditedDescription(currentDescription)
+  }
+
+  const cancelEditingDescription = () => {
+    setEditingDescription(null)
+    setEditedDescription("")
+  }
+
   const stats = {
     total: submissions.length,
     pending: submissions.filter((s) => s.status === "pending").length,
@@ -383,7 +417,7 @@ export default function AdminDashboard() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[100px]">Image</TableHead>
-                      <TableHead>Item Details</TableHead>
+                      <TableHead>Description</TableHead>
                       <TableHead>Customer</TableHead>
                       <TableHead>Condition</TableHead>
                       <TableHead>Price</TableHead>
@@ -412,25 +446,60 @@ export default function AdminDashboard() {
                             }}
                           />
                         </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="font-medium">{submission.item_name}</div>
-                            <div className="text-sm text-gray-500 max-w-[200px] truncate">
-                              {submission.item_description}
-                            </div>
-                            {submission.item_issues && (
-                              <div className="text-xs text-red-500 max-w-[200px] truncate">
-                                Issues: {submission.item_issues}
+                        <TableCell className="max-w-[300px]">
+                          {editingDescription === submission.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={editedDescription}
+                                onChange={(e) => setEditedDescription(e.target.value)}
+                                className="w-full p-2 border rounded-md text-sm resize-none"
+                                rows={3}
+                                placeholder="Enter item description..."
+                              />
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  onClick={() => updateItemDescription(submission.id, editedDescription)}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  Save
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={cancelEditingDescription}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  Cancel
+                                </Button>
                               </div>
-                            )}
-                            <Button
-                              variant="link"
-                              className="text-xs p-0 h-auto"
-                              onClick={() => viewItemDetails(submission)}
-                            >
-                              View Details
-                            </Button>
-                          </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-1">
+                              <div className="text-sm text-gray-900 line-clamp-3">
+                                {submission.item_description || "No description"}
+                              </div>
+                              <Button
+                                variant="link"
+                                className="text-xs p-0 h-auto text-blue-600"
+                                onClick={() => startEditingDescription(submission.id, submission.item_description)}
+                              >
+                                Edit Description
+                              </Button>
+                              {submission.item_issues && (
+                                <div className="text-xs text-red-500 max-w-[200px] truncate">
+                                  Issues: {submission.item_issues}
+                                </div>
+                              )}
+                              <Button
+                                variant="link"
+                                className="text-xs p-0 h-auto"
+                                onClick={() => viewItemDetails(submission)}
+                              >
+                                View Details
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
