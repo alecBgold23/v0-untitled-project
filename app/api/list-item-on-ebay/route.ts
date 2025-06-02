@@ -2,10 +2,7 @@ import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 // Map item conditions to eBay condition values
 function mapConditionToEbay(condition: string) {
@@ -55,11 +52,7 @@ export async function POST(request: Request) {
 
     console.log(`📝 Processing item ID: ${id}`)
 
-    const { data: submission, error } = await supabase
-      .from("sell_items")
-      .select("*")
-      .eq("id", id)
-      .single()
+    const { data: submission, error } = await supabase.from("sell_items").select("*").eq("id", id).single()
 
     if (error || !submission) {
       console.error("❌ Item not found:", error)
@@ -84,7 +77,7 @@ export async function POST(request: Request) {
             tokenError instanceof Error ? tokenError.message : "Unknown error"
           }`,
         },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
@@ -161,7 +154,7 @@ export async function POST(request: Request) {
       })
       return NextResponse.json(
         { error: `Failed to create inventory item: ${JSON.stringify(errorData)}` },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
@@ -195,11 +188,11 @@ export async function POST(request: Request) {
         returnPolicyId: requiredEnvVars.returnPolicyId,
       },
       pricingSummary: {
-  price: {
-    currency: 'USD',
-    value: Number(submission.estimated_price || 99.99),
-  },
-}
+        price: {
+          currency: "USD",
+          value: Number(submission.estimated_price || 99.99),
+        },
+      },
       merchantLocationKey: requiredEnvVars.locationKey,
     }
 
@@ -225,7 +218,7 @@ export async function POST(request: Request) {
         {
           error: `Failed to create offer: ${JSON.stringify(errorData)}`,
         },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
@@ -238,25 +231,22 @@ export async function POST(request: Request) {
         {
           error: "No offer ID returned from eBay API",
         },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
     console.log(`✅ Offer created successfully: ${offerId}`)
 
     console.log("🚀 Publishing offer on eBay...")
-    const publishResponse = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Language": "en-US",
-          "Accept-Language": "en-US",
-        },
-      }
-    )
+    const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
+      },
+    })
 
     if (!publishResponse.ok) {
       const errorData = await publishResponse.json()
@@ -269,7 +259,7 @@ export async function POST(request: Request) {
         {
           error: `Failed to publish offer: ${JSON.stringify(errorData)}`,
         },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
