@@ -203,7 +203,7 @@ export async function POST(request: Request) {
       pricingSummary: {
         price: {
           currency: "USD",
-          value: Number(submission.estimated_price || 99.99),
+          value: Number(submission.estimated_price || "99.99"),
         },
       },
       merchantLocationKey: requiredEnvVars.locationKey,

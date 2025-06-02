@@ -142,7 +142,7 @@ importers:
         version: 7.0.3
       openai:
         specifier: latest
-        version: 5.0.1(ws@8.18.2)(zod@3.24.1)
+        version: 5.0.2(ws@8.18.2)(zod@3.24.1)
       react:
         specifier: ^19
         version: 19.0.0
@@ -1821,8 +1821,8 @@ packages:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
     engines: {node: '>= 0.4'}
 
-  openai@5.0.1:
-    resolution: {integrity: sha512-Do6vxhbDv7cXhji/4ct1lrpZYMAOmjYbhyA9LJTuG7OfpbWMpuS+EIXkRT7R+XxpRB1OZhU/op4FU3p3uxU6gw==}
+  openai@5.0.2:
+    resolution: {integrity: sha512-NN7LAAImgBmd4RIe6WyRpLmwCbn+HQ1iaXeIG7K9DM3Auy/G2waKFhrDfRgaEeY0UUPnm6nohaCsqcS+zO8+2g==}
     hasBin: true
     peerDependencies:
       ws: ^8.18.0
@@ -3888,7 +3888,7 @@ snapshots:
 
   object-inspect@1.13.4: {}
 
-  openai@5.0.1(ws@8.18.2)(zod@3.24.1):
+  openai@5.0.2(ws@8.18.2)(zod@3.24.1):
     optionalDependencies:
       ws: 8.18.2
       zod: 3.24.1
