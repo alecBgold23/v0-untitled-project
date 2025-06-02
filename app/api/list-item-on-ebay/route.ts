@@ -104,22 +104,18 @@ export async function POST(request: Request) {
       imageUrls.push(submission.image_url)
     }
 
-    // Check if there are additional images stored in image_urls field
     if (submission.image_urls) {
       try {
-        // Try to parse as JSON
         const parsedUrls = JSON.parse(submission.image_urls)
         if (Array.isArray(parsedUrls)) {
           imageUrls = [...imageUrls, ...parsedUrls]
         }
       } catch {
-        // If not JSON, try comma-separated
         const additionalUrls = submission.image_urls.split(",").map((url) => url.trim())
         imageUrls = [...imageUrls, ...additionalUrls]
       }
     }
 
-    // Remove duplicates and filter out empty URLs
     imageUrls = [...new Set(imageUrls)].filter((url) => url && url.trim().length > 0)
 
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing`)
@@ -150,7 +146,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
       },
       body: JSON.stringify(inventoryItem),
     })
@@ -213,7 +209,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
       },
       body: JSON.stringify(offerData),
     })
@@ -255,13 +251,13 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
       },
     })
 
     if (!publishResponse.ok) {
       const errorData = await publishResponse.json()
-      console.error("❌ Failed to publish offer:", {
+      console.error("❌ eBay offer publishing failed:", {
         status: publishResponse.status,
         statusText: publishResponse.statusText,
         error: errorData,
@@ -274,31 +270,38 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log("✅ Offer published successfully!")
+    const publishResult = await publishResponse.json()
+    const listingId = publishResult.listingId
 
-    // 10. Update Supabase sell_items table with eBay listing info
-    const listingUrl = `https://www.ebay.com/itm/${offerId}` // eBay item URL (approximate)
+    console.log(`✅ Offer published successfully: ${listingId}`)
 
+    // 10. Update the database with eBay listing information
     const { error: updateError } = await supabase
       .from("sell_items")
       .update({
-        ebay_listing_id: offerId,
-        ebay_listing_url: listingUrl,
-        status: "LISTED",
+        status: "listed",
+        ebay_offer_id: offerId,
+        ebay_listing_id: listingId,
+        ebay_sku: sku,
+        listed_at: new Date().toISOString(),
       })
       .eq("id", id)
 
     if (updateError) {
-      console.error("⚠️ Failed to update Supabase listing info:", updateError)
-      // Don't block success if updating DB fails
-    } else {
-      console.log("✅ Supabase listing info updated")
+      console.error("❌ Failed to update listing info in DB:", updateError)
+      return NextResponse.json(
+        { error: "Failed to update listing info in database" },
+        { status: 500 },
+      )
     }
 
+    console.log("🎉 Listing process complete!")
+
     return NextResponse.json({
-      message: "Item listed on eBay successfully",
-      listingUrl,
+      message: "Item listed successfully on eBay",
       offerId,
+      listingId,
+      sku,
     })
   } catch (error) {
     console.error("❌ Unexpected error in listing route:", error)
