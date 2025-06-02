@@ -134,7 +134,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
   const [formStep, setFormStep] = useState(1)
   const [formSubmitted, setFormSubmitted] = useState(false)
   const [formErrors, setFormErrors] = useState({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(isSubmitting)
   const [submitResult, setSubmitResult] = useState(null)
   const [activeTab, setActiveTab] = useState("upload")
   // Add this to the state declarations at the top of the component
