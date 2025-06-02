@@ -195,11 +195,11 @@ export async function POST(request: Request) {
         returnPolicyId: requiredEnvVars.returnPolicyId,
       },
       pricingSummary: {
-        price: {
-          currency: "USD",
-         value: Number(submission.estimated_price || 99.99)
-        },
-      },
+  price: {
+    currency: 'USD',
+    value: Number(submission.estimated_price || 99.99),
+  },
+}
       merchantLocationKey: requiredEnvVars.locationKey,
     }
 
