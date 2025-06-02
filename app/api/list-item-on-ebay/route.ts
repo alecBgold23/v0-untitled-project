@@ -200,12 +200,12 @@ export async function POST(request: Request) {
         paymentPolicyId: requiredEnvVars.paymentPolicyId,
         returnPolicyId: requiredEnvVars.returnPolicyId,
       },
-      pricingSummary: {
-        price: {
-          currency: "USD",
-          value: Number(submission.estimated_price || "99.99"),
-        },
-      },
+     pricingSummary: {
+  price: {
+    value: "33.99", // or a number: 33.99
+    currency: "USD", // MUST be a string in quotes
+  }
+},
       merchantLocationKey: requiredEnvVars.locationKey,
     }
 
