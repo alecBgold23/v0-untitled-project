@@ -250,7 +250,7 @@ export default function AdminDashboard() {
       Fair: "text-orange-600",
       Poor: "text-red-600",
     }
-    return colors[condition as keyof typeof colors] || "text-gray-600"
+    return colors[condition as keyof typeof colors] || "text-foreground"
   }
 
   const viewItemDetails = (item: ItemSubmission) => {
@@ -333,11 +333,11 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <div className="text-sm text-gray-500">Item Submissions Management</div>
+          <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+          <div className="text-sm text-muted-foreground">Item Submissions Management</div>
         </div>
       </header>
 
@@ -349,7 +349,7 @@ export default function AdminDashboard() {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
+              <div className="text-2xl font-bold text-foreground">{stats.total}</div>
             </CardContent>
           </Card>
           <Card>
@@ -358,7 +358,7 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
+              <div className="text-2xl font-bold text-foreground">{stats.pending}</div>
             </CardContent>
           </Card>
           <Card>
@@ -367,7 +367,7 @@ export default function AdminDashboard() {
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.approved}</div>
+              <div className="text-2xl font-bold text-foreground">{stats.approved}</div>
             </CardContent>
           </Card>
           <Card>
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.listed}</div>
+              <div className="text-2xl font-bold text-foreground">{stats.listed}</div>
             </CardContent>
           </Card>
         </div>
@@ -409,22 +409,22 @@ export default function AdminDashboard() {
             ) : loading ? (
               <div className="flex items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin" />
-                Loading submissions...
+                <span className="ml-2 text-foreground">Loading submissions...</span>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[100px]">Image</TableHead>
-                      <TableHead className="w-[150px]">Item Name</TableHead>
-                      <TableHead className="w-[300px]">Description</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Condition</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Submitted</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="w-[100px] text-foreground">Image</TableHead>
+                      <TableHead className="w-[150px] text-foreground">Item Name</TableHead>
+                      <TableHead className="w-[300px] text-foreground">Description</TableHead>
+                      <TableHead className="text-foreground">Customer</TableHead>
+                      <TableHead className="text-foreground">Condition</TableHead>
+                      <TableHead className="text-foreground">Price</TableHead>
+                      <TableHead className="text-foreground">Status</TableHead>
+                      <TableHead className="text-foreground">Submitted</TableHead>
+                      <TableHead className="text-right text-foreground">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -449,7 +449,7 @@ export default function AdminDashboard() {
                         </TableCell>
                         <TableCell className="max-w-[150px]">
                           <div className="space-y-1">
-                            <div className="font-semibold text-gray-900 text-sm line-clamp-2">
+                            <div className="font-semibold text-foreground text-sm line-clamp-2">
                               {submission.item_name}
                             </div>
                             {submission.item_issues && (
@@ -472,7 +472,7 @@ export default function AdminDashboard() {
                               <textarea
                                 value={editedDescription}
                                 onChange={(e) => setEditedDescription(e.target.value)}
-                                className="w-full p-2 border border-gray-300 rounded-md text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full p-2 border border-border rounded-md text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-background text-foreground"
                                 rows={3}
                                 placeholder="Enter item description..."
                               />
@@ -496,7 +496,7 @@ export default function AdminDashboard() {
                             </div>
                           ) : (
                             <div className="space-y-1">
-                              <div className="text-sm text-gray-900 font-medium line-clamp-3 leading-relaxed">
+                              <div className="text-sm text-foreground font-medium line-clamp-3 leading-relaxed">
                                 {submission.item_description || "No description provided"}
                               </div>
                               <Button
@@ -511,9 +511,11 @@ export default function AdminDashboard() {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="font-semibold text-gray-900 text-sm">{submission.full_name}</div>
-                            <div className="text-sm text-gray-700">{submission.email}</div>
-                            {submission.phone && <div className="text-xs text-gray-600">{submission.phone}</div>}
+                            <div className="font-semibold text-foreground text-sm">{submission.full_name}</div>
+                            <div className="text-sm text-muted-foreground">{submission.email}</div>
+                            {submission.phone && (
+                              <div className="text-xs text-muted-foreground">{submission.phone}</div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -521,13 +523,13 @@ export default function AdminDashboard() {
                             {submission.item_condition}
                           </span>
                         </TableCell>
-                        <TableCell className="font-semibold text-gray-900">
+                        <TableCell className="font-semibold text-foreground">
                           {submission.estimated_price !== null
                             ? `$${submission.estimated_price.toLocaleString()}`
                             : "—"}
                         </TableCell>
                         <TableCell>{getStatusBadge(submission.status)}</TableCell>
-                        <TableCell className="text-sm text-gray-700 font-medium">
+                        <TableCell className="text-sm text-foreground font-medium">
                           {new Date(submission.submission_date).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
@@ -620,8 +622,8 @@ export default function AdminDashboard() {
         <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
-              <DialogTitle>{selectedItem.item_name}</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-foreground">{selectedItem.item_name}</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
                 Submitted by {selectedItem.full_name} on {new Date(selectedItem.submission_date).toLocaleDateString()}
               </DialogDescription>
             </DialogHeader>
@@ -629,10 +631,13 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 flex-grow overflow-hidden">
               <div className="space-y-4 overflow-y-auto">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Images</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">Images</h3>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     {itemImages.map((url, index) => (
-                      <div key={index} className="relative aspect-square rounded-md overflow-hidden border">
+                      <div
+                        key={index}
+                        className="relative aspect-square rounded-md overflow-hidden border border-border"
+                      >
                         <Image
                           src={url || "/placeholder.svg"}
                           alt={`${selectedItem.item_name} - Image ${index + 1}`}
@@ -645,21 +650,21 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Customer Information</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">Customer Information</h3>
                   <div className="mt-1 text-sm">
-                    <p>
+                    <p className="text-foreground">
                       <span className="font-medium">Name:</span> {selectedItem.full_name}
                     </p>
-                    <p>
+                    <p className="text-foreground">
                       <span className="font-medium">Email:</span> {selectedItem.email}
                     </p>
                     {selectedItem.phone && (
-                      <p>
+                      <p className="text-foreground">
                         <span className="font-medium">Phone:</span> {selectedItem.phone}
                       </p>
                     )}
                     {selectedItem.address && (
-                      <p>
+                      <p className="text-foreground">
                         <span className="font-medium">Address:</span> {selectedItem.address}
                       </p>
                     )}
@@ -670,26 +675,26 @@ export default function AdminDashboard() {
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Item Details</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground">Item Details</h3>
                     <div className="mt-1">
-                      <p>
+                      <p className="text-foreground">
                         <span className="font-medium">Condition:</span> {selectedItem.item_condition}
                       </p>
-                      <p>
+                      <p className="text-foreground">
                         <span className="font-medium">Estimated Price:</span>{" "}
                         {selectedItem.estimated_price
                           ? `$${selectedItem.estimated_price.toLocaleString()}`
                           : "Not estimated"}
                       </p>
-                      <p>
+                      <p className="text-foreground">
                         <span className="font-medium">Status:</span> {selectedItem.status}
                       </p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Description</h3>
-                    <div className="mt-1 text-sm whitespace-pre-wrap bg-gray-50 p-3 rounded-md border">
+                    <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
+                    <div className="mt-1 text-sm whitespace-pre-wrap bg-muted p-3 rounded-md border border-border text-foreground">
                       {selectedItem.item_description}
                     </div>
                   </div>

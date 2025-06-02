@@ -277,3 +277,114 @@ export function getConditionFilter(condition?: string): string {
   // Default to specific condition
   return `conditionIds:{${getEbayConditionId(condition)}}`
 }
+
+/**
+ * Create or replace an inventory item on eBay
+ */
+export async function createOrReplaceInventoryItem(sku: string, inventoryItem: any) {
+  const token = await getEbayOAuthToken()
+
+  const response = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(inventoryItem),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Failed to create inventory item: ${response.status} - ${errorText}`)
+  }
+
+  return response.status === 204 ? { success: true } : await response.json()
+}
+
+/**
+ * Create an offer for an inventory item
+ */
+export async function createOffer(offer: any) {
+  const token = await getEbayOAuthToken()
+
+  const response = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(offer),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Failed to create offer: ${response.status} - ${errorText}`)
+  }
+
+  return await response.json()
+}
+
+/**
+ * Publish an offer to eBay marketplace
+ */
+export async function publishOffer(offerId: string) {
+  const token = await getEbayOAuthToken()
+
+  const response = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Failed to publish offer: ${response.status} - ${errorText}`)
+  }
+
+  return await response.json()
+}
+
+/**
+ * Get eBay category ID based on item description
+ */
+export function getCategoryIdFromEbay(itemName: string, itemDescription: string): string {
+  const combined = `${itemName} ${itemDescription}`.toLowerCase()
+
+  // Electronics categories
+  if (
+    combined.includes("phone") ||
+    combined.includes("smartphone") ||
+    combined.includes("iphone") ||
+    combined.includes("android")
+  ) {
+    return "9355" // Cell Phones & Smartphones
+  }
+  if (combined.includes("laptop") || combined.includes("computer") || combined.includes("pc")) {
+    return "177" // Laptops & Netbooks
+  }
+  if (combined.includes("tablet") || combined.includes("ipad")) {
+    return "171485" // Tablets & eBook Readers
+  }
+  if (combined.includes("camera") || combined.includes("photography")) {
+    return "625" // Cameras & Photo
+  }
+  if (combined.includes("headphone") || combined.includes("earphone") || combined.includes("audio")) {
+    return "15052" // Portable Audio & Headphones
+  }
+  if (combined.includes("watch") || combined.includes("smartwatch")) {
+    return "178893" // Smart Watches
+  }
+  if (
+    combined.includes("gaming") ||
+    combined.includes("console") ||
+    combined.includes("xbox") ||
+    combined.includes("playstation")
+  ) {
+    return "139973" // Video Game Consoles
+  }
+
+  // Default to general electronics
+  return "293" // Consumer Electronics
+}

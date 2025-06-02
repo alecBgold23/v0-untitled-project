@@ -57,3 +57,8 @@ export async function getEbayOAuthToken(): Promise<string> {
     throw error
   }
 }
+
+/**
+ * Alias for getEbayOAuthToken for backward compatibility
+ */
+export const getAccessToken = getEbayOAuthToken
