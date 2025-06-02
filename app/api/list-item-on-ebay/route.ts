@@ -146,7 +146,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        "Accept-Language": "en-US",
+        "Content-Language": "en-US",
       },
       body: JSON.stringify(inventoryItem),
     })
@@ -209,7 +209,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        "Accept-Language": "en-US",
+        "Content-Language": "en-US",
       },
       body: JSON.stringify(offerData),
     })
@@ -251,7 +251,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        "Accept-Language": "en-US",
+        "Content-Language": "en-US",
       },
     })
 
