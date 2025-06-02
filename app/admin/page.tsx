@@ -93,19 +93,44 @@ export default function AdminDashboard() {
           console.error("Failed to fetch submissions:", error)
           setFetchError(error.message)
         } else {
-          // Process image URLs to ensure they're from the item_images bucket
+          // Process image URLs to ensure they're correctly formatted
           const processedData = data?.map((item) => {
-            // Ensure image_url is from the item_images bucket
+            console.log("Processing item:", item.id, "Original image_url:", item.image_url)
+
             let imageUrl = item.image_url
-            if (imageUrl && !imageUrl.includes("/item_images/")) {
-              // Extract the file name from the URL
-              const fileName = imageUrl.split("/").pop()
-              // Reconstruct the URL to point to the item_images bucket
-              const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
-              if (projectId && fileName) {
-                imageUrl = `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${fileName}`
+
+            if (imageUrl) {
+              // Clean up the URL and ensure it's properly formatted
+              imageUrl = imageUrl.trim()
+
+              // If it's already a full URL, check if it's correctly formatted
+              if (imageUrl.startsWith("http")) {
+                // Extract project ID from Supabase URL
+                const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+
+                if (projectId) {
+                  // Check if it's a Supabase storage URL but not properly formatted
+                  if (imageUrl.includes(projectId) && !imageUrl.includes("/storage/v1/object/public/item_images/")) {
+                    // Extract filename from the end of the URL
+                    const urlParts = imageUrl.split("/")
+                    const fileName = urlParts[urlParts.length - 1]
+
+                    // Reconstruct with proper bucket path
+                    imageUrl = `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${fileName}`
+                  }
+                }
+              } else {
+                // If it's just a filename or path, construct full URL
+                const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+                if (projectId) {
+                  // Remove any leading slashes or bucket names
+                  const cleanPath = imageUrl.replace(/^\/?(item_images\/)?/, "")
+                  imageUrl = `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
+                }
               }
             }
+
+            console.log("Processed image_url:", imageUrl)
 
             return {
               ...item,
@@ -257,6 +282,15 @@ export default function AdminDashboard() {
     setItemImages(images)
   }
 
+  const debugImageUrl = (url: string, itemId: string) => {
+    console.log(`🖼️ Image Debug for item ${itemId}:`, {
+      originalUrl: url,
+      isValid: url && url.startsWith("http"),
+      containsBucket: url?.includes("item_images"),
+      urlLength: url?.length,
+    })
+  }
+
   const stats = {
     total: submissions.length,
     pending: submissions.filter((s) => s.status === "pending").length,
@@ -368,6 +402,14 @@ export default function AdminDashboard() {
                             width={80}
                             height={80}
                             className="rounded-lg object-cover"
+                            onError={(e) => {
+                              console.error(`❌ Failed to load image for item ${submission.id}:`, submission.image_url)
+                              debugImageUrl(submission.image_url || "", submission.id)
+                              e.currentTarget.src = "/placeholder.svg"
+                            }}
+                            onLoad={() => {
+                              console.log(`✅ Successfully loaded image for item ${submission.id}`)
+                            }}
                           />
                         </TableCell>
                         <TableCell>
