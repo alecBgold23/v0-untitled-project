@@ -333,11 +333,11 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="flex flex-col min-h-screen bg-gray-900">
+      <header className="bg-gray-800 border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <div className="text-sm text-gray-500">Item Submissions Management</div>
+          <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
+          <div className="text-sm text-gray-400">Item Submissions Management</div>
         </div>
       </header>
 
@@ -417,13 +417,14 @@ export default function AdminDashboard() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[100px]">Image</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Condition</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Submitted</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="w-[150px] text-white">Item Name</TableHead>
+                      <TableHead className="text-white">Description</TableHead>
+                      <TableHead className="text-white">Customer</TableHead>
+                      <TableHead className="text-white">Condition</TableHead>
+                      <TableHead className="text-white">Price</TableHead>
+                      <TableHead className="text-white">Status</TableHead>
+                      <TableHead className="text-white">Submitted</TableHead>
+                      <TableHead className="text-right text-white">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -445,6 +446,23 @@ export default function AdminDashboard() {
                               console.log(`✅ Successfully loaded image for item ${submission.id}`)
                             }}
                           />
+                        </TableCell>
+                        <TableCell className="max-w-[150px]">
+                          <div className="space-y-1">
+                            <div className="font-semibold text-white text-sm line-clamp-2">{submission.item_name}</div>
+                            {submission.item_issues && (
+                              <div className="text-xs text-red-400 font-medium max-w-[140px] truncate">
+                                Issues: {submission.item_issues}
+                              </div>
+                            )}
+                            <Button
+                              variant="link"
+                              className="text-xs p-0 h-auto text-blue-400 hover:text-blue-300"
+                              onClick={() => viewItemDetails(submission)}
+                            >
+                              View Details
+                            </Button>
+                          </div>
                         </TableCell>
                         <TableCell className="max-w-[300px]">
                           {editingDescription === submission.id ? (
@@ -476,18 +494,18 @@ export default function AdminDashboard() {
                             </div>
                           ) : (
                             <div className="space-y-1">
-                              <div className="text-sm text-gray-900 line-clamp-3">
+                              <div className="text-sm text-white line-clamp-3">
                                 {submission.item_description || "No description"}
                               </div>
                               <Button
                                 variant="link"
-                                className="text-xs p-0 h-auto text-blue-600"
+                                className="text-xs p-0 h-auto text-blue-400"
                                 onClick={() => startEditingDescription(submission.id, submission.item_description)}
                               >
                                 Edit Description
                               </Button>
                               {submission.item_issues && (
-                                <div className="text-xs text-red-500 max-w-[200px] truncate">
+                                <div className="text-xs text-red-400 max-w-[200px] truncate">
                                   Issues: {submission.item_issues}
                                 </div>
                               )}
@@ -503,9 +521,9 @@ export default function AdminDashboard() {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="font-medium">{submission.full_name}</div>
-                            <div className="text-sm text-gray-500">{submission.email}</div>
-                            {submission.phone && <div className="text-xs text-gray-500">{submission.phone}</div>}
+                            <div className="font-medium text-white">{submission.full_name}</div>
+                            <div className="text-sm text-gray-400">{submission.email}</div>
+                            {submission.phone && <div className="text-xs text-gray-400">{submission.phone}</div>}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -513,13 +531,13 @@ export default function AdminDashboard() {
                             {submission.item_condition}
                           </span>
                         </TableCell>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium text-white">
                           {submission.estimated_price !== null
                             ? `$${submission.estimated_price.toLocaleString()}`
                             : "—"}
                         </TableCell>
                         <TableCell>{getStatusBadge(submission.status)}</TableCell>
-                        <TableCell className="text-sm text-gray-500">
+                        <TableCell className="text-sm text-gray-400">
                           {new Date(submission.submission_date).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
