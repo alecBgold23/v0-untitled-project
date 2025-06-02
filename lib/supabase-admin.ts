@@ -1,11 +1,10 @@
 import { createClient } from "@supabase/supabase-js"
 
 // Create a singleton Supabase admin client
-let supabaseAdminInstance: ReturnType<typeof createClient> | null = null
+let supabaseAdmin: ReturnType<typeof createClient> | null = null
 
-// Export the supabaseAdmin directly as required by the deployment
-export const getSupabaseAdmin = () => {
-  if (supabaseAdminInstance) return supabaseAdminInstance
+export function getSupabaseAdmin() {
+  if (supabaseAdmin) return supabaseAdmin
 
   const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -14,15 +13,12 @@ export const getSupabaseAdmin = () => {
     throw new Error("Missing Supabase admin credentials")
   }
 
-  supabaseAdminInstance = createClient(supabaseUrl, supabaseServiceKey, {
+  supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
     auth: { persistSession: false },
   })
 
-  return supabaseAdminInstance
+  return supabaseAdmin
 }
-
-// Export the supabaseAdmin directly as required by the deployment
-export const supabaseAdmin = getSupabaseAdmin()
 
 // Initialize required storage buckets
 export async function initializeStorage() {
