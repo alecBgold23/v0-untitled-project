@@ -299,14 +299,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message: "Item listed successfully on eBay",
-      offerId,
       listingId,
+      offerId,
       sku,
     })
-  } catch (error) {
-    console.error("❌ Unexpected error in listing route:", error)
+  } catch (err) {
+    console.error("❌ Unexpected error during listing process:", err)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
+      {
+        error: `Unexpected error: ${err instanceof Error ? err.message : "Unknown error"}`,
+      },
       { status: 500 },
     )
   }
