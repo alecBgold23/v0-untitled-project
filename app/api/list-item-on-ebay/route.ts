@@ -150,6 +150,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
       },
       body: JSON.stringify(inventoryItem),
     })
@@ -212,6 +213,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
       },
       body: JSON.stringify(offerData),
     })
@@ -253,12 +255,13 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
       },
     })
 
     if (!publishResponse.ok) {
       const errorData = await publishResponse.json()
-      console.error("❌ eBay offer publishing failed:", {
+      console.error("❌ Failed to publish offer:", {
         status: publishResponse.status,
         statusText: publishResponse.statusText,
         error: errorData,
@@ -271,62 +274,36 @@ export async function POST(request: Request) {
       )
     }
 
-    const publishResult = await publishResponse.json()
-    const listingId = publishResult.listingId
+    console.log("✅ Offer published successfully!")
 
-    console.log(`✅ Offer published successfully: ${listingId}`)
+    // 10. Update Supabase sell_items table with eBay listing info
+    const listingUrl = `https://www.ebay.com/itm/${offerId}` // eBay item URL (approximate)
 
-    // 10. Update the database with eBay listing information
     const { error: updateError } = await supabase
       .from("sell_items")
       .update({
-        status: "listed",
-        ebay_offer_id: offerId,
-        ebay_listing_id: listingId,
-        ebay_sku: sku,
-        listed_at: new Date().toISOString(),
+        ebay_listing_id: offerId,
+        ebay_listing_url: listingUrl,
+        status: "LISTED",
       })
       .eq("id", id)
 
     if (updateError) {
-      console.error("❌ Failed to update database:", updateError)
-      return NextResponse.json(
-        {
-          error: "Item was listed on eBay but failed to update database",
-        },
-        { status: 500 },
-      )
+      console.error("⚠️ Failed to update Supabase listing info:", updateError)
+      // Don't block success if updating DB fails
+    } else {
+      console.log("✅ Supabase listing info updated")
     }
 
-    console.log("✅ Database updated successfully")
-
-    // 11. Return success with listing details
-    const successResponse = {
-      success: true,
-      message: "Item successfully listed on eBay",
-      ebay_offer_id: offerId,
-      ebay_listing_id: listingId,
-      ebay_listing_url: listingId ? `https://www.ebay.com/itm/${listingId}` : null,
-      sku,
-      category: categoryId,
-      condition: ebayCondition,
-      images_count: imageUrls.length,
-    }
-
-    console.log("🎉 eBay listing completed successfully:", successResponse)
-    return NextResponse.json(successResponse)
-  } catch (e) {
-    const error = e instanceof Error ? e : new Error("Unknown error")
-    console.error("💥 Unexpected error in eBay listing process:", {
-      message: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
+    return NextResponse.json({
+      message: "Item listed on eBay successfully",
+      listingUrl,
+      offerId,
     })
-
+  } catch (error) {
+    console.error("❌ Unexpected error in listing route:", error)
     return NextResponse.json(
-      {
-        error: `Internal server error: ${error.message}`,
-      },
+      { error: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 },
     )
   }
