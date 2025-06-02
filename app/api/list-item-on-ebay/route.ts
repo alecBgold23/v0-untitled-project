@@ -9,15 +9,15 @@ const supabase = createClient(
 
 function mapConditionToEbay(condition: string) {
   const conditionMap: { [key: string]: string } = {
-    "Like New": "2750",  // This is okay in some categories like Consumer Electronics
-    "Excellent": "2750",
-    "Good": "3000",       // Used
-    "Fair": "4000",       // Very Good
+    "Like New": "1500",  // This is okay in some categories like Consumer Electronics
+    "Excellent": "1500",
+    "Good": "2500",       // Used
+    "Fair": "3000",       // Very Good
     "Poor": "7000",       // For parts or not working
   }
 
   // Safe fallback to a common valid used condition
-  return conditionMap[condition] || "3000"
+  return conditionMap[condition] || "7000"
 }
 
 // Get appropriate category ID based on item name/description
