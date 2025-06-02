@@ -7,11 +7,11 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 // Map item conditions to eBay condition values
 function mapConditionToEbay(condition: string) {
   const conditionMap: { [key: string]: string } = {
-    "Like New": "NEW_OTHER",
-    Excellent: "USED_EXCELLENT",
-    Good: "USED_GOOD",
-    Fair: "USED_ACCEPTABLE",
-    Poor: "FOR_PARTS_OR_NOT_WORKING",
+    "Like New": "1500",
+    Excellent: "2750",
+    Good: "3000",
+    Fair: "4000",
+    Poor: "7000",
   }
   return conditionMap[condition] || "USED_GOOD"
 }
