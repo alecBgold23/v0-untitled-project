@@ -62,7 +62,6 @@ export interface ItemSubmission {
   image_urls?: string | null // For multiple images
   estimated_price: number | null
   item_condition: "Like New" | "Excellent" | "Good" | "Fair" | "Poor"
-  created_at: string
 }
 
 export default function AdminDashboard() {
@@ -121,7 +120,10 @@ export default function AdminDashboard() {
         }
 
         const supabase = createClient(supabaseUrl, supabaseAnonKey)
-        const { data, error } = await supabase.from("sell_items").select("*").order("created_at", { ascending: false })
+        const { data, error } = await supabase
+          .from("sell_items")
+          .select("*")
+          .order("submission_date", { ascending: false })
 
         if (error) {
           console.error("Failed to fetch submissions:", error)
@@ -607,7 +609,7 @@ export default function AdminDashboard() {
                         </TableCell>
                         <TableCell>{getStatusBadge(submission.status)}</TableCell>
                         <TableCell className="text-sm text-gray-400">
-                          {new Date(submission.created_at || submission.submission_date).toLocaleDateString()}
+                          {new Date(submission.submission_date).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -701,8 +703,7 @@ export default function AdminDashboard() {
             <DialogHeader>
               <DialogTitle>{selectedItem.item_name}</DialogTitle>
               <DialogDescription>
-                Submitted by {selectedItem.full_name} on{" "}
-                {new Date(selectedItem.created_at || selectedItem.submission_date).toLocaleDateString()}
+                Submitted by {selectedItem.full_name} on {new Date(selectedItem.submission_date).toLocaleDateString()}
               </DialogDescription>
             </DialogHeader>
 
