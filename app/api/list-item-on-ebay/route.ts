@@ -9,10 +9,10 @@ const supabase = createClient(
 
 function mapConditionToEbay(condition: string): number {
   const conditionMap: { [key: string]: number } = {
-    "Like New": 1500,
-    "Excellent": 1500,
-    "Good": 2500,
-    "Fair": 3000,
+    "Like New": 2750,
+    "Excellent": 3000,
+    "Good": 5000,
+    "Fair": 6000,
     "Poor": 7000,
   }
 
