@@ -1,8 +1,10 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { MoreHorizontal, Package, Users, DollarSign, CheckCircle, Loader2, AlertCircle, X } from "lucide-react"
+import { MoreHorizontal, Package, Users, DollarSign, CheckCircle, Loader2, AlertCircle, X, LogOut } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 
 import { Badge } from "@/components/ui/badge"
@@ -38,6 +40,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Input } from "@/components/ui/input"
 
 type SubmissionStatus = "pending" | "approved" | "rejected" | "listed"
 
@@ -72,7 +75,38 @@ export default function AdminDashboard() {
   const [editingDescription, setEditingDescription] = useState<string | null>(null)
   const [editedDescription, setEditedDescription] = useState<string>("")
 
+  // Password protection
+  const [password, setPassword] = useState("")
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [passwordError, setPasswordError] = useState(false)
+
+  // Check if already authenticated
   useEffect(() => {
+    const authStatus = localStorage.getItem("adminAuthenticated")
+    if (authStatus === "true") {
+      setIsAuthenticated(true)
+    }
+  }, [])
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (password === "2923939") {
+      setIsAuthenticated(true)
+      localStorage.setItem("adminAuthenticated", "true")
+      setPasswordError(false)
+    } else {
+      setPasswordError(true)
+    }
+  }
+
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    localStorage.removeItem("adminAuthenticated")
+  }
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+
     const fetchItems = async () => {
       setLoading(true)
       setFetchError(null)
@@ -151,7 +185,7 @@ export default function AdminDashboard() {
     }
 
     fetchItems()
-  }, [])
+  }, [isAuthenticated])
 
   const updateSubmissionStatus = (id: string, newStatus: SubmissionStatus) => {
     setSubmissions((prev) =>
@@ -332,12 +366,49 @@ export default function AdminDashboard() {
     listed: submissions.filter((s) => s.status === "listed").length,
   }
 
+  // Password protection screen
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-center">Admin Access</CardTitle>
+            <CardDescription className="text-center">Enter password to access the admin dashboard</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={passwordError ? "border-red-500" : ""}
+                />
+                {passwordError && <p className="text-sm text-red-500">Incorrect password. Please try again.</p>}
+              </div>
+              <Button type="submit" className="w-full">
+                Access Dashboard
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-900">
       <header className="bg-gray-800 border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
-          <div className="text-sm text-gray-400">Item Submissions Management</div>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-400">Item Submissions Management</div>
+            <Button variant="outline" size="sm" onClick={handleLogout} className="flex items-center gap-1">
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
