@@ -202,7 +202,7 @@ export async function POST(request: Request) {
       },
      pricingSummary: {
   price: {
-    value: "33.99", // or a number: 33.99
+    value:submission.estimated_price.toFixed(2),
     currency: "USD", // MUST be a string in quotes
   }
 },
