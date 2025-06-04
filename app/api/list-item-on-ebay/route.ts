@@ -7,17 +7,19 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-function mapConditionToEbay(condition: string): number {
-  const conditionMap: { [key: string]: number } = {
-    "Like New": 2750,
-    "Excellent": 3000,
-    "Good": 5000,
-    "Fair": 6000,
-    "Poor": 7000,
+function mapConditionToEbay(condition: string): string {
+  const conditionMap: { [key: string]: string } = {
+    "New": "NEW",
+    "Like New": "LIKE_NEW",
+    "Excellent": "USED_EXCELLENT",
+    "Good": "USED_GOOD",
+    "Fair": "USED_FAIR",
+    "Poor": "USED_POOR",
   }
 
-  return conditionMap[condition] || 7000
+  return conditionMap[condition] || "USED_POOR"
 }
+
 
 // Get appropriate category ID based on item name/description
 function getCategoryId(itemName: string, description: string): string {
