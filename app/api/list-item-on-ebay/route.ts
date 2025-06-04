@@ -16,20 +16,16 @@ function mapConditionToEbay(condition: string): string {
   return conditionMap[condition] || "FOR_PARTS_OR_NOT_WORKING"
 }
 
-// Get appropriate category ID based on item name/description
 function getCategoryId(itemName: string, description: string): string {
   const text = `${itemName} ${description}`.toLowerCase()
-
   if (text.includes("phone") || text.includes("iphone") || text.includes("android")) return "9355"
   if (text.includes("laptop") || text.includes("computer") || text.includes("pc")) return "177"
   if (text.includes("tablet") || text.includes("ipad")) return "171485"
   if (text.includes("watch") || text.includes("smartwatch")) return "178893"
   if (text.includes("headphone") || text.includes("earphone") || text.includes("airpods")) return "15052"
-
   return "293"
 }
 
-// Extract brand from item name (basic heuristic)
 function extractBrand(itemName: string): string {
   const knownBrands = ["Apple", "Samsung", "Sony", "Dell", "HP", "Lenovo", "Google", "Microsoft"]
   const brand = knownBrands.find((b) => itemName.toLowerCase().includes(b.toLowerCase()))
@@ -41,7 +37,6 @@ export async function POST(request: Request) {
     console.log("🚀 Starting eBay listing process...")
 
     const { id } = await request.json()
-
     if (!id) {
       console.error("❌ No item ID provided")
       return NextResponse.json({ error: "Item ID is required" }, { status: 400 })
@@ -50,7 +45,6 @@ export async function POST(request: Request) {
     console.log(`📝 Processing item ID: ${id}`)
 
     const { data: submission, error } = await supabase.from("sell_items").select("*").eq("id", id).single()
-
     if (error || !submission) {
       console.error("❌ Item not found:", error)
       return NextResponse.json({ error: "Item not found or error fetching data" }, { status: 404 })
@@ -110,7 +104,6 @@ export async function POST(request: Request) {
     }
 
     imageUrls = [...new Set(imageUrls)].filter((url) => url && url.trim().length > 0)
-
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing`)
 
     const inventoryItem = {
@@ -143,15 +136,17 @@ export async function POST(request: Request) {
       body: JSON.stringify(inventoryItem),
     })
 
+    const inventoryResponseText = await inventoryResponse.text()
+    console.log("📩 Raw inventory response:", inventoryResponseText)
+
     if (!inventoryResponse.ok) {
-      const errorData = await inventoryResponse.json()
       console.error("❌ eBay inventory item creation failed:", {
         status: inventoryResponse.status,
         statusText: inventoryResponse.statusText,
-        error: JSON.stringify(errorData, null, 2),
+        response: inventoryResponseText,
       })
       return NextResponse.json(
-        { error: `Failed to create inventory item: ${JSON.stringify(errorData)}` },
+        { error: `Failed to create inventory item`, response: inventoryResponseText },
         { status: 500 },
       )
     }
@@ -205,19 +200,20 @@ export async function POST(request: Request) {
       body: JSON.stringify(offerData),
     })
 
+    const offerResponseText = await offerResponse.text()
+    console.log("📩 Raw offer response:", offerResponseText)
+
     if (!offerResponse.ok) {
-      const errorData = await offerResponse.json()
       console.error("❌ eBay offer creation failed:", {
         status: offerResponse.status,
         statusText: offerResponse.statusText,
-        error: JSON.stringify(errorData, null, 2),
+        response: offerResponseText,
       })
-      return NextResponse.json({ error: `Failed to create offer: ${JSON.stringify(errorData)}` }, { status: 500 })
+      return NextResponse.json({ error: `Failed to create offer`, response: offerResponseText }, { status: 500 })
     }
 
-    const offerResult = await offerResponse.json()
+    const offerResult = JSON.parse(offerResponseText)
     const offerId = offerResult.offerId
-
     if (!offerId) {
       console.error("❌ No offer ID returned from eBay")
       return NextResponse.json({ error: "No offer ID returned from eBay API" }, { status: 500 })
@@ -236,19 +232,20 @@ export async function POST(request: Request) {
       },
     })
 
+    const publishResponseText = await publishResponse.text()
+    console.log("📩 Raw publish response:", publishResponseText)
+
     if (!publishResponse.ok) {
-      const errorData = await publishResponse.json()
       console.error("❌ eBay offer publishing failed:", {
         status: publishResponse.status,
         statusText: publishResponse.statusText,
-        error: JSON.stringify(errorData, null, 2),
+        response: publishResponseText,
       })
-      return NextResponse.json({ error: `Failed to publish offer: ${JSON.stringify(errorData)}` }, { status: 500 })
+      return NextResponse.json({ error: `Failed to publish offer`, response: publishResponseText }, { status: 500 })
     }
 
-    const publishResult = await publishResponse.json()
+    const publishResult = JSON.parse(publishResponseText)
     const listingId = publishResult.listingId
-
     console.log(`✅ Offer published successfully: ${listingId}`)
 
     return NextResponse.json({ success: true, listingId })
