@@ -9,15 +9,14 @@ const supabase = createClient(
 
 function mapConditionToEbay(condition: string): string {
   const conditionMap: { [key: string]: string } = {
-    "New": "NEW",
     "Like New": "LIKE_NEW",
     "Excellent": "USED_EXCELLENT",
-    "Good": "USED_GOOD",
-    "Fair": "USED_FAIR",
-    "Poor": "USED_POOR",
+    "Good": "USED_ACCEPTABLE",
+    "Fair": "PRE_OWNED_FAIR",
+    "Poor": "FOR_PARTS_OR_NOT_WORKING",
   }
 
-  return conditionMap[condition] || "USED_POOR"
+  return conditionMap[condition] || "FOR_PARTS_OR_NOT_WORKING"
 }
 
 
