@@ -2,23 +2,20 @@ import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 function mapConditionToEbay(condition: string): string {
   const conditionMap: { [key: string]: string } = {
+    New: "NEW",
     "Like New": "LIKE_NEW",
-    "Excellent": "USED_EXCELLENT",
-    "Good": "USED_ACCEPTABLE",
-    "Fair": "PRE_OWNED_FAIR",
-    "Poor": "FOR_PARTS_OR_NOT_WORKING",
+    Excellent: "USED_EXCELLENT",
+    Good: "USED_GOOD",
+    Fair: "USED_FAIR",
+    Poor: "USED_POOR",
   }
 
-  return conditionMap[condition] || "FOR_PARTS_OR_NOT_WORKING"
+  return conditionMap[condition] || "USED_POOR"
 }
-
 
 // Get appropriate category ID based on item name/description
 function getCategoryId(itemName: string, description: string): string {
@@ -36,7 +33,7 @@ function getCategoryId(itemName: string, description: string): string {
 // Extract brand from item name (basic heuristic)
 function extractBrand(itemName: string): string {
   const knownBrands = ["Apple", "Samsung", "Sony", "Dell", "HP", "Lenovo", "Google", "Microsoft"]
-  const brand = knownBrands.find(b => itemName.toLowerCase().includes(b.toLowerCase()))
+  const brand = knownBrands.find((b) => itemName.toLowerCase().includes(b.toLowerCase()))
   return brand || "Unbranded"
 }
 
@@ -53,11 +50,7 @@ export async function POST(request: Request) {
 
     console.log(`📝 Processing item ID: ${id}`)
 
-    const { data: submission, error } = await supabase
-      .from("sell_items")
-      .select("*")
-      .eq("id", id)
-      .single()
+    const { data: submission, error } = await supabase.from("sell_items").select("*").eq("id", id).single()
 
     if (error || !submission) {
       console.error("❌ Item not found:", error)
@@ -82,7 +75,7 @@ export async function POST(request: Request) {
             tokenError instanceof Error ? tokenError.message : "Unknown error"
           }`,
         },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
@@ -112,9 +105,7 @@ export async function POST(request: Request) {
           imageUrls = [...imageUrls, ...parsedUrls]
         }
       } catch {
-        const additionalUrls = submission.image_urls
-          .split(",")
-          .map((url) => url.trim())
+        const additionalUrls = submission.image_urls.split(",").map((url) => url.trim())
         imageUrls = [...imageUrls, ...additionalUrls]
       }
     }
@@ -140,20 +131,18 @@ export async function POST(request: Request) {
         },
       },
     }
+
     console.log("📦 Creating inventory item on eBay...")
-    const inventoryResponse = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Language": "en-US",
-          "Accept-Language": "en-US",
-        },
-        body: JSON.stringify(inventoryItem),
-      }
-    )
+    const inventoryResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
+      },
+      body: JSON.stringify(inventoryItem),
+    })
 
     if (!inventoryResponse.ok) {
       const errorData = await inventoryResponse.json()
@@ -164,7 +153,7 @@ export async function POST(request: Request) {
       })
       return NextResponse.json(
         { error: `Failed to create inventory item: ${JSON.stringify(errorData)}` },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
@@ -180,10 +169,7 @@ export async function POST(request: Request) {
     for (const [key, value] of Object.entries(requiredEnvVars)) {
       if (!value) {
         console.error(`❌ Missing environment variable: EBAY_${key.toUpperCase()}`)
-        return NextResponse.json(
-          { error: `Missing required eBay configuration: ${key}` },
-          { status: 500 }
-        )
+        return NextResponse.json({ error: `Missing required eBay configuration: ${key}` }, { status: 500 })
       }
     }
 
@@ -200,28 +186,25 @@ export async function POST(request: Request) {
         paymentPolicyId: requiredEnvVars.paymentPolicyId,
         returnPolicyId: requiredEnvVars.returnPolicyId,
       },
-     pricingSummary: {
-  price: {
-    value:submission.estimated_price.toFixed(2),
-    currency: "USD", // MUST be a string in quotes
-  }
-},
+      pricingSummary: {
+        price: {
+          value: submission.estimated_price.toFixed(2),
+          currency: "USD",
+        },
+      },
       merchantLocationKey: requiredEnvVars.locationKey,
     }
 
-    const offerResponse = await fetch(
-      "https://api.ebay.com/sell/inventory/v1/offer",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Language": "en-US",
-          "Accept-Language": "en-US",
-        },
-        body: JSON.stringify(offerData),
-      }
-    )
+    const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
+      },
+      body: JSON.stringify(offerData),
+    })
 
     if (!offerResponse.ok) {
       const errorData = await offerResponse.json()
@@ -230,10 +213,7 @@ export async function POST(request: Request) {
         statusText: offerResponse.statusText,
         error: errorData,
       })
-      return NextResponse.json(
-        { error: `Failed to create offer: ${JSON.stringify(errorData)}` },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: `Failed to create offer: ${JSON.stringify(errorData)}` }, { status: 500 })
     }
 
     const offerResult = await offerResponse.json()
@@ -241,27 +221,21 @@ export async function POST(request: Request) {
 
     if (!offerId) {
       console.error("❌ No offer ID returned from eBay")
-      return NextResponse.json(
-        { error: "No offer ID returned from eBay API" },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: "No offer ID returned from eBay API" }, { status: 500 })
     }
 
     console.log(`✅ Offer created successfully: ${offerId}`)
 
     console.log("🚀 Publishing offer on eBay...")
-    const publishResponse = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Language": "en-US",
-          "Accept-Language": "en-US",
-        },
-      }
-    )
+    const publishResponse = await fetch(`https://api.ebay/sell/inventory/v1/offer/${offerId}/publish`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
+      },
+    })
 
     if (!publishResponse.ok) {
       const errorData = await publishResponse.json()
@@ -270,10 +244,7 @@ export async function POST(request: Request) {
         statusText: publishResponse.statusText,
         error: errorData,
       })
-      return NextResponse.json(
-        { error: `Failed to publish offer: ${JSON.stringify(errorData)}` },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: `Failed to publish offer: ${JSON.stringify(errorData)}` }, { status: 500 })
     }
 
     const publishResult = await publishResponse.json()
@@ -283,7 +254,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, listingId })
   } catch (err: any) {
-  console.error("❌ Unexpected error:", err?.message || err)
-  console.error("📛 Stack trace:", err?.stack || "No stack trace")
-  return NextResponse.json({ error: err?.message || "Unexpected server error" }, { status: 500 })
+    console.error("❌ Unexpected error:", err?.message || err)
+    console.error("📛 Stack trace:", err?.stack || "No stack trace")
+    return NextResponse.json({ error: err?.message || "Unexpected server error" }, { status: 500 })
+  }
 }
