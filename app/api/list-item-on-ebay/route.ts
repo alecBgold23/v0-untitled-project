@@ -105,60 +105,55 @@ export async function POST(request: Request) {
     imageUrls = [...new Set(imageUrls)].filter((url) => url && url.trim().length > 0)
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing`)
 
-    const bulkInventoryData = {
-      requests: [
-        {
-          sku,
-          inventoryItem: {
-            product: {
-              title,
-              description: submission.item_description,
-              aspects: {
-                Condition: [submission.item_condition || "Used"],
-                Brand: [brand],
-              },
-              imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
-            },
-            condition: ebayCondition,
-            availability: {
-              shipToLocationAvailability: {
-                quantity: 1,
-              },
-            },
-          },
+    // === Replace bulk inventory with single inventory PUT request ===
+    const inventoryItemData = {
+      product: {
+        title,
+        description: submission.item_description,
+        aspects: {
+          Condition: [submission.item_condition || "Used"],
+          Brand: [brand],
         },
-      ],
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      },
+      condition: ebayCondition,
+      availability: {
+        shipToLocationAvailability: {
+          quantity: 1,
+        },
+      },
     }
 
-    console.log("📦 Creating inventory item with bulk API...")
-    const bulkResponse = await fetch(
-      "https://api.ebay.com/sell/inventory/v1/bulk_create_or_replace_inventory_item",
+    console.log(`📦 Creating inventory item with SKU ${sku}...`)
+    const inventoryResponse = await fetch(
+      `https://api.ebay.com/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`,
       {
-        method: "POST",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
           "Content-Language": "en-US",
           "Accept-Language": "en-US",
         },
-        body: JSON.stringify(bulkInventoryData),
+        body: JSON.stringify(inventoryItemData),
       },
     )
 
-    const bulkText = await bulkResponse.text()
-    console.log("📩 Raw bulk inventory response:", bulkText)
+    const inventoryText = await inventoryResponse.text()
+    console.log("📩 Raw inventory item response:", inventoryText)
 
-    if (!bulkResponse.ok) {
-      console.error("❌ Bulk inventory creation failed:", {
-        status: bulkResponse.status,
-        statusText: bulkResponse.statusText,
-        response: bulkText,
+    if (!inventoryResponse.ok) {
+      console.error("❌ Inventory item creation failed:", {
+        status: inventoryResponse.status,
+        statusText: inventoryResponse.statusText,
+        response: inventoryText,
       })
-      return NextResponse.json({ error: "Bulk inventory item creation failed", response: bulkText }, { status: 500 })
+      return NextResponse.json({ error: "Inventory item creation failed", response: inventoryText }, { status: 500 })
     }
 
-    console.log("✅ Bulk inventory item created")
+    console.log("✅ Inventory item created")
 
+    // Validate required environment variables for policies and location
     const requiredEnvVars = {
       fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
       paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID,
@@ -237,7 +232,7 @@ export async function POST(request: Request) {
 
     console.log("🚀 Publishing offer...")
     const publishResponse = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`,
+      `https://api.ebay.com/sell/inventory/v1/offer/${encodeURIComponent(offerId)}/publish`,
       {
         method: "POST",
         headers: {
@@ -263,6 +258,12 @@ export async function POST(request: Request) {
     const publishResult = JSON.parse(publishText)
     const listingId = publishResult.listingId
     console.log(`✅ Offer published: ${listingId}`)
+
+    // Optionally update Supabase sell_items with listing info here if you want
+    await supabase
+      .from("sell_items")
+      .update({ ebay_listing_id: listingId, ebay_offer_id: offerId, status: "listed" })
+      .eq("id", id)
 
     return NextResponse.json({ success: true, listingId })
   } catch (err: any) {
