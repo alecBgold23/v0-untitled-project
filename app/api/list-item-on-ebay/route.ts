@@ -182,7 +182,7 @@ export async function POST(request: Request) {
       },
       pricingSummary: {
         price: {
-          value: submission.estimated_price.toFixed(2),
+          value: Number(submission.estimated_price || 0).toFixed(2),
           currency: "USD",
         },
       },
