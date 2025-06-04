@@ -14,7 +14,7 @@ function mapConditionToEbay(condition: string): string {
     Poor: "FOR_PARTS_OR_NOT_WORKING",
   }
 
-  return conditionMap[condition] || "USED_POOR"
+  return conditionMap[condition] ||"FOR_PARTS_OR_NOT_WORKING"
 }
 
 // Get appropriate category ID based on item name/description
