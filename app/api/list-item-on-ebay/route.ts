@@ -2,18 +2,21 @@ import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+)
 
 function mapConditionToEbay(condition: string): string {
+  const normalized = condition.trim().toLowerCase().replace(/[-_]/g, " ")
   const conditionMap: { [key: string]: string } = {
-    "Like New": "LIKE_NEW",
-    Excellent: "USED_EXCELLENT",
-    Good: "USED_GOOD",
-    Fair: "USED_ACCEPTABLE",
-    Poor: "FOR_PARTS_OR_NOT_WORKING",
+    "like new": "LIKE_NEW",
+    "excellent": "USED_EXCELLENT",
+    "good": "USED_GOOD",
+    "fair": "USED_ACCEPTABLE",
+    "poor": "FOR_PARTS_OR_NOT_WORKING",
   }
-
-  return conditionMap[condition] || "FOR_PARTS_OR_NOT_WORKING"
+  return conditionMap[normalized] || "FOR_PARTS_OR_NOT_WORKING"
 }
 
 function getCategoryId(itemName: string, description: string): string {
@@ -44,7 +47,11 @@ export async function POST(request: Request) {
 
     console.log(`📝 Processing item ID: ${id}`)
 
-    const { data: submission, error } = await supabase.from("sell_items").select("*").eq("id", id).single()
+    const { data: submission, error } = await supabase
+      .from("sell_items")
+      .select("*")
+      .eq("id", id)
+      .single()
     if (error || !submission) {
       console.error("❌ Item not found:", error)
       return NextResponse.json({ error: "Item not found or error fetching data" }, { status: 404 })
@@ -125,16 +132,19 @@ export async function POST(request: Request) {
     }
 
     console.log("📦 Creating inventory item on eBay...")
-    const inventoryResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Language": "en-US",
-        "Accept-Language": "en-US",
+    const inventoryResponse = await fetch(
+      `https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Language": "en-US",
+          "Accept-Language": "en-US",
+        },
+        body: JSON.stringify(inventoryItem),
       },
-      body: JSON.stringify(inventoryItem),
-    })
+    )
 
     const inventoryResponseText = await inventoryResponse.text()
     console.log("📩 Raw inventory response:", inventoryResponseText)
@@ -167,6 +177,19 @@ export async function POST(request: Request) {
       }
     }
 
+    // Clean and parse the price:
+    const rawPrice = submission.estimated_price
+    const cleanedPrice =
+      typeof rawPrice === "string" ? rawPrice.replace(/[^0-9.-]+/g, "") : rawPrice
+    const priceValue = Number(cleanedPrice)
+    if (isNaN(priceValue) || priceValue <= 0) {
+      console.error("❌ Invalid or missing estimated price:", submission.estimated_price)
+      return NextResponse.json(
+        { error: "Invalid or missing estimated price for the item" },
+        { status: 400 },
+      )
+    }
+
     console.log("💰 Creating offer on eBay...")
     const offerData = {
       sku,
@@ -182,7 +205,7 @@ export async function POST(request: Request) {
       },
       pricingSummary: {
         price: {
-          value: Number(submission.estimated_price || 0).toFixed(2),
+          value: priceValue.toFixed(2),
           currency: "USD",
         },
       },
@@ -222,15 +245,18 @@ export async function POST(request: Request) {
     console.log(`✅ Offer created successfully: ${offerId}`)
 
     console.log("🚀 Publishing offer on eBay...")
-    const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Language": "en-US",
-        "Accept-Language": "en-US",
+    const publishResponse = await fetch(
+      `https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Language": "en-US",
+          "Accept-Language": "en-US",
+        },
       },
-    })
+    )
 
     const publishResponseText = await publishResponse.text()
     console.log("📩 Raw publish response:", publishResponseText)
