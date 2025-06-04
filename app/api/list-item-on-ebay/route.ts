@@ -133,6 +133,7 @@ export async function POST(request: Request) {
     }
 
     console.log("📦 Creating inventory item on eBay...")
+    console.log("🛠️ Final inventory item payload:", JSON.stringify(inventoryItem, null, 2))
     const inventoryResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
       method: "PUT",
       headers: {
