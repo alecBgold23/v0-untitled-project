@@ -10,8 +10,8 @@ function mapConditionToEbay(condition: string): string {
     "Like New": "LIKE_NEW",
     Excellent: "USED_EXCELLENT",
     Good: "USED_GOOD",
-    Fair: "USED_FAIR",
-    Poor: "USED_POOR",
+    Fair: "USED_ACCEPTABLE",
+    Poor: "FOR_PARTS_OR_NOT_WORKING",
   }
 
   return conditionMap[condition] || "USED_POOR"
@@ -133,7 +133,6 @@ export async function POST(request: Request) {
     }
 
     console.log("📦 Creating inventory item on eBay...")
-    console.log("🛠️ Final inventory item payload:", JSON.stringify(inventoryItem, null, 2))
     const inventoryResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
       method: "PUT",
       headers: {
@@ -150,7 +149,7 @@ export async function POST(request: Request) {
       console.error("❌ eBay inventory item creation failed:", {
         status: inventoryResponse.status,
         statusText: inventoryResponse.statusText,
-        error: errorData,
+        error: JSON.stringify(errorData, null, 2),
       })
       return NextResponse.json(
         { error: `Failed to create inventory item: ${JSON.stringify(errorData)}` },
@@ -212,7 +211,7 @@ export async function POST(request: Request) {
       console.error("❌ eBay offer creation failed:", {
         status: offerResponse.status,
         statusText: offerResponse.statusText,
-        error: errorData,
+        error: JSON.stringify(errorData, null, 2),
       })
       return NextResponse.json({ error: `Failed to create offer: ${JSON.stringify(errorData)}` }, { status: 500 })
     }
@@ -228,7 +227,7 @@ export async function POST(request: Request) {
     console.log(`✅ Offer created successfully: ${offerId}`)
 
     console.log("🚀 Publishing offer on eBay...")
-    const publishResponse = await fetch(`https://api.ebay/sell/inventory/v1/offer/${offerId}/publish`, {
+    const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -243,7 +242,7 @@ export async function POST(request: Request) {
       console.error("❌ eBay offer publishing failed:", {
         status: publishResponse.status,
         statusText: publishResponse.statusText,
-        error: errorData,
+        error: JSON.stringify(errorData, null, 2),
       })
       return NextResponse.json({ error: `Failed to publish offer: ${JSON.stringify(errorData)}` }, { status: 500 })
     }
