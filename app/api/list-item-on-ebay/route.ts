@@ -6,14 +6,14 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 
 function mapConditionToEbay(condition: string): string {
   const conditionMap: { [key: string]: string } = {
-    Like New: "LIKE_NEW",
+    "Like New": "LIKE_NEW",
     Excellent: "USED_EXCELLENT",
     Good: "USED_GOOD",
     Fair: "USED_ACCEPTABLE",
     Poor: "FOR_PARTS_OR_NOT_WORKING",
   }
 
-  return conditionMap[condition] ||"FOR_PARTS_OR_NOT_WORKING"
+  return conditionMap[condition] || "FOR_PARTS_OR_NOT_WORKING"
 }
 
 // Get appropriate category ID based on item name/description
