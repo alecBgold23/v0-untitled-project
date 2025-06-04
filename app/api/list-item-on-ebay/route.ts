@@ -105,6 +105,53 @@ export async function POST(request: Request) {
     imageUrls = [...new Set(imageUrls)].filter((url) => url && url.trim().length > 0)
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing`)
 
+    const inventoryItem = {
+      product: {
+        title,
+        description: submission.item_description,
+        aspects: {
+          Condition: [submission.item_condition || "Used"],
+          Brand: [brand],
+        },
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      },
+      condition: ebayCondition,
+      availability: {
+        shipToLocationAvailability: {
+          quantity: 1,
+        },
+      },
+    }
+
+    console.log("📦 Creating inventory item with PUT API...")
+    const putResponse = await fetch(
+      `https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Language": "en-US",
+          "Accept-Language": "en-US",
+        },
+        body: JSON.stringify(inventoryItem),
+      },
+    )
+
+    const putText = await putResponse.text()
+    console.log("📩 Raw PUT inventory response:", putText)
+
+    if (!putResponse.ok) {
+      console.error("❌ PUT inventory item creation failed:", {
+        status: putResponse.status,
+        statusText: putResponse.statusText,
+        response: putText,
+      })
+      return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
+    }
+
+    console.log("✅ Inventory item created")
+
     const requiredEnvVars = {
       fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
       paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID,
@@ -147,16 +194,6 @@ export async function POST(request: Request) {
         },
       },
       merchantLocationKey: requiredEnvVars.locationKey,
-      condition: ebayCondition,
-      product: {
-        title,
-        description: submission.item_description,
-        aspects: {
-          Condition: [submission.item_condition || "Used"],
-          Brand: [brand],
-        },
-        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
-      },
     }
 
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
