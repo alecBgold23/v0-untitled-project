@@ -19,21 +19,28 @@ function mapConditionToEbay(condition: string): string {
   return conditionMap[normalized] || "FOR_PARTS_OR_NOT_WORKING"
 }
 
-function getCategoryId(itemName: string, description: string): string {
-  const text = `${itemName} ${description}`.toLowerCase()
-  if (text.includes("vr") || text.includes("virtual reality") || text.includes("quest")) return "183067"
-  if (text.includes("phone") || text.includes("iphone") || text.includes("android")) return "9355"
-  if (text.includes("laptop") || text.includes("computer") || text.includes("pc")) return "177"
-  if (text.includes("tablet") || text.includes("ipad")) return "171485"
-  if (text.includes("watch") || text.includes("smartwatch")) return "178893"
-  if (text.includes("headphone") || text.includes("earphone") || text.includes("airpods")) return "15052"
-  return "293"
-}
-
 function extractBrand(itemName: string): string {
   const knownBrands = ["Apple", "Samsung", "Sony", "Dell", "HP", "Lenovo", "Google", "Microsoft"]
   const brand = knownBrands.find((b) => itemName.toLowerCase().includes(b.toLowerCase()))
   return brand || "Unbranded"
+}
+
+async function getSuggestedCategoryId(query: string, accessToken: string): Promise<string> {
+  try {
+    const res = await fetch(`https://api.ebay.com/commerce/taxonomy/v1_beta/category_tree/0/get_category_suggestions?q=${encodeURIComponent(query)}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "Accept-Language": "en-US"
+      }
+    })
+    const json = await res.json()
+    const categoryId = json?.categorySuggestions?.[0]?.category?.categoryId
+    return categoryId || "293" // fallback if no suggestions
+  } catch (err) {
+    console.warn("⚠️ Category suggestion failed, using default", err)
+    return "293"
+  }
 }
 
 export async function POST(request: Request) {
@@ -83,9 +90,12 @@ export async function POST(request: Request) {
     const timestamp = Date.now()
     const sku = `ITEM-${submission.id}-${timestamp}`
     const title = submission.item_name.substring(0, 80)
-    const categoryId = getCategoryId(submission.item_name, submission.item_description)
     const ebayCondition = mapConditionToEbay(submission.item_condition)
     const brand = extractBrand(submission.item_name)
+
+    const searchQuery = `${submission.item_name} ${submission.item_description}`.trim()
+    const categoryId = await getSuggestedCategoryId(searchQuery, accessToken)
+    console.log(`🧠 Suggested eBay category ID: ${categoryId}`)
 
     let imageUrls: string[] = []
     if (submission.image_url) imageUrls.push(submission.image_url)
