@@ -27,7 +27,7 @@ function getCategoryId(itemName: string, description: string): string {
   if (text.includes("tablet") || text.includes("ipad")) return "171485"
   if (text.includes("watch") || text.includes("smartwatch")) return "178893"
   if (text.includes("headphone") || text.includes("earphone") || text.includes("airpods")) return "15052"
-  return "293" // Fallback
+  return "293"
 }
 
 function extractBrand(itemName: string): string {
@@ -87,16 +87,7 @@ export async function POST(request: Request) {
     const ebayCondition = mapConditionToEbay(submission.item_condition)
     const brand = extractBrand(submission.item_name)
 
-    console.log("📋 Prepared listing data:", {
-      sku,
-      title,
-      categoryId,
-      condition: ebayCondition,
-      brand,
-    })
-
     let imageUrls: string[] = []
-
     if (submission.image_url) imageUrls.push(submission.image_url)
 
     if (submission.image_urls) {
@@ -114,55 +105,59 @@ export async function POST(request: Request) {
     imageUrls = [...new Set(imageUrls)].filter((url) => url && url.trim().length > 0)
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing`)
 
-    const inventoryItem = {
-      product: {
-        title,
-        description: submission.item_description,
-        aspects: {
-          Condition: [submission.item_condition || "Used"],
-          Brand: [brand],
+    const bulkInventoryData = {
+      requests: [
+        {
+          sku,
+          inventoryItem: {
+            product: {
+              title,
+              description: submission.item_description,
+              aspects: {
+                Condition: [submission.item_condition || "Used"],
+                Brand: [brand],
+              },
+              imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+            },
+            condition: ebayCondition,
+            availability: {
+              shipToLocationAvailability: {
+                quantity: 1,
+              },
+            },
+          },
         },
-        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
-      },
-      condition: ebayCondition,
-      availability: {
-        shipToLocationAvailability: {
-          quantity: 1,
-        },
-      },
+      ],
     }
 
-    console.log("📦 Creating inventory item on eBay...")
-    const inventoryResponse = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`,
+    console.log("📦 Creating inventory item with bulk API...")
+    const bulkResponse = await fetch(
+      "https://api.ebay.com/sell/inventory/v1/bulk_create_or_replace_inventory_item",
       {
-        method: "PUT",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
           "Content-Language": "en-US",
           "Accept-Language": "en-US",
         },
-        body: JSON.stringify(inventoryItem),
+        body: JSON.stringify(bulkInventoryData),
       },
     )
 
-    const inventoryResponseText = await inventoryResponse.text()
-    console.log("📩 Raw inventory response:", inventoryResponseText)
+    const bulkText = await bulkResponse.text()
+    console.log("📩 Raw bulk inventory response:", bulkText)
 
-    if (!inventoryResponse.ok) {
-      console.error("❌ eBay inventory item creation failed:", {
-        status: inventoryResponse.status,
-        statusText: inventoryResponse.statusText,
-        response: inventoryResponseText,
+    if (!bulkResponse.ok) {
+      console.error("❌ Bulk inventory creation failed:", {
+        status: bulkResponse.status,
+        statusText: bulkResponse.statusText,
+        response: bulkText,
       })
-      return NextResponse.json(
-        { error: `Failed to create inventory item`, response: inventoryResponseText },
-        { status: 500 },
-      )
+      return NextResponse.json({ error: "Bulk inventory item creation failed", response: bulkText }, { status: 500 })
     }
 
-    console.log("✅ Inventory item created successfully")
+    console.log("✅ Bulk inventory item created")
 
     const requiredEnvVars = {
       fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
@@ -178,17 +173,12 @@ export async function POST(request: Request) {
       }
     }
 
-    // Clean and parse the price:
     const rawPrice = submission.estimated_price
-    const cleanedPrice =
-      typeof rawPrice === "string" ? rawPrice.replace(/[^0-9.-]+/g, "") : rawPrice
+    const cleanedPrice = typeof rawPrice === "string" ? rawPrice.replace(/[^0-9.-]+/g, "") : rawPrice
     const priceValue = Number(cleanedPrice)
     if (isNaN(priceValue) || priceValue <= 0) {
       console.error("❌ Invalid or missing estimated price:", submission.estimated_price)
-      return NextResponse.json(
-        { error: "Invalid or missing estimated price for the item" },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: "Invalid or missing estimated price" }, { status: 400 })
     }
 
     console.log("💰 Creating offer on eBay...")
@@ -224,28 +214,28 @@ export async function POST(request: Request) {
       body: JSON.stringify(offerData),
     })
 
-    const offerResponseText = await offerResponse.text()
-    console.log("📩 Raw offer response:", offerResponseText)
+    const offerText = await offerResponse.text()
+    console.log("📩 Raw offer response:", offerText)
 
     if (!offerResponse.ok) {
-      console.error("❌ eBay offer creation failed:", {
+      console.error("❌ Offer creation failed:", {
         status: offerResponse.status,
         statusText: offerResponse.statusText,
-        response: offerResponseText,
+        response: offerText,
       })
-      return NextResponse.json({ error: `Failed to create offer`, response: offerResponseText }, { status: 500 })
+      return NextResponse.json({ error: "Offer creation failed", response: offerText }, { status: 500 })
     }
 
-    const offerResult = JSON.parse(offerResponseText)
+    const offerResult = JSON.parse(offerText)
     const offerId = offerResult.offerId
     if (!offerId) {
-      console.error("❌ No offer ID returned from eBay")
-      return NextResponse.json({ error: "No offer ID returned from eBay API" }, { status: 500 })
+      console.error("❌ No offer ID returned")
+      return NextResponse.json({ error: "No offer ID from eBay" }, { status: 500 })
     }
 
-    console.log(`✅ Offer created successfully: ${offerId}`)
+    console.log(`✅ Offer created: ${offerId}`)
 
-    console.log("🚀 Publishing offer on eBay...")
+    console.log("🚀 Publishing offer...")
     const publishResponse = await fetch(
       `https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`,
       {
@@ -259,21 +249,20 @@ export async function POST(request: Request) {
       },
     )
 
-    const publishResponseText = await publishResponse.text()
-    console.log("📩 Raw publish response:", publishResponseText)
+    const publishText = await publishResponse.text()
+    console.log("📩 Raw publish response:", publishText)
 
     if (!publishResponse.ok) {
-      console.error("❌ eBay offer publishing failed:", {
+      console.error("❌ Publishing offer failed:", {
         status: publishResponse.status,
-        statusText: publishResponse.statusText,
-        response: publishResponseText,
+        response: publishText,
       })
-      return NextResponse.json({ error: `Failed to publish offer`, response: publishResponseText }, { status: 500 })
+      return NextResponse.json({ error: "Offer publishing failed", response: publishText }, { status: 500 })
     }
 
-    const publishResult = JSON.parse(publishResponseText)
+    const publishResult = JSON.parse(publishText)
     const listingId = publishResult.listingId
-    console.log(`✅ Offer published successfully: ${listingId}`)
+    console.log(`✅ Offer published: ${listingId}`)
 
     return NextResponse.json({ success: true, listingId })
   } catch (err: any) {
