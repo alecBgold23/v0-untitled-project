@@ -21,12 +21,13 @@ function mapConditionToEbay(condition: string): string {
 
 function getCategoryId(itemName: string, description: string): string {
   const text = `${itemName} ${description}`.toLowerCase()
+  if (text.includes("vr") || text.includes("virtual reality") || text.includes("quest")) return "183067"
   if (text.includes("phone") || text.includes("iphone") || text.includes("android")) return "9355"
   if (text.includes("laptop") || text.includes("computer") || text.includes("pc")) return "177"
   if (text.includes("tablet") || text.includes("ipad")) return "171485"
   if (text.includes("watch") || text.includes("smartwatch")) return "178893"
   if (text.includes("headphone") || text.includes("earphone") || text.includes("airpods")) return "15052"
-  return "293"
+  return "293" // Fallback
 }
 
 function extractBrand(itemName: string): string {
