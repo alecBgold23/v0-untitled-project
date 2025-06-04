@@ -6,7 +6,6 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 
 function mapConditionToEbay(condition: string): string {
   const conditionMap: { [key: string]: string } = {
-    New: "NEW",
     Like New: "LIKE_NEW",
     Excellent: "USED_EXCELLENT",
     Good: "USED_GOOD",
