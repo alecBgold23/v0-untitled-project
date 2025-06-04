@@ -105,60 +105,6 @@ export async function POST(request: Request) {
     imageUrls = [...new Set(imageUrls)].filter((url) => url && url.trim().length > 0)
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing`)
 
-    const bulkInventoryData = {
-      requests: [
-        {
-          sku,
-          inventoryItem: {
-            product: {
-              title,
-              description: submission.item_description,
-              aspects: {
-                Condition: [submission.item_condition || "Used"],
-                Brand: [brand],
-              },
-              imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
-            },
-            condition: ebayCondition,
-            availability: {
-              shipToLocationAvailability: {
-                quantity: 1,
-              },
-            },
-          },
-        },
-      ],
-    }
-
-    console.log("📦 Creating inventory item with bulk API...")
-    const bulkResponse = await fetch(
-      "https://api.ebay.com/sell/inventory/v1/bulk_create_or_replace_inventory_item",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Language": "en-US",
-          "Accept-Language": "en-US",
-        },
-        body: JSON.stringify(bulkInventoryData),
-      },
-    )
-
-    const bulkText = await bulkResponse.text()
-    console.log("📩 Raw bulk inventory response:", bulkText)
-
-    if (!bulkResponse.ok) {
-      console.error("❌ Bulk inventory creation failed:", {
-        status: bulkResponse.status,
-        statusText: bulkResponse.statusText,
-        response: bulkText,
-      })
-      return NextResponse.json({ error: "Bulk inventory item creation failed", response: bulkText }, { status: 500 })
-    }
-
-    console.log("✅ Bulk inventory item created")
-
     const requiredEnvVars = {
       fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
       paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID,
@@ -201,6 +147,16 @@ export async function POST(request: Request) {
         },
       },
       merchantLocationKey: requiredEnvVars.locationKey,
+      condition: ebayCondition,
+      product: {
+        title,
+        description: submission.item_description,
+        aspects: {
+          Condition: [submission.item_condition || "Used"],
+          Brand: [brand],
+        },
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      },
     }
 
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
