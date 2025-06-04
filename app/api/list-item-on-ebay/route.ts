@@ -282,8 +282,8 @@ export async function POST(request: Request) {
     console.log(`✅ Offer published successfully: ${listingId}`)
 
     return NextResponse.json({ success: true, listingId })
-  } catch (err) {
-    console.error("❌ Unexpected error:", err)
-    return NextResponse.json({ error: "Unexpected server error" }, { status: 500 })
-  }
+  } catch (err: any) {
+  console.error("❌ Unexpected error:", err?.message || err)
+  console.error("📛 Stack trace:", err?.stack || "No stack trace")
+  return NextResponse.json({ error: err?.message || "Unexpected server error" }, { status: 500 })
 }
