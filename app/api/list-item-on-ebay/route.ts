@@ -8,7 +8,7 @@ const supabase = createClient(
 )
 
 function mapConditionToEbay(condition: string): string {
-  const normalized = condition.trim().toLowerCase().replace(/[-_]/g, " ")
+    const normalized = condition.trim().toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ")
   const conditionMap: { [key: string]: string } = {
     "like new": "LIKE_NEW",
     "excellent": "USED_EXCELLENT",
@@ -36,10 +36,17 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
     })
     const json = await res.json()
     const categoryId = json?.categorySuggestions?.[0]?.category?.categoryId
-    return categoryId || "293" // fallback if no suggestions
+
+    if (!categoryId) {
+      console.warn("⚠️ No category suggestion returned. Using fallback.")
+      // You can customize fallback per brand/type later
+      return "139971" // e.g., default to 'Virtual Reality Headsets' category
+    }
+
+    return categoryId
   } catch (err) {
-    console.warn("⚠️ Category suggestion failed, using default", err)
-    return "293"
+    console.warn("⚠️ Category suggestion failed. Using fallback.", err)
+    return "139971" // same fallback here
   }
 }
 
