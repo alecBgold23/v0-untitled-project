@@ -207,7 +207,7 @@ export async function POST(request: Request) {
       packageWeightAndSize: {
         packageType: "PACKAGE",
         weight: {
-          value: 1,
+          value: 1.0,
           unit: "POUND",
         },
         dimensions: {
