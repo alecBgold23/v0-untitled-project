@@ -10,7 +10,7 @@ const supabase = createClient(
 function mapConditionToEbay(condition: string): string {
     const normalized = condition.trim().toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ")
   const conditionMap: { [key: string]: string } = {
-    "like new": "LIKE_NEW",
+    "like new": "NEW_OTHER",
     "excellent": "USED_EXCELLENT",
     "good": "USED_GOOD",
     "fair": "USED_ACCEPTABLE",
