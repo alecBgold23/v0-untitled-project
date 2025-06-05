@@ -7,18 +7,19 @@ export async function POST(request: NextRequest) {
     const locationKey = "GLENVIEW_WAREHOUSE_001"
 
     const body = {
+      name: "BluBerry Home Shipping",
+      phone: "847-510-3229",
       location: {
         address: {
+          addressLine1: "333 Parkview Road",
           city: "Glenview",
           stateOrProvince: "IL",
-          country: "US",
           postalCode: "60025",
+          country: "US",
         },
       },
-      name: "BluBerry Home Shipping",
-      merchantLocationStatus: "ENABLED",
       locationTypes: ["WAREHOUSE"],
-      phone: "847-510-3229",
+      merchantLocationStatus: "ENABLED",
     }
 
     const res = await fetch(`https://api.ebay.com/sell/inventory/v1/location/${locationKey}`, {
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
         success: true,
         locationKey,
         data,
-        message: "Location created/updated successfully",
+        message: "Location updated successfully",
       },
       { status: 200 },
     )
