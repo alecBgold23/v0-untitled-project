@@ -4,7 +4,7 @@ import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 export async function POST(request: NextRequest) {
   try {
     const token = await getValidEbayAccessToken()
-    const locationKey = "GLENVIEW_WAREHOUSE_002"
+    const merchantLocationKey = "GLENVIEW_WAREHOUSE_002" // your unique key
 
     const body = {
       name: "BluBerry Home Shipping",
@@ -22,15 +22,29 @@ export async function POST(request: NextRequest) {
       merchantLocationStatus: "ENABLED",
     }
 
-    const res = await fetch(`https://api.ebay.com/sell/inventory/v1/location/${locationKey}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(body),
-    })
+    const res = await fetch(
+      `https://api.ebay.com/sell/inventory/v1/location/${merchantLocationKey}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    )
+
+    if (res.status === 204) {
+      // success returns 204 No Content with empty body
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Location created successfully",
+        },
+        { status: 200 }
+      )
+    }
 
     const data = await res.json()
 
@@ -42,18 +56,9 @@ export async function POST(request: NextRequest) {
           status: res.status,
           data,
         },
-        { status: res.status },
+        { status: res.status }
       )
     }
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Location created successfully",
-        data,
-      },
-      { status: 200 },
-    )
   } catch (error) {
     return NextResponse.json(
       {
@@ -61,7 +66,7 @@ export async function POST(request: NextRequest) {
         message: "Internal server error",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }
