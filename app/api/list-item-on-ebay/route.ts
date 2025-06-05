@@ -8,7 +8,7 @@ const supabase = createClient(
 )
 
 function mapConditionToEbay(condition: string): string {
-    const normalized = condition.trim().toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ")
+  const normalized = condition.trim().toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ")
   const conditionMap: { [key: string]: string } = {
     "like new": "NEW_OTHER",
     "excellent": "USED_EXCELLENT",
@@ -122,6 +122,7 @@ export async function POST(request: Request) {
     imageUrls = [...new Set(imageUrls)].filter((url) => url && url.trim().length > 0)
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing`)
 
+    // --- Corrected inventoryItem with packageWeightAndSize ---
     const inventoryItem = {
       product: {
         title,
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
         aspects: {
           Condition: [submission.item_condition || "Used"],
           Brand: [brand],
-          Model: [submission.item_name], // <-- Added
+          Model: [submission.item_name], // <-- optional model info
         },
         imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
       },
@@ -138,6 +139,19 @@ export async function POST(request: Request) {
         shipToLocationAvailability: {
           quantity: 1,
         },
+      },
+      packageWeightAndSize: {
+        packageType: "PACKAGE", // eBay enum: e.g. "PACKAGE", "LETTER", "PALLET", etc.
+        weight: {
+          value: 1, // Replace with actual weight if available
+          unit: "POUND", // eBay enum units: "POUND", "OUNCE", "KILOGRAM", "GRAM"
+        },
+        // Optional: dimensions can be added here if you want
+        // dimensions: {
+        //   length: { value: 10, unit: "INCH" },
+        //   width: { value: 5, unit: "INCH" },
+        //   height: { value: 3, unit: "INCH" },
+        // },
       },
     }
 
@@ -193,6 +207,7 @@ export async function POST(request: Request) {
     }
 
     console.log("💰 Creating offer on eBay...")
+    // Note: Removed shippingPackageDetails from here, as it's invalid on this endpoint
     const offerData = {
       sku,
       marketplaceId: "EBAY_US",
@@ -212,15 +227,6 @@ export async function POST(request: Request) {
         },
       },
       merchantLocationKey: requiredEnvVars.locationKey,
-
-      // <<< Added shippingPackageDetails here >>> 
-      shippingPackageDetails: {
-        packageType: "PACKAGE",
-        weight: {
-          value: 1,
-          unit: "POUND",
-        },
-      },
     }
 
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
