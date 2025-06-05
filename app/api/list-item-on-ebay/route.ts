@@ -2,21 +2,25 @@ import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 function mapConditionToEbay(condition: string): string {
-  const normalized = condition.trim().toLowerCase().replace(/[-_]/g, " ")
+  const normalized = condition?.trim().toLowerCase() || "used"
   const conditionMap: { [key: string]: string } = {
-    "like new": "LIKE_NEW",
-    "excellent": "USED_EXCELLENT",
-    "good": "USED_GOOD",
-    "fair": "USED_ACCEPTABLE",
-    "poor": "FOR_PARTS_OR_NOT_WORKING",
+    new: "1000", // New
+    "like new": "1500", // New other
+    "new with defects": "1750", // New with defects
+    refurbished: "2000", // Manufacturer refurbished
+    "seller refurbished": "2500", // Seller refurbished
+    excellent: "4000", // Very Good
+    "very good": "4000", // Very Good
+    good: "5000", // Good
+    fair: "6000", // Acceptable
+    acceptable: "6000", // Acceptable
+    poor: "7000", // For parts or not working
+    "for parts": "7000", // For parts or not working
   }
-  return conditionMap[normalized] || "FOR_PARTS_OR_NOT_WORKING"
+  return conditionMap[normalized] || "3000" // Default to "Used" (3000)
 }
 
 function extractBrand(itemName: string): string {
@@ -27,13 +31,16 @@ function extractBrand(itemName: string): string {
 
 async function getSuggestedCategoryId(query: string, accessToken: string): Promise<string> {
   try {
-    const res = await fetch(`https://api.ebay.com/commerce/taxonomy/v1_beta/category_tree/0/get_category_suggestions?q=${encodeURIComponent(query)}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-        "Accept-Language": "en-US"
-      }
-    })
+    const res = await fetch(
+      `https://api.ebay.com/commerce/taxonomy/v1_beta/category_tree/0/get_category_suggestions?q=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "Accept-Language": "en-US",
+        },
+      },
+    )
     const json = await res.json()
     const categoryId = json?.categorySuggestions?.[0]?.category?.categoryId
     return categoryId || "293" // fallback if no suggestions
@@ -55,11 +62,7 @@ export async function POST(request: Request) {
 
     console.log(`📝 Processing item ID: ${id}`)
 
-    const { data: submission, error } = await supabase
-      .from("sell_items")
-      .select("*")
-      .eq("id", id)
-      .single()
+    const { data: submission, error } = await supabase.from("sell_items").select("*").eq("id", id).single()
     if (error || !submission) {
       console.error("❌ Item not found:", error)
       return NextResponse.json({ error: "Item not found or error fetching data" }, { status: 404 })
@@ -97,6 +100,16 @@ export async function POST(request: Request) {
     const categoryId = await getSuggestedCategoryId(searchQuery, accessToken)
     console.log(`🧠 Suggested eBay category ID: ${categoryId}`)
 
+    // Add more detailed logging to help debug condition mapping issues
+    console.log("📋 Prepared listing data:", {
+      sku,
+      title,
+      categoryId,
+      originalCondition: submission.item_condition,
+      mappedCondition: ebayCondition,
+      brand,
+    })
+
     let imageUrls: string[] = []
     if (submission.image_url) imageUrls.push(submission.image_url)
 
@@ -115,6 +128,7 @@ export async function POST(request: Request) {
     imageUrls = [...new Set(imageUrls)].filter((url) => url && url.trim().length > 0)
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing`)
 
+    // Update the inventoryItem object to ensure condition is properly set as a numeric string
     const inventoryItem = {
       product: {
         title,
@@ -125,7 +139,7 @@ export async function POST(request: Request) {
         },
         imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
       },
-      condition: ebayCondition,
+      condition: ebayCondition, // This now contains the numeric condition ID
       availability: {
         shipToLocationAvailability: {
           quantity: 1,
@@ -134,19 +148,16 @@ export async function POST(request: Request) {
     }
 
     console.log("📦 Creating inventory item with PUT API...")
-    const putResponse = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Language": "en-US",
-          "Accept-Language": "en-US",
-        },
-        body: JSON.stringify(inventoryItem),
+    const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
       },
-    )
+      body: JSON.stringify(inventoryItem),
+    })
 
     const putText = await putResponse.text()
     console.log("📩 Raw PUT inventory response:", putText)
@@ -239,18 +250,15 @@ export async function POST(request: Request) {
     console.log(`✅ Offer created: ${offerId}`)
 
     console.log("🚀 Publishing offer...")
-    const publishResponse = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Language": "en-US",
-          "Accept-Language": "en-US",
-        },
+    const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
       },
-    )
+    })
 
     const publishText = await publishResponse.text()
     console.log("📩 Raw publish response:", publishText)
