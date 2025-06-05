@@ -123,23 +123,23 @@ export async function POST(request: Request) {
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing`)
 
     const inventoryItem = {
-  product: {
-    title,
-    description: submission.item_description,
-    aspects: {
-      Condition: [submission.item_condition || "Used"],
-      Brand: [brand],
-      Model: [submission.item_name], // <-- Added
-    },
-    imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
-  },
-  condition: ebayCondition,
-  availability: {
-    shipToLocationAvailability: {
-      quantity: 1,
-    },
-  },
-}
+      product: {
+        title,
+        description: submission.item_description,
+        aspects: {
+          Condition: [submission.item_condition || "Used"],
+          Brand: [brand],
+          Model: [submission.item_name], // <-- Added
+        },
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      },
+      condition: ebayCondition,
+      availability: {
+        shipToLocationAvailability: {
+          quantity: 1,
+        },
+      },
+    }
 
     console.log("📦 Creating inventory item with PUT API...")
     const putResponse = await fetch(
@@ -212,6 +212,15 @@ export async function POST(request: Request) {
         },
       },
       merchantLocationKey: requiredEnvVars.locationKey,
+
+      // <<< Added shippingPackageDetails here >>> 
+      shippingPackageDetails: {
+        packageType: "PACKAGE",
+        weight: {
+          value: 1,
+          unit: "POUND",
+        },
+      },
     }
 
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
