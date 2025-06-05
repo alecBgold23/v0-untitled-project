@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const res = await fetch(`https://api.ebay.com/sell/inventory/v1/location/${locationKey}`, {
-      method: "POST",
+      method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
