@@ -1,39 +1,37 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken";
+import { type NextRequest, NextResponse } from "next/server"
+import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 
 export async function POST(request: NextRequest) {
   try {
-    const token = await getValidEbayAccessToken();
-    const locationKey = "GLENVIEW_WAREHOUSE_001";
+    const token = await getValidEbayAccessToken()
+    const locationKey = "GLENVIEW_WAREHOUSE_001"
 
     const body = {
       location: {
         address: {
           city: "Glenview",
           stateOrProvince: "IL",
-          country: "US"
-        }
+          country: "US",
+          postalCode: "60025",
+        },
       },
       name: "BluBerry Home Shipping",
       merchantLocationStatus: "ENABLED",
       locationTypes: ["WAREHOUSE"],
-      phone: "847-510-3229"
-    };
+      phone: "847-510-3229",
+    }
 
-    const res = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/location/${locationKey}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
-        body: JSON.stringify(body),
-      }
-    );
+    const res = await fetch(`https://api.ebay.com/sell/inventory/v1/location/${locationKey}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(body),
+    })
 
-    const data = await res.json();
+    const data = await res.json()
 
     if (!res.ok) {
       return NextResponse.json(
@@ -43,8 +41,8 @@ export async function POST(request: NextRequest) {
           status: res.status,
           data,
         },
-        { status: res.status }
-      );
+        { status: res.status },
+      )
     }
 
     return NextResponse.json(
@@ -54,8 +52,8 @@ export async function POST(request: NextRequest) {
         data,
         message: "Location created/updated successfully",
       },
-      { status: 200 }
-    );
+      { status: 200 },
+    )
   } catch (error) {
     return NextResponse.json(
       {
@@ -63,7 +61,7 @@ export async function POST(request: NextRequest) {
         message: "Internal server error",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
-    );
+      { status: 500 },
+    )
   }
 }
