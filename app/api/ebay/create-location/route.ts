@@ -4,9 +4,9 @@ import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 export async function POST(request: NextRequest) {
   try {
     const token = await getValidEbayAccessToken()
-    const locationKey = "GLENVIEW_WAREHOUSE_001"
 
     const body = {
+      merchantLocationKey: "GLENVIEW_WAREHOUSE_002",
       name: "BluBerry Home Shipping",
       phone: "847-510-3229",
       location: {
@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
       merchantLocationStatus: "ENABLED",
     }
 
-    const res = await fetch(`https://api.ebay.com/sell/inventory/v1/location/${locationKey}`, {
-      method: "PUT",
+    const res = await fetch("https://api.ebay.com/sell/inventory/v1/location", {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -49,9 +49,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        locationKey,
+        message: "Location created successfully",
         data,
-        message: "Location updated successfully",
       },
       { status: 200 },
     )
