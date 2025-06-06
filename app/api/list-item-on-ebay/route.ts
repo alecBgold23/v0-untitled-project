@@ -135,7 +135,7 @@ export async function POST(request: Request) {
         },
       },
       packageWeightAndSize: {
-        packageType: "",
+        packageType: "USPS_LARGE_PACK",
         weight: {
           value: 2.0,
           unit: "POUND",
