@@ -135,7 +135,7 @@ export async function POST(request: Request) {
         },
       },
       packageWeightAndSize: {
-        packageType: "MAILING_BOX",
+        packageType: "",
         weight: {
           value: 2.0,
           unit: "POUND",
