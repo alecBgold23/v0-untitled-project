@@ -2,19 +2,16 @@ import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 function mapConditionToEbay(condition: string): string {
-  const normalized = condition.trim().toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ")
+  const normalized = condition?.trim().toLowerCase() || "used"
   const conditionMap: { [key: string]: string } = {
     "like new": "NEW_OTHER",
-    "excellent": "USED_EXCELLENT",
-    "good": "USED_GOOD",
-    "fair": "USED_ACCEPTABLE",
-    "poor": "FOR_PARTS_OR_NOT_WORKING",
+    excellent: "USED_EXCELLENT",
+    good: "USED_GOOD",
+    fair: "USED_ACCEPTABLE",
+    poor: "FOR_PARTS_OR_NOT_WORKING",
   }
   return conditionMap[normalized] || "FOR_PARTS_OR_NOT_WORKING"
 }
@@ -28,9 +25,7 @@ function extractBrand(itemName: string): string {
 async function getSuggestedCategoryId(query: string, accessToken: string): Promise<string> {
   try {
     const res = await fetch(
-      `https://api.ebay.com/commerce/taxonomy/v1_beta/category_tree/0/get_category_suggestions?q=${encodeURIComponent(
-        query,
-      )}`,
+      `https://api.ebay.com/commerce/taxonomy/v1_beta/category_tree/0/get_category_suggestions?q=${encodeURIComponent(query)}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -43,14 +38,14 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
     const categoryId = json?.categorySuggestions?.[0]?.category?.categoryId
 
     if (!categoryId) {
-      console.warn("⚠️ No category suggestion returned. Using fallback category ID 139971.")
-      return "139971"
+      console.warn("⚠️ No category suggestion returned. Using fallback.")
+      return "139971" // fallback category ID
     }
 
     return categoryId
   } catch (err) {
-    console.warn("⚠️ Category suggestion failed. Using fallback category ID 139971.", err)
-    return "139971"
+    console.warn("⚠️ Category suggestion failed. Using fallback.", err)
+    return "139971" // same fallback here
   }
 }
 
@@ -68,7 +63,7 @@ export async function POST(request: Request) {
 
     const { data: submission, error } = await supabase.from("sell_items").select("*").eq("id", id).single()
     if (error || !submission) {
-      console.error("❌ Item not found or error fetching data:", error)
+      console.error("❌ Item not found:", error)
       return NextResponse.json({ error: "Item not found or error fetching data" }, { status: 404 })
     }
 
@@ -139,7 +134,19 @@ export async function POST(request: Request) {
           quantity: 1,
         },
       },
-      // Removed packageWeightAndSize as requested
+      packageWeightAndSize: {
+        packageType: "MAILING_BOX",
+        weight: {
+          value: 2.0,
+          unit: "POUND",
+        },
+        dimensions: {
+          length: 10,
+          width: 7,
+          height: 3,
+          unit: "INCH",
+        },
+      },
     }
 
     console.log("📦 Creating inventory item with PUT API...")
@@ -235,17 +242,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Offer creation failed", response: offerText }, { status: 500 })
     }
 
-    let offerResult: any
-    try {
-      offerResult = JSON.parse(offerText)
-    } catch (parseErr) {
-      console.error("❌ Failed to parse offer creation response:", parseErr)
-      return NextResponse.json({ error: "Failed to parse offer creation response" }, { status: 500 })
-    }
-
+    const offerResult = JSON.parse(offerText)
     const offerId = offerResult.offerId
     if (!offerId) {
-      console.error("❌ No offer ID returned from eBay")
+      console.error("❌ No offer ID returned")
       return NextResponse.json({ error: "No offer ID from eBay" }, { status: 500 })
     }
 
@@ -273,14 +273,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Offer publishing failed", response: publishText }, { status: 500 })
     }
 
-    let publishResult: any
-    try {
-      publishResult = JSON.parse(publishText)
-    } catch (parseErr) {
-      console.error("❌ Failed to parse publish response:", parseErr)
-      return NextResponse.json({ error: "Failed to parse publish response" }, { status: 500 })
-    }
-
+    const publishResult = JSON.parse(publishText)
     const listingId = publishResult.listingId
     console.log(`✅ Offer published: ${listingId}`)
 
