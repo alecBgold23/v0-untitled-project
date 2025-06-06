@@ -275,8 +275,9 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     (item, index) => {
       if (!item) return false
 
-      // Check if there are photos or an image URL
-      const hasImages = item.photos?.length > 0 || (item.imageUrl && item.imageUrl.trim() !== "")
+      // Check if there are at least 3 photos/images
+      const totalImages = (item.photos?.length || 0) + (item.imageUrl ? 1 : 0)
+      const hasImages = totalImages >= 3
 
       const isValid =
         item.name?.trim() !== "" &&
@@ -712,65 +713,133 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
             return
           }
 
-          // Show uploading toast
-          toast({
-            title: "Uploading Images",
-            description: `Uploading ${files.length} image(s) to item_images bucket...`,
-            variant: "default",
-          })
-
-          // Upload files to Supabase and create photo objects
+          // Upload files to Supabase and create photo objects immediately
           const newPhotos = []
 
           for (const file of files) {
             try {
-              // Upload to Supabase first
-              const uploadResult = await uploadImageToSupabase(file, email || "anonymous")
-
-              if (uploadResult.success) {
-                // Create photo object with safe blob URL handling
-                let previewUrl = ""
-                try {
-                  previewUrl = URL.createObjectURL(file)
-                } catch (blobError) {
-                  console.warn("Could not create blob URL for preview:", blobError)
-                  // Use the uploaded URL as fallback
-                  previewUrl = uploadResult.url
-                }
-
-                const photoObject = {
-                  file,
-                  name: file.name,
-                  id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                  size: file.size,
-                  type: file.type,
-                  previewUrl: previewUrl,
-                  supabaseUrl: uploadResult.url, // The correct Supabase URL
-                  supabasePath: uploadResult.path, // The file path in Supabase
-                  uploaded: true, // Flag to indicate successful upload
-                }
-                newPhotos.push(photoObject)
-                console.log("Successfully uploaded:", uploadResult.url)
-              } else {
-                console.error("Upload failed:", uploadResult.error)
-                toast({
-                  title: "Upload Failed",
-                  description: `Failed to upload ${file.name}: ${uploadResult.error}`,
-                  variant: "destructive",
-                })
+              // Create photo object immediately with preview URL
+              let previewUrl = ""
+              try {
+                previewUrl = URL.createObjectURL(file)
+              } catch (blobError) {
+                console.warn("Could not create blob URL for preview:", blobError)
+                previewUrl = "/placeholder.svg?height=96&width=96"
               }
-            } catch (uploadError) {
-              console.error("Error uploading file:", uploadError)
-              toast({
-                title: "Upload Error",
-                description: `Error uploading ${file.name}`,
-                variant: "destructive",
-              })
+
+              const photoObject = {
+                file,
+                name: file.name,
+                id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                size: file.size,
+                type: file.type,
+                previewUrl: previewUrl,
+                supabaseUrl: "", // Will be set after upload
+                supabasePath: "", // Will be set after upload
+                uploaded: false, // Will be set to true after upload
+                uploading: true, // Show uploading state
+              }
+              newPhotos.push(photoObject)
+
+              // Upload to Supabase in background without delay
+              uploadImageToSupabase(file, email || "anonymous")
+                .then((uploadResult) => {
+                  if (uploadResult.success) {
+                    // Update the photo object with Supabase URL
+                    const currentItems = getItems()
+                    const currentItem = currentItems[index]
+                    if (currentItem && currentItem.photos) {
+                      const updatedPhotos = currentItem.photos.map((photo) => {
+                        if (photo.id === photoObject.id) {
+                          return {
+                            ...photo,
+                            supabaseUrl: uploadResult.url,
+                            supabasePath: uploadResult.path,
+                            uploaded: true,
+                            uploading: false,
+                          }
+                        }
+                        return photo
+                      })
+
+                      const updatedItems = [...currentItems]
+                      updatedItems[index] = {
+                        ...updatedItems[index],
+                        photos: updatedPhotos,
+                      }
+                      setItems(updatedItems)
+                    }
+                    console.log("Successfully uploaded:", uploadResult.url)
+                  } else {
+                    console.error("Upload failed:", uploadResult.error)
+                    // Update photo to show error state
+                    const currentItems = getItems()
+                    const currentItem = currentItems[index]
+                    if (currentItem && currentItem.photos) {
+                      const updatedPhotos = currentItem.photos.map((photo) => {
+                        if (photo.id === photoObject.id) {
+                          return {
+                            ...photo,
+                            uploaded: false,
+                            uploading: false,
+                            error: true,
+                          }
+                        }
+                        return photo
+                      })
+
+                      const updatedItems = [...currentItems]
+                      updatedItems[index] = {
+                        ...updatedItems[index],
+                        photos: updatedPhotos,
+                      }
+                      setItems(updatedItems)
+                    }
+                    toast({
+                      title: "Upload Failed",
+                      description: `Failed to upload ${file.name}: ${uploadResult.error}`,
+                      variant: "destructive",
+                    })
+                  }
+                })
+                .catch((uploadError) => {
+                  console.error("Error uploading file:", uploadError)
+                  // Update photo to show error state
+                  const currentItems = getItems()
+                  const currentItem = currentItems[index]
+                  if (currentItem && currentItem.photos) {
+                    const updatedPhotos = currentItem.photos.map((photo) => {
+                      if (photo.id === photoObject.id) {
+                        return {
+                          ...photo,
+                          uploaded: false,
+                          uploading: false,
+                          error: true,
+                        }
+                      }
+                      return photo
+                    })
+
+                    const updatedItems = [...currentItems]
+                    updatedItems[index] = {
+                      ...updatedItems[index],
+                      photos: updatedPhotos,
+                    }
+                    setItems(updatedItems)
+                  }
+                  toast({
+                    title: "Upload Error",
+                    description: `Error uploading ${file.name}`,
+                    variant: "destructive",
+                  })
+                })
+            } catch (error) {
+              console.error("Error processing file:", error)
             }
           }
 
           if (newPhotos.length > 0) {
-            // Add to item photos
+            // Add to item photos immediately
             const updatedItems = [...items]
             updatedItems[index] = {
               ...updatedItems[index],
@@ -785,13 +854,6 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
 
             // Validate the item after adding photos
             setTimeout(() => validateItem(updatedItems[index], index), 100)
-
-            // Show success toast
-            toast({
-              title: "Upload Complete",
-              description: `Successfully uploaded ${newPhotos.length} image(s) to item_images bucket.`,
-              variant: "default",
-            })
           }
         }
       } catch (error) {
@@ -1962,7 +2024,7 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                   <Label className="text-sm font-medium mb-2 block text-slate-900 dark:text-slate-100">
                                     Item Photos <span className="text-red-500">*</span>{" "}
                                     <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
-                                      (at least 1 required)
+                                      (at least 3 required)
                                     </span>
                                   </Label>
 
@@ -2066,25 +2128,27 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                         {item.photos.map((photo, photoIndex) => (
                                           <div key={photo.id || photoIndex} className="relative group">
                                             <div className="w-24 h-24 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                                              {photo.supabaseUrl ? (
+                                              {photo.previewUrl ? (
                                                 <img
-                                                  src={photo.supabaseUrl || "/placeholder.svg"}
+                                                  src={photo.previewUrl || "/placeholder.svg"}
                                                   alt={`Preview ${photoIndex + 1}`}
                                                   className="w-full h-full object-cover"
                                                   onError={(e) => {
-                                                    console.error(`Error loading image ${photoIndex}:`, e)
+                                                    const event = e.nativeEvent || e
+                                                    const target = e.currentTarget || e.target
+                                                    console.error(`Error loading image ${photoIndex}:`, {
+                                                      src: target?.src,
+                                                      supabaseUrl: photo.supabaseUrl,
+                                                      previewUrl: photo.previewUrl,
+                                                      errorMessage: event?.message || "Image load failed",
+                                                      errorType: event?.type || "unknown",
+                                                    })
                                                     // Fallback to placeholder
-                                                    e.currentTarget.src =
-                                                      "/placeholder.svg?height=96&width=96&query=image"
-                                                  }}
-                                                  onLoad={() => {
-                                                    // Revoke blob URL after successful load to prevent memory leaks
-                                                    if (photo.previewUrl && photo.previewUrl.startsWith("blob:")) {
-                                                      try {
-                                                        URL.revokeObjectURL(photo.previewUrl)
-                                                      } catch (err) {
-                                                        console.warn("Could not revoke blob URL:", err)
-                                                      }
+                                                    if (
+                                                      target &&
+                                                      target.src !== "/placeholder.svg?height=96&width=96"
+                                                    ) {
+                                                      target.src = "/placeholder.svg?height=96&width=96"
                                                     }
                                                   }}
                                                 />
@@ -2102,9 +2166,21 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                             >
                                               <X className="w-3 h-3" />
                                             </button>
-                                            {photo.uploaded && (
+                                            {/* Upload status indicators */}
+                                            {photo.uploading && (
+                                              <div className="absolute bottom-0 left-0 right-0 bg-blue-600 bg-opacity-75 text-white text-xs p-1 text-center flex items-center justify-center gap-1">
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                Uploading
+                                              </div>
+                                            )}
+                                            {photo.uploaded && !photo.uploading && (
                                               <div className="absolute bottom-0 left-0 right-0 bg-green-600 bg-opacity-75 text-white text-xs p-1 text-center">
                                                 Uploaded
+                                              </div>
+                                            )}
+                                            {photo.error && !photo.uploading && (
+                                              <div className="absolute bottom-0 left-0 right-0 bg-red-600 bg-opacity-75 text-white text-xs p-1 text-center">
+                                                Error
                                               </div>
                                             )}
                                           </div>
@@ -2119,11 +2195,11 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                       <Progress
                                         value={Math.min(
                                           100,
-                                          (((item.photos?.length || 0) + (item.imageUrl ? 1 : 0)) / 1) * 100,
+                                          (((item.photos?.length || 0) + (item.imageUrl ? 1 : 0)) / 3) * 100,
                                         )}
                                         className="h-1.5"
                                         indicatorClassName={
-                                          (item.photos?.length || 0) + (item.imageUrl ? 1 : 0) >= 1
+                                          (item.photos?.length || 0) + (item.imageUrl ? 1 : 0) >= 3
                                             ? "bg-green-500"
                                             : "bg-gradient-to-r from-blue-500 via-purple-500 to-violet-500"
                                         }
@@ -2253,7 +2329,6 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                       <span className="text-green-600 dark:text-green-400 font-medium">
                                         {priceEstimates[index].price}
                                       </span>
-                                      {/* Source indicator in collapsed view */}
                                       {priceEstimates[index].source === "pricing_openai_primary" && (
                                         <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-xs">
                                           AI Pro
