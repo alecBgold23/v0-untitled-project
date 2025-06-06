@@ -131,46 +131,94 @@ export default function AdminDashboard() {
         } else {
           // Process image URLs to ensure they're correctly formatted
           const processedData = data?.map((item) => {
-            console.log("Processing item:", item.id, "Original image_url:", item.image_url)
+            console.log(
+              "Processing item:",
+              item.id,
+              "Original image_url:",
+              item.image_url,
+              "Original image_urls:",
+              item.image_urls,
+            )
 
             let imageUrl = item.image_url
+            let imageUrls = item.image_urls
 
+            // Process main image URL
             if (imageUrl) {
-              // Clean up the URL and ensure it's properly formatted
               imageUrl = imageUrl.trim()
 
-              // If it's already a full URL, check if it's correctly formatted
-              if (imageUrl.startsWith("http")) {
-                // Extract project ID from Supabase URL
-                const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
-
-                if (projectId) {
-                  // Check if it's a Supabase storage URL but not properly formatted
-                  if (imageUrl.includes(projectId) && !imageUrl.includes("/storage/v1/object/public/item_images/")) {
-                    // Extract filename from the end of the URL
-                    const urlParts = imageUrl.split("/")
-                    const fileName = urlParts[urlParts.length - 1]
-
-                    // Reconstruct with proper bucket path
+              // If it's already a full Supabase URL, keep it as is
+              if (imageUrl.startsWith("https://") && imageUrl.includes("supabase.co")) {
+                // Ensure it has the correct storage path format
+                if (!imageUrl.includes("/storage/v1/object/public/")) {
+                  const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+                  if (projectId) {
+                    const fileName = imageUrl.split("/").pop()
                     imageUrl = `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${fileName}`
                   }
                 }
-              } else {
+              } else if (!imageUrl.startsWith("http")) {
                 // If it's just a filename or path, construct full URL
                 const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
                 if (projectId) {
-                  // Remove any leading slashes or bucket names
                   const cleanPath = imageUrl.replace(/^\/?(item_images\/)?/, "")
                   imageUrl = `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
                 }
               }
             }
 
+            // Process multiple image URLs
+            if (imageUrls) {
+              try {
+                let parsedUrls: string[] = []
+
+                // Try to parse as JSON array first
+                if (imageUrls.startsWith("[")) {
+                  parsedUrls = JSON.parse(imageUrls)
+                } else {
+                  // Try comma-separated format
+                  parsedUrls = imageUrls
+                    .split(",")
+                    .map((url) => url.trim())
+                    .filter((url) => url.length > 0)
+                }
+
+                // Process each URL
+                parsedUrls = parsedUrls.map((url) => {
+                  if (url.startsWith("https://") && url.includes("supabase.co")) {
+                    // Ensure it has the correct storage path format
+                    if (!url.includes("/storage/v1/object/public/")) {
+                      const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+                      if (projectId) {
+                        const fileName = url.split("/").pop()
+                        return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${fileName}`
+                      }
+                    }
+                    return url
+                  } else if (!url.startsWith("http")) {
+                    // If it's just a filename or path, construct full URL
+                    const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+                    if (projectId) {
+                      const cleanPath = url.replace(/^\/?(item_images\/)?/, "")
+                      return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
+                    }
+                  }
+                  return url
+                })
+
+                imageUrls = JSON.stringify(parsedUrls)
+              } catch (error) {
+                console.error("Error processing image_urls for item", item.id, error)
+              }
+            }
+
             console.log("Processed image_url:", imageUrl)
+            console.log("Processed image_urls:", imageUrls)
 
             return {
               ...item,
               image_url: imageUrl,
+              image_urls: imageUrls,
             }
           })
 
@@ -292,16 +340,20 @@ export default function AdminDashboard() {
 
     // Parse multiple images if available
     let images: string[] = []
+
     if (item.image_urls) {
       try {
         // Try to parse as JSON array
         const parsed = JSON.parse(item.image_urls)
         if (Array.isArray(parsed)) {
-          images = parsed
+          images = parsed.filter((url) => url && url.trim().length > 0)
         }
       } catch {
         // If not JSON, try comma-separated
-        images = item.image_urls.split(",").map((url) => url.trim())
+        images = item.image_urls
+          .split(",")
+          .map((url) => url.trim())
+          .filter((url) => url.length > 0)
       }
     }
 
@@ -310,11 +362,15 @@ export default function AdminDashboard() {
       images.unshift(item.image_url)
     }
 
+    // Remove any empty or invalid URLs
+    images = images.filter((url) => url && url.trim().length > 0)
+
     // If still no images, use a placeholder
     if (images.length === 0) {
-      images = ["/placeholder.svg"]
+      images = ["/placeholder.svg?height=400&width=400&text=No Image"]
     }
 
+    console.log("Final images array for item", item.id, ":", images)
     setItemImages(images)
   }
 
@@ -503,7 +559,7 @@ export default function AdminDashboard() {
                       <TableRow key={submission.id}>
                         <TableCell>
                           <Image
-                            src={submission.image_url || "/placeholder.svg"}
+                            src={submission.image_url || "/placeholder.svg?height=80&width=80&text=No Image"}
                             alt={submission.item_name}
                             width={80}
                             height={80}
@@ -511,7 +567,7 @@ export default function AdminDashboard() {
                             onError={(e) => {
                               console.error(`❌ Failed to load image for item ${submission.id}:`, submission.image_url)
                               debugImageUrl(submission.image_url || "", submission.id)
-                              e.currentTarget.src = "/placeholder.svg"
+                              e.currentTarget.src = "/placeholder.svg?height=80&width=80&text=No Image"
                             }}
                             onLoad={() => {
                               console.log(`✅ Successfully loaded image for item ${submission.id}`)
@@ -715,10 +771,20 @@ export default function AdminDashboard() {
                     {itemImages.map((url, index) => (
                       <div key={index} className="relative aspect-square rounded-md overflow-hidden border">
                         <Image
-                          src={url || "/placeholder.svg"}
+                          src={url || "/placeholder.svg?height=200&width=200&text=No Image"}
                           alt={`${selectedItem.item_name} - Image ${index + 1}`}
                           fill
                           className="object-cover"
+                          onError={(e) => {
+                            console.error(
+                              `❌ Failed to load dialog image ${index + 1} for item ${selectedItem.id}:`,
+                              url,
+                            )
+                            e.currentTarget.src = "/placeholder.svg?height=200&width=200&text=No Image"
+                          }}
+                          onLoad={() => {
+                            console.log(`✅ Successfully loaded dialog image ${index + 1} for item ${selectedItem.id}`)
+                          }}
                         />
                       </div>
                     ))}
