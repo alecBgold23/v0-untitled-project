@@ -205,7 +205,7 @@ export async function POST(request: Request) {
       },
       merchantLocationKey: requiredEnvVars.locationKey,
       packageWeightAndSize: {
-        packageType: "MAILING BOX",
+        packageType: "MAILING_BOX",
         "weight": {
           "value": 2.0,
           "unit": "POUND",
