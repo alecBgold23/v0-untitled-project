@@ -2058,6 +2058,9 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
                                           <p className="font-medium text-sm text-blue-600 dark:text-blue-400">
                                             Click to Upload Images
                                           </p>
+                                          <p className="font-medium text-xs text-slate-700 dark:text-slate-300">
+                                            Upload 3 quality images
+                                          </p>
                                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                                             {(item.photos || []).length} photos uploaded (max 10) - uploads to
                                             item_images bucket
