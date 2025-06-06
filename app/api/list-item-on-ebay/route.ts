@@ -139,19 +139,7 @@ export async function POST(request: Request) {
           quantity: 1,
         },
       },
-      packageWeightAndSize: {
-        packageType: "MAILING_BOX",
-        weight: {
-          value: 2.0,
-          unit: "POUND",
-        },
-        dimensions: {
-          length: 10,
-          width: 7,
-          height: 3,
-          unit: "INCH",
-        },
-      },
+      // Removed packageWeightAndSize as requested
     }
 
     console.log("📦 Creating inventory item with PUT API...")
