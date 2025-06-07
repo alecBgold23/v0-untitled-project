@@ -104,6 +104,82 @@ export default function AdminDashboard() {
     localStorage.removeItem("adminAuthenticated")
   }
 
+  // Helper function to extract all image URLs from a submission
+  const extractAllImageUrls = (submission: ItemSubmission): string[] => {
+    const images: string[] = []
+
+    // Add main image_url if it exists
+    if (submission.image_url && submission.image_url.trim()) {
+      images.push(submission.image_url.trim())
+    }
+
+    // Parse and add images from image_urls field
+    if (submission.image_urls && submission.image_urls.trim()) {
+      try {
+        // Try parsing as JSON array first
+        if (submission.image_urls.startsWith("[")) {
+          const parsed = JSON.parse(submission.image_urls)
+          if (Array.isArray(parsed)) {
+            parsed.forEach((url) => {
+              if (url && typeof url === "string" && url.trim()) {
+                images.push(url.trim())
+              }
+            })
+          }
+        } else {
+          // Try comma-separated format
+          const urls = submission.image_urls.split(",")
+          urls.forEach((url) => {
+            if (url && url.trim()) {
+              images.push(url.trim())
+            }
+          })
+        }
+      } catch (error) {
+        console.error("Error parsing image_urls for item", submission.id, error)
+        // If parsing fails, try treating as single URL
+        if (submission.image_urls.trim()) {
+          images.push(submission.image_urls.trim())
+        }
+      }
+    }
+
+    // Remove duplicates and empty strings
+    const uniqueImages = [...new Set(images)].filter((url) => url && url.length > 0)
+
+    console.log(`Extracted ${uniqueImages.length} images for item ${submission.id}:`, uniqueImages)
+    return uniqueImages
+  }
+
+  // Helper function to ensure Supabase URL is correctly formatted
+  const ensureCorrectSupabaseUrl = (url: string): string => {
+    if (!url || !url.trim()) return url
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+    const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+
+    if (!projectId) return url
+
+    // If it's already a complete Supabase storage URL, return as is
+    if (url.includes("supabase.co/storage/v1/object/public/")) {
+      return url
+    }
+
+    // If it's a Supabase URL but missing the storage path, fix it
+    if (url.includes("supabase.co") && !url.includes("/storage/v1/object/public/")) {
+      const fileName = url.split("/").pop()
+      return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${fileName}`
+    }
+
+    // If it's just a filename or relative path, construct full URL
+    if (!url.startsWith("http")) {
+      const cleanPath = url.replace(/^\/?(item_images\/)?/, "")
+      return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
+    }
+
+    return url
+  }
+
   useEffect(() => {
     if (!isAuthenticated) return
 
@@ -129,96 +205,29 @@ export default function AdminDashboard() {
           console.error("Failed to fetch submissions:", error)
           setFetchError(error.message)
         } else {
-          // Process image URLs to ensure they're correctly formatted
+          // Process submissions to ensure image URLs are correctly formatted
           const processedData = data?.map((item) => {
-            console.log(
-              "Processing item:",
-              item.id,
-              "Original image_url:",
-              item.image_url,
-              "Original image_urls:",
-              item.image_urls,
-            )
+            console.log("Processing item:", item.id)
+            console.log("Raw image_url:", item.image_url)
+            console.log("Raw image_urls:", item.image_urls)
 
-            let imageUrl = item.image_url
-            let imageUrls = item.image_urls
+            // Extract all images and ensure they're properly formatted
+            const allImages = extractAllImageUrls(item)
+            const formattedImages = allImages.map((url) => ensureCorrectSupabaseUrl(url))
 
-            // Process main image URL
-            if (imageUrl) {
-              imageUrl = imageUrl.trim()
+            // Set the first image as the main image_url
+            const mainImageUrl = formattedImages.length > 0 ? formattedImages[0] : item.image_url
 
-              // If it's already a full Supabase URL, keep it as is
-              if (imageUrl.startsWith("https://") && imageUrl.includes("supabase.co")) {
-                // Ensure it has the correct storage path format
-                if (!imageUrl.includes("/storage/v1/object/public/")) {
-                  const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
-                  if (projectId) {
-                    const fileName = imageUrl.split("/").pop()
-                    imageUrl = `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${fileName}`
-                  }
-                }
-              } else if (!imageUrl.startsWith("http")) {
-                // If it's just a filename or path, construct full URL
-                const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
-                if (projectId) {
-                  const cleanPath = imageUrl.replace(/^\/?(item_images\/)?/, "")
-                  imageUrl = `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
-                }
-              }
-            }
+            // Store all images back in image_urls as JSON array
+            const allImagesJson = formattedImages.length > 0 ? JSON.stringify(formattedImages) : item.image_urls
 
-            // Process multiple image URLs
-            if (imageUrls) {
-              try {
-                let parsedUrls: string[] = []
-
-                // Try to parse as JSON array first
-                if (imageUrls.startsWith("[")) {
-                  parsedUrls = JSON.parse(imageUrls)
-                } else {
-                  // Try comma-separated format
-                  parsedUrls = imageUrls
-                    .split(",")
-                    .map((url) => url.trim())
-                    .filter((url) => url.length > 0)
-                }
-
-                // Process each URL
-                parsedUrls = parsedUrls.map((url) => {
-                  if (url.startsWith("https://") && url.includes("supabase.co")) {
-                    // Ensure it has the correct storage path format
-                    if (!url.includes("/storage/v1/object/public/")) {
-                      const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
-                      if (projectId) {
-                        const fileName = url.split("/").pop()
-                        return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${fileName}`
-                      }
-                    }
-                    return url
-                  } else if (!url.startsWith("http")) {
-                    // If it's just a filename or path, construct full URL
-                    const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
-                    if (projectId) {
-                      const cleanPath = url.replace(/^\/?(item_images\/)?/, "")
-                      return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
-                    }
-                  }
-                  return url
-                })
-
-                imageUrls = JSON.stringify(parsedUrls)
-              } catch (error) {
-                console.error("Error processing image_urls for item", item.id, error)
-              }
-            }
-
-            console.log("Processed image_url:", imageUrl)
-            console.log("Processed image_urls:", imageUrls)
+            console.log("Processed main image:", mainImageUrl)
+            console.log("Processed all images:", allImagesJson)
 
             return {
               ...item,
-              image_url: imageUrl,
-              image_urls: imageUrls,
+              image_url: mainImageUrl,
+              image_urls: allImagesJson,
             }
           })
 
@@ -338,40 +347,16 @@ export default function AdminDashboard() {
   const viewItemDetails = (item: ItemSubmission) => {
     setSelectedItem(item)
 
-    // Parse multiple images if available
-    let images: string[] = []
+    // Extract all images for the selected item
+    const allImages = extractAllImageUrls(item)
+    const formattedImages = allImages.map((url) => ensureCorrectSupabaseUrl(url))
 
-    if (item.image_urls) {
-      try {
-        // Try to parse as JSON array
-        const parsed = JSON.parse(item.image_urls)
-        if (Array.isArray(parsed)) {
-          images = parsed.filter((url) => url && url.trim().length > 0)
-        }
-      } catch {
-        // If not JSON, try comma-separated
-        images = item.image_urls
-          .split(",")
-          .map((url) => url.trim())
-          .filter((url) => url.length > 0)
-      }
-    }
+    // If no images found, use placeholder
+    const finalImages =
+      formattedImages.length > 0 ? formattedImages : ["/placeholder.svg?height=400&width=400&text=No Image"]
 
-    // Add the main image if it exists and isn't already in the array
-    if (item.image_url && !images.includes(item.image_url)) {
-      images.unshift(item.image_url)
-    }
-
-    // Remove any empty or invalid URLs
-    images = images.filter((url) => url && url.trim().length > 0)
-
-    // If still no images, use a placeholder
-    if (images.length === 0) {
-      images = ["/placeholder.svg?height=400&width=400&text=No Image"]
-    }
-
-    console.log("Final images array for item", item.id, ":", images)
-    setItemImages(images)
+    console.log(`Setting ${finalImages.length} images for dialog:`, finalImages)
+    setItemImages(finalImages)
   }
 
   const debugImageUrl = (url: string, itemId: string) => {
@@ -555,195 +540,212 @@ export default function AdminDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {submissions.map((submission) => (
-                      <TableRow key={submission.id}>
-                        <TableCell>
-                          <Image
-                            src={submission.image_url || "/placeholder.svg?height=80&width=80&text=No Image"}
-                            alt={submission.item_name}
-                            width={80}
-                            height={80}
-                            className="rounded-lg object-cover"
-                            onError={(e) => {
-                              console.error(`❌ Failed to load image for item ${submission.id}:`, submission.image_url)
-                              debugImageUrl(submission.image_url || "", submission.id)
-                              e.currentTarget.src = "/placeholder.svg?height=80&width=80&text=No Image"
-                            }}
-                            onLoad={() => {
-                              console.log(`✅ Successfully loaded image for item ${submission.id}`)
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell className="max-w-[150px]">
-                          <div className="space-y-1">
-                            <div className="font-semibold text-white text-sm line-clamp-2">{submission.item_name}</div>
-                            {submission.item_issues && (
-                              <div className="text-xs text-red-400 font-medium max-w-[140px] truncate">
-                                Issues: {submission.item_issues}
-                              </div>
-                            )}
-                            <Button
-                              variant="link"
-                              className="text-xs p-0 h-auto text-blue-400 hover:text-blue-300"
-                              onClick={() => viewItemDetails(submission)}
-                            >
-                              View Details
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-[300px]">
-                          {editingDescription === submission.id ? (
-                            <div className="space-y-2">
-                              <textarea
-                                value={editedDescription}
-                                onChange={(e) => setEditedDescription(e.target.value)}
-                                className="w-full p-2 border rounded-md text-sm resize-none"
-                                rows={3}
-                                placeholder="Enter item description..."
+                    {submissions.map((submission) => {
+                      // Get the count of images for this submission
+                      const imageCount = extractAllImageUrls(submission).length
+
+                      return (
+                        <TableRow key={submission.id}>
+                          <TableCell>
+                            <div className="relative">
+                              <Image
+                                src={submission.image_url || "/placeholder.svg?height=80&width=80&text=No Image"}
+                                alt={submission.item_name}
+                                width={80}
+                                height={80}
+                                className="rounded-lg object-cover"
+                                onError={(e) => {
+                                  console.error(
+                                    `❌ Failed to load image for item ${submission.id}:`,
+                                    submission.image_url,
+                                  )
+                                  debugImageUrl(submission.image_url || "", submission.id)
+                                  e.currentTarget.src = "/placeholder.svg?height=80&width=80&text=No Image"
+                                }}
+                                onLoad={() => {
+                                  console.log(`✅ Successfully loaded image for item ${submission.id}`)
+                                }}
                               />
-                              <div className="flex gap-1">
-                                <Button
-                                  size="sm"
-                                  onClick={() => updateItemDescription(submission.id, editedDescription)}
-                                  className="h-6 px-2 text-xs"
-                                >
-                                  Save
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={cancelEditingDescription}
-                                  className="h-6 px-2 text-xs"
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
+                              {imageCount > 1 && (
+                                <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                                  {imageCount}
+                                </div>
+                              )}
                             </div>
-                          ) : (
+                          </TableCell>
+                          <TableCell className="max-w-[150px]">
                             <div className="space-y-1">
-                              <div className="text-sm text-white line-clamp-3">
-                                {submission.item_description || "No description"}
+                              <div className="font-semibold text-white text-sm line-clamp-2">
+                                {submission.item_name}
                               </div>
-                              <Button
-                                variant="link"
-                                className="text-xs p-0 h-auto text-blue-400"
-                                onClick={() => startEditingDescription(submission.id, submission.item_description)}
-                              >
-                                Edit Description
-                              </Button>
                               {submission.item_issues && (
-                                <div className="text-xs text-red-400 max-w-[200px] truncate">
+                                <div className="text-xs text-red-400 font-medium max-w-[140px] truncate">
                                   Issues: {submission.item_issues}
                                 </div>
                               )}
                               <Button
                                 variant="link"
-                                className="text-xs p-0 h-auto"
+                                className="text-xs p-0 h-auto text-blue-400 hover:text-blue-300"
                                 onClick={() => viewItemDetails(submission)}
                               >
-                                View Details
+                                View Details ({imageCount} photos)
                               </Button>
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="font-medium text-white">{submission.full_name}</div>
-                            <div className="text-sm text-gray-400">{submission.email}</div>
-                            {submission.phone && <div className="text-xs text-gray-400">{submission.phone}</div>}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`font-medium ${getConditionColor(submission.item_condition)}`}>
-                            {submission.item_condition}
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-medium text-white">
-                          {submission.estimated_price !== null
-                            ? `$${submission.estimated_price.toLocaleString()}`
-                            : "—"}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(submission.status)}</TableCell>
-                        <TableCell className="text-sm text-gray-400">
-                          {new Date(submission.submission_date).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {submission.status === "pending" && (
-                              <>
+                          </TableCell>
+                          <TableCell className="max-w-[300px]">
+                            {editingDescription === submission.id ? (
+                              <div className="space-y-2">
+                                <textarea
+                                  value={editedDescription}
+                                  onChange={(e) => setEditedDescription(e.target.value)}
+                                  className="w-full p-2 border rounded-md text-sm resize-none"
+                                  rows={3}
+                                  placeholder="Enter item description..."
+                                />
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => updateItemDescription(submission.id, editedDescription)}
+                                    className="h-6 px-2 text-xs"
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={cancelEditingDescription}
+                                    className="h-6 px-2 text-xs"
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                <div className="text-sm text-white line-clamp-3">
+                                  {submission.item_description || "No description"}
+                                </div>
+                                <Button
+                                  variant="link"
+                                  className="text-xs p-0 h-auto text-blue-400"
+                                  onClick={() => startEditingDescription(submission.id, submission.item_description)}
+                                >
+                                  Edit Description
+                                </Button>
+                                {submission.item_issues && (
+                                  <div className="text-xs text-red-400 max-w-[200px] truncate">
+                                    Issues: {submission.item_issues}
+                                  </div>
+                                )}
+                                <Button
+                                  variant="link"
+                                  className="text-xs p-0 h-auto"
+                                  onClick={() => viewItemDetails(submission)}
+                                >
+                                  View Details
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="font-medium text-white">{submission.full_name}</div>
+                              <div className="text-sm text-gray-400">{submission.email}</div>
+                              {submission.phone && <div className="text-xs text-gray-400">{submission.phone}</div>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`font-medium ${getConditionColor(submission.item_condition)}`}>
+                              {submission.item_condition}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-medium text-white">
+                            {submission.estimated_price !== null
+                              ? `$${submission.estimated_price.toLocaleString()}`
+                              : "—"}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(submission.status)}</TableCell>
+                          <TableCell className="text-sm text-gray-400">
+                            {new Date(submission.submission_date).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {submission.status === "pending" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => updateSubmissionStatus(submission.id, "approved")}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    Approve
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button size="sm" variant="destructive">
+                                        Reject
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Reject Submission</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to reject this item submission? This action cannot be
+                                          undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => updateSubmissionStatus(submission.id, "rejected")}
+                                          className="bg-red-600 hover:bg-red-700"
+                                        >
+                                          Reject
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </>
+                              )}
+                              {submission.status === "approved" && (
                                 <Button
                                   size="sm"
-                                  onClick={() => updateSubmissionStatus(submission.id, "approved")}
-                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => listItemOnEbay(submission.id)}
+                                  disabled={listingLoading === submission.id}
+                                  className="bg-blue-600 hover:bg-blue-700"
                                 >
-                                  Approve
+                                  {listingLoading === submission.id ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                      Listing...
+                                    </>
+                                  ) : (
+                                    "List on eBay"
+                                  )}
                                 </Button>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="destructive">
-                                      Reject
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Reject Submission</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Are you sure you want to reject this item submission? This action cannot be
-                                        undone.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => updateSubmissionStatus(submission.id, "rejected")}
-                                        className="bg-red-600 hover:bg-red-700"
-                                      >
-                                        Reject
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </>
-                            )}
-                            {submission.status === "approved" && (
-                              <Button
-                                size="sm"
-                                onClick={() => listItemOnEbay(submission.id)}
-                                disabled={listingLoading === submission.id}
-                                className="bg-blue-600 hover:bg-blue-700"
-                              >
-                                {listingLoading === submission.id ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                    Listing...
-                                  </>
-                                ) : (
-                                  "List on eBay"
-                                )}
-                              </Button>
-                            )}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Open menu</span>
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => viewItemDetails(submission)}>
-                                  View details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>Contact customer</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>Edit submission</DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">Delete submission</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                              )}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => viewItemDetails(submission)}>
+                                    View details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>Contact customer</DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem>Edit submission</DropdownMenuItem>
+                                  <DropdownMenuItem className="text-red-600">Delete submission</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -755,23 +757,24 @@ export default function AdminDashboard() {
       {/* Item Details Dialog */}
       {selectedItem && (
         <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle>{selectedItem.item_name}</DialogTitle>
               <DialogDescription>
-                Submitted by {selectedItem.full_name} on {new Date(selectedItem.submission_date).toLocaleDateString()}
+                Submitted by {selectedItem.full_name} on {new Date(selectedItem.submission_date).toLocaleDateString()} •{" "}
+                {itemImages.length} photos
               </DialogDescription>
             </DialogHeader>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 flex-grow overflow-hidden">
               <div className="space-y-4 overflow-y-auto">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Images</h3>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
+                  <h3 className="text-sm font-medium text-gray-500 mb-3">Images ({itemImages.length})</h3>
+                  <div className="grid grid-cols-1 gap-3">
                     {itemImages.map((url, index) => (
-                      <div key={index} className="relative aspect-square rounded-md overflow-hidden border">
+                      <div key={index} className="relative aspect-square rounded-md overflow-hidden border bg-gray-100">
                         <Image
-                          src={url || "/placeholder.svg?height=200&width=200&text=No Image"}
+                          src={url || "/placeholder.svg?height=300&width=300&text=No Image"}
                           alt={`${selectedItem.item_name} - Image ${index + 1}`}
                           fill
                           className="object-cover"
@@ -780,12 +783,15 @@ export default function AdminDashboard() {
                               `❌ Failed to load dialog image ${index + 1} for item ${selectedItem.id}:`,
                               url,
                             )
-                            e.currentTarget.src = "/placeholder.svg?height=200&width=200&text=No Image"
+                            e.currentTarget.src = "/placeholder.svg?height=300&width=300&text=No Image"
                           }}
                           onLoad={() => {
                             console.log(`✅ Successfully loaded dialog image ${index + 1} for item ${selectedItem.id}`)
                           }}
                         />
+                        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                          {index + 1} of {itemImages.length}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -830,6 +836,9 @@ export default function AdminDashboard() {
                       </p>
                       <p>
                         <span className="font-medium">Status:</span> {selectedItem.status}
+                      </p>
+                      <p>
+                        <span className="font-medium">Photos:</span> {itemImages.length}
                       </p>
                     </div>
                   </div>
