@@ -60,8 +60,14 @@ export interface ItemSubmission {
   image_path: string | null
   image_url: string | null
   image_urls?: string | null // For multiple images
+  image_paths?: string | null // For multiple image paths
   estimated_price: number | null
   item_condition: "Like New" | "Excellent" | "Good" | "Fair" | "Poor"
+  // Additional image fields that might exist
+  image_url_2?: string | null
+  image_url_3?: string | null
+  image_url_4?: string | null
+  image_url_5?: string | null
 }
 
 export default function AdminDashboard() {
@@ -111,11 +117,22 @@ export default function AdminDashboard() {
     console.log(`🔍 Extracting images for item ${submission.id}:`)
     console.log("Raw image_url:", submission.image_url)
     console.log("Raw image_urls:", submission.image_urls)
+    console.log("Raw image_path:", submission.image_path)
+    console.log("Raw image_paths:", (submission as any).image_paths)
 
     // Add main image_url if it exists
     if (submission.image_url && submission.image_url.trim()) {
       images.push(submission.image_url.trim())
       console.log("Added main image_url:", submission.image_url.trim())
+    }
+
+    // Add image from image_path if it exists and is different from image_url
+    if (submission.image_path && submission.image_path.trim()) {
+      const pathUrl = ensureCorrectSupabaseUrl(submission.image_path.trim())
+      if (!images.includes(pathUrl)) {
+        images.push(pathUrl)
+        console.log("Added image_path:", pathUrl)
+      }
     }
 
     // Parse and add images from image_urls field
@@ -127,10 +144,14 @@ export default function AdminDashboard() {
         if (submission.image_urls.startsWith("[")) {
           parsedUrls = JSON.parse(submission.image_urls)
           console.log("Parsed as JSON array:", parsedUrls)
-        } else {
+        } else if (submission.image_urls.includes(",")) {
           // Try comma-separated format
           parsedUrls = submission.image_urls.split(",")
           console.log("Parsed as comma-separated:", parsedUrls)
+        } else {
+          // Single URL
+          parsedUrls = [submission.image_urls]
+          console.log("Parsed as single URL:", parsedUrls)
         }
 
         if (Array.isArray(parsedUrls)) {
@@ -151,6 +172,51 @@ export default function AdminDashboard() {
         if (submission.image_urls.trim() && !images.includes(submission.image_urls.trim())) {
           images.push(submission.image_urls.trim())
           console.log("Added as single URL fallback:", submission.image_urls.trim())
+        }
+      }
+    }
+
+    // Parse and add images from image_paths field if it exists
+    const imagePaths = (submission as any).image_paths
+    if (imagePaths) {
+      try {
+        let parsedPaths: string[] = []
+
+        if (typeof imagePaths === "string") {
+          if (imagePaths.startsWith("[")) {
+            parsedPaths = JSON.parse(imagePaths)
+          } else if (imagePaths.includes(",")) {
+            parsedPaths = imagePaths.split(",")
+          } else {
+            parsedPaths = [imagePaths]
+          }
+        } else if (Array.isArray(imagePaths)) {
+          parsedPaths = imagePaths
+        }
+
+        parsedPaths.forEach((path, index) => {
+          if (path && typeof path === "string" && path.trim()) {
+            const pathUrl = ensureCorrectSupabaseUrl(path.trim())
+            if (!images.includes(pathUrl)) {
+              images.push(pathUrl)
+              console.log(`Added image_paths ${index + 1}:`, pathUrl)
+            }
+          }
+        })
+      } catch (error) {
+        console.error("Error parsing image_paths for item", submission.id, error)
+      }
+    }
+
+    // Check for additional numbered image columns (image_url_2, image_url_3, etc.)
+    for (let i = 2; i <= 5; i++) {
+      const imageKey = `image_url_${i}` as keyof ItemSubmission
+      const imageValue = (submission as any)[imageKey]
+      if (imageValue && typeof imageValue === "string" && imageValue.trim()) {
+        const cleanUrl = imageValue.trim()
+        if (!images.includes(cleanUrl)) {
+          images.push(cleanUrl)
+          console.log(`Added ${imageKey}:`, cleanUrl)
         }
       }
     }
@@ -209,7 +275,13 @@ export default function AdminDashboard() {
         const supabase = createClient(supabaseUrl, supabaseAnonKey)
         const { data, error } = await supabase
           .from("sell_items")
-          .select("*")
+          .select(`
+    *,
+    image_path,
+    image_url,
+    image_urls,
+    image_paths
+  `)
           .order("submission_date", { ascending: false })
 
         if (error) {
