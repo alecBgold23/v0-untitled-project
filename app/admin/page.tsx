@@ -59,15 +59,8 @@ export interface ItemSubmission {
   submission_date: string
   image_path: string | null
   image_url: string | null
-  image_urls?: string | null // For multiple images
-  image_paths?: string | null // For multiple image paths
   estimated_price: number | null
   item_condition: "Like New" | "Excellent" | "Good" | "Fair" | "Poor"
-  // Additional image fields that might exist
-  image_url_2?: string | null
-  image_url_3?: string | null
-  image_url_4?: string | null
-  image_url_5?: string | null
 }
 
 export default function AdminDashboard() {
@@ -110,15 +103,12 @@ export default function AdminDashboard() {
     localStorage.removeItem("adminAuthenticated")
   }
 
-  // Helper function to extract all image URLs from a submission
   const extractAllImageUrls = (submission: ItemSubmission): string[] => {
     const images: string[] = []
 
     console.log(`🔍 Extracting images for item ${submission.id}:`)
     console.log("Raw image_url:", submission.image_url)
-    console.log("Raw image_urls:", submission.image_urls)
     console.log("Raw image_path:", submission.image_path)
-    console.log("Raw image_paths:", (submission as any).image_paths)
 
     // Add main image_url if it exists
     if (submission.image_url && submission.image_url.trim()) {
@@ -135,89 +125,41 @@ export default function AdminDashboard() {
       }
     }
 
-    // Parse and add images from image_urls field
-    if (submission.image_urls && submission.image_urls.trim()) {
+    // Check if image_url contains multiple URLs (comma-separated or JSON array)
+    if (submission.image_url && submission.image_url.includes(",")) {
       try {
-        let parsedUrls: string[] = []
+        const urlParts = submission.image_url.split(",")
+        urlParts.forEach((url, index) => {
+          if (url && url.trim()) {
+            const cleanUrl = url.trim()
+            if (!images.includes(cleanUrl)) {
+              images.push(cleanUrl)
+              console.log(`Added split URL ${index + 1}:`, cleanUrl)
+            }
+          }
+        })
+      } catch (error) {
+        console.error("Error splitting image_url:", error)
+      }
+    }
 
-        // Try parsing as JSON array first
-        if (submission.image_urls.startsWith("[")) {
-          parsedUrls = JSON.parse(submission.image_urls)
-          console.log("Parsed as JSON array:", parsedUrls)
-        } else if (submission.image_urls.includes(",")) {
-          // Try comma-separated format
-          parsedUrls = submission.image_urls.split(",")
-          console.log("Parsed as comma-separated:", parsedUrls)
-        } else {
-          // Single URL
-          parsedUrls = [submission.image_urls]
-          console.log("Parsed as single URL:", parsedUrls)
-        }
-
+    // Check if image_url is a JSON array
+    if (submission.image_url && submission.image_url.startsWith("[")) {
+      try {
+        const parsedUrls = JSON.parse(submission.image_url)
         if (Array.isArray(parsedUrls)) {
           parsedUrls.forEach((url, index) => {
             if (url && typeof url === "string" && url.trim()) {
               const cleanUrl = url.trim()
-              // Avoid duplicates
               if (!images.includes(cleanUrl)) {
                 images.push(cleanUrl)
-                console.log(`Added image ${index + 1}:`, cleanUrl)
+                console.log(`Added JSON URL ${index + 1}:`, cleanUrl)
               }
             }
           })
         }
       } catch (error) {
-        console.error("Error parsing image_urls for item", submission.id, error)
-        // If parsing fails, try treating as single URL
-        if (submission.image_urls.trim() && !images.includes(submission.image_urls.trim())) {
-          images.push(submission.image_urls.trim())
-          console.log("Added as single URL fallback:", submission.image_urls.trim())
-        }
-      }
-    }
-
-    // Parse and add images from image_paths field if it exists
-    const imagePaths = (submission as any).image_paths
-    if (imagePaths) {
-      try {
-        let parsedPaths: string[] = []
-
-        if (typeof imagePaths === "string") {
-          if (imagePaths.startsWith("[")) {
-            parsedPaths = JSON.parse(imagePaths)
-          } else if (imagePaths.includes(",")) {
-            parsedPaths = imagePaths.split(",")
-          } else {
-            parsedPaths = [imagePaths]
-          }
-        } else if (Array.isArray(imagePaths)) {
-          parsedPaths = imagePaths
-        }
-
-        parsedPaths.forEach((path, index) => {
-          if (path && typeof path === "string" && path.trim()) {
-            const pathUrl = ensureCorrectSupabaseUrl(path.trim())
-            if (!images.includes(pathUrl)) {
-              images.push(pathUrl)
-              console.log(`Added image_paths ${index + 1}:`, pathUrl)
-            }
-          }
-        })
-      } catch (error) {
-        console.error("Error parsing image_paths for item", submission.id, error)
-      }
-    }
-
-    // Check for additional numbered image columns (image_url_2, image_url_3, etc.)
-    for (let i = 2; i <= 5; i++) {
-      const imageKey = `image_url_${i}` as keyof ItemSubmission
-      const imageValue = (submission as any)[imageKey]
-      if (imageValue && typeof imageValue === "string" && imageValue.trim()) {
-        const cleanUrl = imageValue.trim()
-        if (!images.includes(cleanUrl)) {
-          images.push(cleanUrl)
-          console.log(`Added ${imageKey}:`, cleanUrl)
-        }
+        console.error("Error parsing JSON image_url:", error)
       }
     }
 
@@ -275,13 +217,7 @@ export default function AdminDashboard() {
         const supabase = createClient(supabaseUrl, supabaseAnonKey)
         const { data, error } = await supabase
           .from("sell_items")
-          .select(`
-    *,
-    image_path,
-    image_url,
-    image_urls,
-    image_paths
-  `)
+          .select("*")
           .order("submission_date", { ascending: false })
 
         if (error) {
@@ -292,7 +228,6 @@ export default function AdminDashboard() {
           const processedData = data?.map((item) => {
             console.log("Processing item:", item.id)
             console.log("Raw image_url:", item.image_url)
-            console.log("Raw image_urls:", item.image_urls)
 
             // Extract all images and ensure they're properly formatted
             const allImages = extractAllImageUrls(item)
@@ -301,16 +236,12 @@ export default function AdminDashboard() {
             // Set the first image as the main image_url
             const mainImageUrl = formattedImages.length > 0 ? formattedImages[0] : item.image_url
 
-            // Store all images back in image_urls as JSON array
-            const allImagesJson = formattedImages.length > 0 ? JSON.stringify(formattedImages) : item.image_urls
-
             console.log("Processed main image:", mainImageUrl)
-            console.log("Processed all images:", allImagesJson)
+            console.log("Processed all images:", formattedImages)
 
             return {
               ...item,
               image_url: mainImageUrl,
-              image_urls: allImagesJson,
             }
           })
 
