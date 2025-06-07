@@ -107,61 +107,97 @@ export default function AdminDashboard() {
     const images: string[] = []
 
     console.log(`🔍 Extracting images for item ${submission.id}:`)
-    console.log("Raw image_url:", submission.image_url)
-    console.log("Raw image_path:", submission.image_path)
+    console.log("Full submission data:", submission)
 
-    // Add main image_url if it exists
-    if (submission.image_url && submission.image_url.trim()) {
-      images.push(submission.image_url.trim())
-      console.log("Added main image_url:", submission.image_url.trim())
-    }
+    // Check all possible image-related fields in the submission
+    const imageFields = [
+      "image_url",
+      "image_path",
+      "image_urls",
+      "image_paths",
+      "image_url_1",
+      "image_url_2",
+      "image_url_3",
+      "image_url_4",
+      "image_url_5",
+      "image_path_1",
+      "image_path_2",
+      "image_path_3",
+      "image_path_4",
+      "image_path_5",
+      "photo_url_1",
+      "photo_url_2",
+      "photo_url_3",
+      "photo_urls",
+      "photos",
+    ]
 
-    // Add image from image_path if it exists and is different from image_url
-    if (submission.image_path && submission.image_path.trim()) {
-      const pathUrl = ensureCorrectSupabaseUrl(submission.image_path.trim())
-      if (!images.includes(pathUrl)) {
-        images.push(pathUrl)
-        console.log("Added image_path:", pathUrl)
-      }
-    }
+    // Check each possible field
+    imageFields.forEach((field) => {
+      const value = (submission as any)[field]
+      if (value && typeof value === "string" && value.trim()) {
+        console.log(`Found ${field}:`, value)
 
-    // Check if image_url contains multiple URLs (comma-separated or JSON array)
-    if (submission.image_url && submission.image_url.includes(",")) {
-      try {
-        const urlParts = submission.image_url.split(",")
-        urlParts.forEach((url, index) => {
-          if (url && url.trim()) {
-            const cleanUrl = url.trim()
-            if (!images.includes(cleanUrl)) {
-              images.push(cleanUrl)
-              console.log(`Added split URL ${index + 1}:`, cleanUrl)
+        // Handle JSON arrays
+        if (value.startsWith("[")) {
+          try {
+            const parsedUrls = JSON.parse(value)
+            if (Array.isArray(parsedUrls)) {
+              parsedUrls.forEach((url, index) => {
+                if (url && typeof url === "string" && url.trim()) {
+                  const cleanUrl = url.trim()
+                  if (!images.includes(cleanUrl)) {
+                    images.push(cleanUrl)
+                    console.log(`Added from ${field}[${index}]:`, cleanUrl)
+                  }
+                }
+              })
+            }
+          } catch (error) {
+            console.error(`Error parsing JSON in ${field}:`, error)
+            // Treat as single URL if JSON parsing fails
+            if (!images.includes(value.trim())) {
+              images.push(value.trim())
+              console.log(`Added ${field} as single URL:`, value.trim())
             }
           }
-        })
-      } catch (error) {
-        console.error("Error splitting image_url:", error)
-      }
-    }
-
-    // Check if image_url is a JSON array
-    if (submission.image_url && submission.image_url.startsWith("[")) {
-      try {
-        const parsedUrls = JSON.parse(submission.image_url)
-        if (Array.isArray(parsedUrls)) {
-          parsedUrls.forEach((url, index) => {
-            if (url && typeof url === "string" && url.trim()) {
+        }
+        // Handle comma-separated values
+        else if (value.includes(",")) {
+          const urlParts = value.split(",")
+          urlParts.forEach((url, index) => {
+            if (url && url.trim()) {
               const cleanUrl = url.trim()
               if (!images.includes(cleanUrl)) {
                 images.push(cleanUrl)
-                console.log(`Added JSON URL ${index + 1}:`, cleanUrl)
+                console.log(`Added from ${field} split[${index}]:`, cleanUrl)
               }
             }
           })
         }
-      } catch (error) {
-        console.error("Error parsing JSON image_url:", error)
+        // Handle single URL
+        else {
+          if (!images.includes(value.trim())) {
+            images.push(value.trim())
+            console.log(`Added ${field}:`, value.trim())
+          }
+        }
       }
-    }
+    })
+
+    // Also check for any field that contains 'image' or 'photo' in the name
+    Object.keys(submission).forEach((key) => {
+      if ((key.toLowerCase().includes("image") || key.toLowerCase().includes("photo")) && !imageFields.includes(key)) {
+        const value = (submission as any)[key]
+        if (value && typeof value === "string" && value.trim()) {
+          console.log(`Found additional image field ${key}:`, value)
+          if (!images.includes(value.trim())) {
+            images.push(value.trim())
+            console.log(`Added from additional field ${key}:`, value.trim())
+          }
+        }
+      }
+    })
 
     // Remove duplicates and empty strings
     const uniqueImages = [...new Set(images)].filter((url) => url && url.length > 0)

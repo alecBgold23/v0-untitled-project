@@ -15,6 +15,7 @@ interface ItemData {
     name: string
     type: string
     size: number
+    supabaseUrl?: string
   }>
 }
 
@@ -56,8 +57,36 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
         item_description: item.description,
         item_condition: item.condition,
         item_issues: item.issues || "None",
-        // Explicitly map imageUrl to image_url column
-        image_url: item.imageUrl || "",
+        // Combine all image URLs into a single comma-separated string for image_url column
+        image_url: (() => {
+          const allImageUrls = []
+
+          // Add the main imageUrl if it exists
+          if (item.imageUrl && item.imageUrl.trim()) {
+            allImageUrls.push(item.imageUrl.trim())
+          }
+
+          // Add all imageUrls from the array if they exist
+          if (item.imageUrls && Array.isArray(item.imageUrls)) {
+            item.imageUrls.forEach((url) => {
+              if (url && url.trim() && !allImageUrls.includes(url.trim())) {
+                allImageUrls.push(url.trim())
+              }
+            })
+          }
+
+          // Add URLs from uploaded photos if they exist
+          if (item.photos && Array.isArray(item.photos)) {
+            item.photos.forEach((photo) => {
+              if (photo.supabaseUrl && photo.supabaseUrl.trim() && !allImageUrls.includes(photo.supabaseUrl.trim())) {
+                allImageUrls.push(photo.supabaseUrl.trim())
+              }
+            })
+          }
+
+          // Return comma-separated string of all URLs
+          return allImageUrls.join(",")
+        })(),
         // Keep image_path for backward compatibility
         image_path: item.imagePath || "",
         email: contactInfo.email,
@@ -103,7 +132,39 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
             item_condition: item.condition,
             item_issues: item.issues || "None",
             // Explicitly map imageUrl to image_url column
-            image_url: item.imageUrl || "",
+            image_url: (() => {
+              const allImageUrls = []
+
+              // Add the main imageUrl if it exists
+              if (item.imageUrl && item.imageUrl.trim()) {
+                allImageUrls.push(item.imageUrl.trim())
+              }
+
+              // Add all imageUrls from the array if they exist
+              if (item.imageUrls && Array.isArray(item.imageUrls)) {
+                item.imageUrls.forEach((url) => {
+                  if (url && url.trim() && !allImageUrls.includes(url.trim())) {
+                    allImageUrls.push(url.trim())
+                  }
+                })
+              }
+
+              // Add URLs from uploaded photos if they exist
+              if (item.photos && Array.isArray(item.photos)) {
+                item.photos.forEach((photo) => {
+                  if (
+                    photo.supabaseUrl &&
+                    photo.supabaseUrl.trim() &&
+                    !allImageUrls.includes(photo.supabaseUrl.trim())
+                  ) {
+                    allImageUrls.push(photo.supabaseUrl.trim())
+                  }
+                })
+              }
+
+              // Return comma-separated string of all URLs
+              return allImageUrls.join(",")
+            })(),
             // Keep image_path for backward compatibility
             image_path: item.imagePath || (item.imagePaths && item.imagePaths.length > 0 ? item.imagePaths[0] : ""),
             email: contactInfo.email,
