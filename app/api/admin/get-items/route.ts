@@ -7,7 +7,7 @@ const supabase = createClient(
 )
 
 export async function GET() {
-  const { data, error } = await supabase.from("sell_items").select("*").order("created_at", { ascending: false })
+  const { data, error } = await supabase.from("sell_items").select("*").order("submission_data", { ascending: false })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
