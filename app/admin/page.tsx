@@ -108,49 +108,38 @@ export default function AdminDashboard() {
   const extractAllImageUrls = (submission: ItemSubmission): string[] => {
     const images: string[] = []
 
-    console.log(`🔍 Extracting images for item ${submission.id}:`)
-    console.log("Raw image_url:", submission.image_url)
-    console.log("Raw image_urls:", submission.image_urls)
-
     // Add main image_url if it exists
     if (submission.image_url && submission.image_url.trim()) {
       images.push(submission.image_url.trim())
-      console.log("Added main image_url:", submission.image_url.trim())
     }
 
     // Parse and add images from image_urls field
     if (submission.image_urls && submission.image_urls.trim()) {
       try {
-        let parsedUrls: string[] = []
-
         // Try parsing as JSON array first
         if (submission.image_urls.startsWith("[")) {
-          parsedUrls = JSON.parse(submission.image_urls)
-          console.log("Parsed as JSON array:", parsedUrls)
+          const parsed = JSON.parse(submission.image_urls)
+          if (Array.isArray(parsed)) {
+            parsed.forEach((url) => {
+              if (url && typeof url === "string" && url.trim()) {
+                images.push(url.trim())
+              }
+            })
+          }
         } else {
           // Try comma-separated format
-          parsedUrls = submission.image_urls.split(",")
-          console.log("Parsed as comma-separated:", parsedUrls)
-        }
-
-        if (Array.isArray(parsedUrls)) {
-          parsedUrls.forEach((url, index) => {
-            if (url && typeof url === "string" && url.trim()) {
-              const cleanUrl = url.trim()
-              // Avoid duplicates
-              if (!images.includes(cleanUrl)) {
-                images.push(cleanUrl)
-                console.log(`Added image ${index + 1}:`, cleanUrl)
-              }
+          const urls = submission.image_urls.split(",")
+          urls.forEach((url) => {
+            if (url && url.trim()) {
+              images.push(url.trim())
             }
           })
         }
       } catch (error) {
         console.error("Error parsing image_urls for item", submission.id, error)
         // If parsing fails, try treating as single URL
-        if (submission.image_urls.trim() && !images.includes(submission.image_urls.trim())) {
+        if (submission.image_urls.trim()) {
           images.push(submission.image_urls.trim())
-          console.log("Added as single URL fallback:", submission.image_urls.trim())
         }
       }
     }
@@ -158,7 +147,7 @@ export default function AdminDashboard() {
     // Remove duplicates and empty strings
     const uniqueImages = [...new Set(images)].filter((url) => url && url.length > 0)
 
-    console.log(`✅ Final extracted ${uniqueImages.length} unique images for item ${submission.id}:`, uniqueImages)
+    console.log(`Extracted ${uniqueImages.length} images for item ${submission.id}:`, uniqueImages)
     return uniqueImages
   }
 
@@ -356,15 +345,11 @@ export default function AdminDashboard() {
   }
 
   const viewItemDetails = (item: ItemSubmission) => {
-    console.log(`🖼️ Opening details for item ${item.id}`)
     setSelectedItem(item)
 
     // Extract all images for the selected item
     const allImages = extractAllImageUrls(item)
-    console.log(`Found ${allImages.length} images for details view:`, allImages)
-
     const formattedImages = allImages.map((url) => ensureCorrectSupabaseUrl(url))
-    console.log(`Formatted ${formattedImages.length} images:`, formattedImages)
 
     // If no images found, use placeholder
     const finalImages =
@@ -556,24 +541,25 @@ export default function AdminDashboard() {
                   </TableHeader>
                   <TableBody>
                     {submissions.map((submission) => {
-                      // Get all images for this submission
-                      const allImages = extractAllImageUrls(submission)
-                      const firstImage = allImages.length > 0 ? ensureCorrectSupabaseUrl(allImages[0]) : null
-                      const imageCount = allImages.length
+                      // Get the count of images for this submission
+                      const imageCount = extractAllImageUrls(submission).length
 
                       return (
                         <TableRow key={submission.id}>
                           <TableCell>
                             <div className="relative">
                               <Image
-                                src={firstImage || "/placeholder.svg?height=80&width=80&text=No Image"}
+                                src={submission.image_url || "/placeholder.svg?height=80&width=80&text=No Image"}
                                 alt={submission.item_name}
                                 width={80}
                                 height={80}
                                 className="rounded-lg object-cover"
                                 onError={(e) => {
-                                  console.error(`❌ Failed to load image for item ${submission.id}:`, firstImage)
-                                  debugImageUrl(firstImage || "", submission.id)
+                                  console.error(
+                                    `❌ Failed to load image for item ${submission.id}:`,
+                                    submission.image_url,
+                                  )
+                                  debugImageUrl(submission.image_url || "", submission.id)
                                   e.currentTarget.src = "/placeholder.svg?height=80&width=80&text=No Image"
                                 }}
                                 onLoad={() => {
@@ -784,71 +770,31 @@ export default function AdminDashboard() {
               <div className="space-y-4 overflow-y-auto">
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-3">Images ({itemImages.length})</h3>
-                  {itemImages.length <= 3 ? (
-                    // For 3 or fewer images, show them in a single row
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {itemImages.map((url, index) => (
-                        <div
-                          key={index}
-                          className="relative aspect-square rounded-md overflow-hidden border bg-gray-100"
-                        >
-                          <Image
-                            src={url || "/placeholder.svg?height=300&width=300&text=No Image"}
-                            alt={`${selectedItem.item_name} - Image ${index + 1}`}
-                            fill
-                            className="object-cover hover:scale-105 transition-transform duration-200"
-                            onError={(e) => {
-                              console.error(
-                                `❌ Failed to load dialog image ${index + 1} for item ${selectedItem.id}:`,
-                                url,
-                              )
-                              e.currentTarget.src = "/placeholder.svg?height=300&width=300&text=No Image"
-                            }}
-                            onLoad={() => {
-                              console.log(
-                                `✅ Successfully loaded dialog image ${index + 1} for item ${selectedItem.id}`,
-                              )
-                            }}
-                          />
-                          <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                            {index + 1} of {itemImages.length}
-                          </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {itemImages.map((url, index) => (
+                      <div key={index} className="relative aspect-square rounded-md overflow-hidden border bg-gray-100">
+                        <Image
+                          src={url || "/placeholder.svg?height=300&width=300&text=No Image"}
+                          alt={`${selectedItem.item_name} - Image ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          onError={(e) => {
+                            console.error(
+                              `❌ Failed to load dialog image ${index + 1} for item ${selectedItem.id}:`,
+                              url,
+                            )
+                            e.currentTarget.src = "/placeholder.svg?height=300&width=300&text=No Image"
+                          }}
+                          onLoad={() => {
+                            console.log(`✅ Successfully loaded dialog image ${index + 1} for item ${selectedItem.id}`)
+                          }}
+                        />
+                        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                          {index + 1} of {itemImages.length}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    // For more than 3 images, show them in a scrollable grid
-                    <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-                      {itemImages.map((url, index) => (
-                        <div
-                          key={index}
-                          className="relative aspect-square rounded-md overflow-hidden border bg-gray-100"
-                        >
-                          <Image
-                            src={url || "/placeholder.svg?height=200&width=200&text=No Image"}
-                            alt={`${selectedItem.item_name} - Image ${index + 1}`}
-                            fill
-                            className="object-cover hover:scale-105 transition-transform duration-200"
-                            onError={(e) => {
-                              console.error(
-                                `❌ Failed to load dialog image ${index + 1} for item ${selectedItem.id}:`,
-                                url,
-                              )
-                              e.currentTarget.src = "/placeholder.svg?height=200&width=200&text=No Image"
-                            }}
-                            onLoad={() => {
-                              console.log(
-                                `✅ Successfully loaded dialog image ${index + 1} for item ${selectedItem.id}`,
-                              )
-                            }}
-                          />
-                          <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                            {index + 1} of {itemImages.length}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
