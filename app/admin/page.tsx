@@ -191,31 +191,6 @@ export default function AdminDashboard() {
     return url
   }
 
-  const updateSubmissionStatus = async (id: string, newStatus: SubmissionStatus) => {
-    try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-
-      if (!supabaseServiceKey) {
-        throw new Error("Missing Supabase service role key")
-      }
-
-      const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
-      // Update status in database
-      const { error } = await supabase.from("sell_items").update({ status: newStatus }).eq("id", id)
-
-      if (error) throw error
-
-      // Update local state
-      setSubmissions((prev) =>
-        prev.map((submission) => (submission.id === id ? { ...submission, status: newStatus } : submission)),
-      )
-    } catch (error) {
-      console.error("Failed to update submission status:", error)
-    }
-  }
-
   useEffect(() => {
     if (!isAuthenticated) return
 
@@ -225,13 +200,13 @@ export default function AdminDashboard() {
 
       try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 
-        if (!supabaseUrl || !supabaseServiceKey) {
+        if (!supabaseUrl || !supabaseAnonKey) {
           throw new Error("Missing Supabase environment variables")
         }
 
-        const supabase = createClient(supabaseUrl, supabaseServiceKey)
+        const supabase = createClient(supabaseUrl, supabaseAnonKey)
         const { data, error } = await supabase
           .from("sell_items")
           .select("*")
@@ -279,6 +254,26 @@ export default function AdminDashboard() {
 
     fetchItems()
   }, [isAuthenticated])
+
+  const updateSubmissionStatus = async (id: string, newStatus: SubmissionStatus) => {
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+      const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+      // Update status in database
+      const { error } = await supabase.from("sell_items").update({ status: newStatus }).eq("id", id)
+
+      if (error) throw error
+
+      // Update local state
+      setSubmissions((prev) =>
+        prev.map((submission) => (submission.id === id ? { ...submission, status: newStatus } : submission)),
+      )
+    } catch (error) {
+      console.error("Failed to update submission status:", error)
+    }
+  }
 
   const listItemOnEbay = async (id: string) => {
     setListingLoading(id)
