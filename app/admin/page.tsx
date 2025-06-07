@@ -255,10 +255,24 @@ export default function AdminDashboard() {
     fetchItems()
   }, [isAuthenticated])
 
-  const updateSubmissionStatus = (id: string, newStatus: SubmissionStatus) => {
-    setSubmissions((prev) =>
-      prev.map((submission) => (submission.id === id ? { ...submission, status: newStatus } : submission)),
-    )
+  const updateSubmissionStatus = async (id: string, newStatus: SubmissionStatus) => {
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+      const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+      // Update status in database
+      const { error } = await supabase.from("sell_items").update({ status: newStatus }).eq("id", id)
+
+      if (error) throw error
+
+      // Update local state
+      setSubmissions((prev) =>
+        prev.map((submission) => (submission.id === id ? { ...submission, status: newStatus } : submission)),
+      )
+    } catch (error) {
+      console.error("Failed to update submission status:", error)
+    }
   }
 
   const listItemOnEbay = async (id: string) => {
@@ -295,7 +309,7 @@ export default function AdminDashboard() {
       })
 
       // Update local state only after successful API call
-      updateSubmissionStatus(id, "listed")
+      await updateSubmissionStatus(id, "listed")
 
       // Show success message (optional)
       if (result.ebay_listing_url) {
@@ -419,6 +433,7 @@ export default function AdminDashboard() {
     total: submissions.length,
     pending: submissions.filter((s) => s.status === "pending").length,
     approved: submissions.filter((s) => s.status === "approved").length,
+    rejected: submissions.filter((s) => s.status === "rejected").length,
     listed: submissions.filter((s) => s.status === "listed").length,
   }
 
@@ -469,7 +484,7 @@ export default function AdminDashboard() {
       </header>
 
       <main className="flex-1 p-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
@@ -495,6 +510,15 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.approved}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+              <X className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.rejected}</div>
             </CardContent>
           </Card>
           <Card>
@@ -684,43 +708,7 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {submission.status === "pending" && (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => updateSubmissionStatus(submission.id, "approved")}
-                                    className="bg-green-600 hover:bg-green-700"
-                                  >
-                                    Approve
-                                  </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button size="sm" variant="destructive">
-                                        Reject
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Reject Submission</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Are you sure you want to reject this item submission? This action cannot be
-                                          undone.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => updateSubmissionStatus(submission.id, "rejected")}
-                                          className="bg-red-600 hover:bg-red-700"
-                                        >
-                                          Reject
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </>
-                              )}
-                              {submission.status === "approved" && (
+                              {(submission.status === "pending" || submission.status === "approved") && (
                                 <Button
                                   size="sm"
                                   onClick={() => listItemOnEbay(submission.id)}
@@ -737,6 +725,44 @@ export default function AdminDashboard() {
                                   )}
                                 </Button>
                               )}
+
+                              {submission.status !== "rejected" ? (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="destructive">
+                                      Reject
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Reject Submission</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to reject this item submission? You can unreject it later
+                                        if needed.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => updateSubmissionStatus(submission.id, "rejected")}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Reject
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateSubmissionStatus(submission.id, "pending")}
+                                  className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                                >
+                                  Unreject
+                                </Button>
+                              )}
+
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" className="h-8 w-8 p-0">
@@ -917,7 +943,7 @@ export default function AdminDashboard() {
             </div>
 
             <DialogFooter>
-              {selectedItem.status === "approved" && (
+              {(selectedItem.status === "pending" || selectedItem.status === "approved") && (
                 <Button
                   onClick={() => {
                     listItemOnEbay(selectedItem.id)
