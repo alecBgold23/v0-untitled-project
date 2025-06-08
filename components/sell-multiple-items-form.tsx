@@ -1136,6 +1136,9 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           }
         }
 
+        // Create a single concatenated string of all image URLs for the image_url column
+        const allImageUrls = imageUrls.join(", ")
+
         // Update the item with all image paths and URLs
         updatedItems[i] = {
           ...updatedItems[i],
@@ -1143,7 +1146,8 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           imageUrls: imageUrls,
           // Keep the first image as the main image for backward compatibility
           imagePath: imagePaths.length > 0 ? imagePaths[0] : "",
-          imageUrl: imageUrls.length > 0 ? imageUrls[0] : "",
+          // Set image_url to contain ALL URLs separated by commas
+          imageUrl: allImageUrls,
           // Add a flag to indicate images were processed
           imagesProcessed: true,
         }
@@ -1211,8 +1215,9 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
           supabaseUrl: photo.supabaseUrl || "",
         })),
         // Single image fields for backward compatibility
-        imagePath: item.imagePath || "",
-        imageUrl: item.imageUrl || "", // This will map to image_url in the database
+        imagePath: item.imagePaths && item.imagePaths.length > 0 ? item.imagePaths[0] : "",
+        // This imageUrl now contains ALL URLs separated by commas
+        imageUrl: item.imageUrl || "", // This will map to image_url in the database with all URLs
         // Multiple image fields
         imagePaths: item.imagePaths || [],
         imageUrls: item.imageUrls || [],
