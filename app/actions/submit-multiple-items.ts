@@ -1,4 +1,4 @@
-use server"
+"use server"
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
@@ -122,7 +122,7 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
             console.error("Fallback insertion also failed:", fallbackResult.error)
             return {
               success: false,
-              message: Database error: ${fallbackResult.error.message},
+              message: `Database error: ${fallbackResult.error.message}`,
               code: fallbackResult.error.code,
             }
           }
@@ -131,13 +131,13 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
           return {
             success: true,
             data,
-            message: Successfully submitted ${items.length} item(s) with fallback method,
+            message: `Successfully submitted ${items.length} item(s) with fallback method`,
           }
         }
 
         return {
           success: false,
-          message: Database error: ${error.message},
+          message: `Database error: ${error.message}`,
           code: error.code,
         }
       }
@@ -146,13 +146,13 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
       return {
         success: true,
         data,
-        message: Successfully submitted ${items.length} item(s),
+        message: `Successfully submitted ${items.length} item(s)`,
       }
     } catch (insertError) {
       console.error("Exception during database insertion:", insertError)
       return {
         success: false,
-        message: Unexpected error during submission: ${insertError.message || "Unknown error"},
+        message: `Unexpected error during submission: ${insertError.message || "Unknown error"}`,
       }
     }
   } catch (error) {
@@ -172,8 +172,7 @@ async function initializeTable(supabase) {
 
     if (error && error.code === "PGRST116") {
       // Table doesn't exist, create it
-      const { error: createError } = await supabase.sql
-        CREATE TABLE IF NOT EXISTS sell_items (
+      const { error: createError } = await supabase.sql`CREATE TABLE IF NOT EXISTS sell_items (
           id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
           item_name TEXT NOT NULL,
           item_description TEXT NOT NULL,
@@ -191,7 +190,7 @@ async function initializeTable(supabase) {
           image_paths TEXT[],
           image_urls TEXT[]
         );
-      
+      `
 
       if (createError) {
         console.error("Error creating sell_items table:", createError)
@@ -200,8 +199,7 @@ async function initializeTable(supabase) {
       // Table exists, check if columns exist and add them if they don't
       try {
         // Try to add image_url column if it doesn't exist
-        await supabase.sql
-          DO $$
+        await supabase.sql`DO $$
           BEGIN
             IF NOT EXISTS (
               SELECT FROM information_schema.columns 
@@ -210,11 +208,10 @@ async function initializeTable(supabase) {
               ALTER TABLE sell_items ADD COLUMN image_url TEXT;
             END IF;
           END $$;
-        
+        `
 
         // Try to add image_paths column if it doesn't exist
-        await supabase.sql
-          DO $$
+        await supabase.sql`DO $$
           BEGIN
             IF NOT EXISTS (
               SELECT FROM information_schema.columns 
@@ -223,11 +220,10 @@ async function initializeTable(supabase) {
               ALTER TABLE sell_items ADD COLUMN image_paths TEXT[];
             END IF;
           END $$;
-        
+        `
 
         // Try to add image_urls column if it doesn't exist
-        await supabase.sql
-          DO $$
+        await supabase.sql`DO $$
           BEGIN
             IF NOT EXISTS (
               SELECT FROM information_schema.columns 
@@ -236,7 +232,7 @@ async function initializeTable(supabase) {
               ALTER TABLE sell_items ADD COLUMN image_urls TEXT[];
             END IF;
           END $$;
-        
+        `
       } catch (alterError) {
         console.error("Error altering table:", alterError)
       }
