@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const file = formData.get("file") as File
     const userId = (formData.get("userId") as string) || "anonymous"
+    const itemId = formData.get("itemId") as string | null
 
     if (!file) {
       return NextResponse.json({ success: false, error: "No file provided" }, { status: 400 })
@@ -74,6 +75,33 @@ export async function POST(request: NextRequest) {
 
     console.log("Upload successful:", data.path)
     console.log("Public URL:", publicUrlData.publicUrl)
+
+    // If itemId provided, update image_urls array in sell_items table
+    if (itemId) {
+      const { data: itemData, error: fetchError } = await supabase
+        .from("sell_items")
+        .select("image_urls")
+        .eq("id", itemId)
+        .single()
+
+      if (fetchError) {
+        console.error("Error fetching current image_urls:", fetchError)
+      } else {
+        const currentUrls = itemData?.image_urls || []
+        const updatedUrls = [...currentUrls, publicUrlData.publicUrl]
+
+        const { error: updateError } = await supabase
+          .from("sell_items")
+          .update({ image_urls: updatedUrls })
+          .eq("id", itemId)
+
+        if (updateError) {
+          console.error("Error updating image_urls:", updateError)
+        } else {
+          console.log("image_urls updated successfully")
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
