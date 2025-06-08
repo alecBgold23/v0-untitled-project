@@ -262,24 +262,26 @@ export default function AdminDashboard() {
         } else {
           // Process submissions to ensure image URLs are correctly formatted
           const processedData = data?.map((item) => {
-            console.log("Processing item:", item.id)
-            console.log("Raw image_url:", item.image_url)
+  console.log("Processing item:", item.id)
+  console.log("Raw image_url:", item.image_url)
 
-            // Extract all images and ensure they're properly formatted
-            const allImages = extractAllImageUrls(item)
-            const formattedImages = allImages.map((url) => ensureCorrectSupabaseUrl(url))
+  // Extract all images and ensure they're properly formatted
+  const allImages = extractAllImageUrls(item)
+  const formattedImages = allImages.map((url) => ensureCorrectSupabaseUrl(url))
 
-            // Set the first image as the main image_url
-            const mainImageUrl = formattedImages.length > 0 ? formattedImages[0] : item.image_url
+  // Set the first image as the main image_url
+  const mainImageUrl = formattedImages.length > 0 ? formattedImages[0] : item.image_url
 
-            console.log("Processed main image:", mainImageUrl)
-            console.log("Processed all images:", formattedImages)
+  console.log("Processed main image:", mainImageUrl)
+  console.log("Processed all images:", formattedImages)
 
-            return {
-              ...item,
-              image_url: mainImageUrl,
-            }
-          })
+  return {
+    ...item,
+    image_url: mainImageUrl,
+    image_urls: formattedImages, // ✅ NEW: Store all cleaned image URLs
+  }
+})
+
 
           setSubmissions(processedData || [])
         }
