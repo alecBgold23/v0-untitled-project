@@ -58,7 +58,7 @@ export interface ItemSubmission {
   status: SubmissionStatus
   submission_date: string
   image_path: string | null
-  image_url: string | null
+  image_url: string[] | null // Changed from string to string[] or null
   estimated_price: number | null
   item_condition: "Like New" | "Excellent" | "Good" | "Fair" | "Poor"
 }
@@ -103,136 +103,54 @@ export default function AdminDashboard() {
     localStorage.removeItem("adminAuthenticated")
   }
 
+  // Extract image URLs from submission.image_url array with debugging
   const extractAllImageUrls = (submission: ItemSubmission): string[] => {
-    const images: string[] = []
+    console.log(`🔍 === DEBUGGING ITEM ${submission.id} ===`)
+    console.log("Full submission object:", submission)
+    console.log("image_url field type:", Array.isArray(submission.image_url) ? "array" : typeof submission.image_url)
+    console.log("image_url field value:", submission.image_url)
 
-    console.log(`🔍 Extracting images for item ${submission.id}:`)
-    console.log("Full submission data:", submission)
+    if (!submission.image_url || !Array.isArray(submission.image_url)) {
+      console.log("❌ image_url is null or not an array, returning empty list")
+      return []
+    }
 
-    // Check all possible image-related fields in the submission
-    const imageFields = [
-      "image_url",
-      "image_path",
-      "image_urls",
-      "image_paths",
-      "image_url_1",
-      "image_url_2",
-      "image_url_3",
-      "image_url_4",
-      "image_url_5",
-      "image_path_1",
-      "image_path_2",
-      "image_path_3",
-      "image_path_4",
-      "image_path_5",
-      "photo_url_1",
-      "photo_url_2",
-      "photo_url_3",
-      "photo_urls",
-      "photos",
-    ]
+    // Filter valid URLs (non-empty strings starting with http/https)
+    const validUrls = submission.image_url
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0 && (url.startsWith("http://") || url.startsWith("https://")))
 
-    // Check each possible field
-    imageFields.forEach((field) => {
-      const value = (submission as any)[field]
-      if (value && typeof value === "string" && value.trim()) {
-        console.log(`Found ${field}:`, value)
+    console.log(`🎯 Final result: ${validUrls.length} valid URLs found:`, validUrls)
+    console.log(`🔍 === END DEBUG ITEM ${submission.id} ===`)
 
-        // Handle JSON arrays
-        if (value.startsWith("[")) {
-          try {
-            const parsedUrls = JSON.parse(value)
-            if (Array.isArray(parsedUrls)) {
-              parsedUrls.forEach((url, index) => {
-                if (url && typeof url === "string" && url.trim()) {
-                  const cleanUrl = url.trim()
-                  if (!images.includes(cleanUrl)) {
-                    images.push(cleanUrl)
-                    console.log(`Added from ${field}[${index}]:`, cleanUrl)
-                  }
-                }
-              })
-            }
-          } catch (error) {
-            console.error(`Error parsing JSON in ${field}:`, error)
-            // Treat as single URL if JSON parsing fails
-            if (!images.includes(value.trim())) {
-              images.push(value.trim())
-              console.log(`Added ${field} as single URL:`, value.trim())
-            }
-          }
-        }
-        // Handle comma-separated values
-        else if (value.includes(",")) {
-          const urlParts = value.split(",")
-          urlParts.forEach((url, index) => {
-            if (url && url.trim()) {
-              const cleanUrl = url.trim()
-              if (!images.includes(cleanUrl)) {
-                images.push(cleanUrl)
-                console.log(`Added from ${field} split[${index}]:`, cleanUrl)
-              }
-            }
-          })
-        }
-        // Handle single URL
-        else {
-          if (!images.includes(value.trim())) {
-            images.push(value.trim())
-            console.log(`Added ${field}:`, value.trim())
-          }
-        }
-      }
-    })
-
-    // Also check for any field that contains 'image' or 'photo' in the name
-    Object.keys(submission).forEach((key) => {
-      if ((key.toLowerCase().includes("image") || key.toLowerCase().includes("photo")) && !imageFields.includes(key)) {
-        const value = (submission as any)[key]
-        if (value && typeof value === "string" && value.trim()) {
-          console.log(`Found additional image field ${key}:`, value)
-          if (!images.includes(value.trim())) {
-            images.push(value.trim())
-            console.log(`Added from additional field ${key}:`, value.trim())
-          }
-        }
-      }
-    })
-
-    // Remove duplicates and empty strings
-    const uniqueImages = [...new Set(images)].filter((url) => url && url.length > 0)
-
-    console.log(`✅ Final extracted ${uniqueImages.length} unique images for item ${submission.id}:`, uniqueImages)
-    return uniqueImages
+    return validUrls
   }
 
-  // Helper function to ensure Supabase URL is correctly formatted
+  // Simplified URL formatter - returns URL as-is if already complete
   const ensureCorrectSupabaseUrl = (url: string): string => {
-    if (!url || !url.trim()) return url
+    console.log("🔧 URL formatting input:", url)
+
+    if (!url) return url
+
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      console.log("✅ URL already complete, returning as-is:", url)
+      return url
+    }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
     const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
 
-    if (!projectId) return url
-
-    // If it's already a complete Supabase storage URL, return as is
-    if (url.includes("supabase.co/storage/v1/object/public/")) {
+    if (!projectId) {
+      console.log("❌ No project ID found, returning original URL:", url)
       return url
     }
 
-    // If it's a Supabase URL but missing the storage path, fix it
-    if (url.includes("supabase.co") && !url.includes("/storage/v1/object/public/")) {
-      const fileName = url.split("/").pop()
-      return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${fileName}`
-    }
+    // Remove possible leading slashes and folder name
+    const cleanPath = url.replace(/^\/?(item_images\/)?/, "")
+    const constructedUrl = `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
+    console.log("🔧 Constructed URL:", constructedUrl)
 
-    // If it's just a filename or relative path, construct full URL
-    if (!url.startsWith("http")) {
-      const cleanPath = url.replace(/^\/?(item_images\/)?/, "")
-      return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
-    }
-
-    return url
+    return constructedUrl
   }
 
   useEffect(() => {
@@ -250,6 +168,7 @@ export default function AdminDashboard() {
           throw new Error("Missing Supabase environment variables")
         }
 
+        console.log("🔗 Connecting to Supabase...")
         const supabase = createClient(supabaseUrl, supabaseAnonKey)
         const { data, error } = await supabase
           .from("sell_items")
@@ -257,36 +176,42 @@ export default function AdminDashboard() {
           .order("submission_date", { ascending: false })
 
         if (error) {
-          console.error("Failed to fetch submissions:", error)
+          console.error("❌ Failed to fetch submissions:", error)
           setFetchError(error.message)
         } else {
-          // Process submissions to ensure image URLs are correctly formatted
-          const processedData = data?.map((item) => {
-  console.log("Processing item:", item.id)
-  console.log("Raw image_url:", item.image_url)
+          console.log(`📊 Fetched ${data?.length || 0} submissions`)
 
-  // Extract all images and ensure they're properly formatted
-  const allImages = extractAllImageUrls(item)
-  const formattedImages = allImages.map((url) => ensureCorrectSupabaseUrl(url))
+          const processedData = data?.map((item, index) => {
+            console.log(`\n🔄 Processing submission ${index + 1}/${data.length}:`)
+            console.log("Item ID:", item.id)
+            console.log("Item name:", item.item_name)
+            console.log("Raw image_url from database:", item.image_url)
 
-  // Set the first image as the main image_url
-  const mainImageUrl = formattedImages.length > 0 ? formattedImages[0] : item.image_url
+            // Extract all images with debugging
+            const allImages = extractAllImageUrls(item)
+            console.log("Extracted images:", allImages)
 
-  console.log("Processed main image:", mainImageUrl)
-  console.log("Processed all images:", formattedImages)
+            // Format images URLs (do not over-process fully qualified URLs)
+            const formattedImages = allImages.map((url, urlIndex) => {
+              console.log(`Formatting URL ${urlIndex + 1}:`, url)
+              const formatted = ensureCorrectSupabaseUrl(url)
+              console.log(`Formatted result ${urlIndex + 1}:`, formatted)
+              return formatted
+            })
 
-  return {
-    ...item,
-    image_url: mainImageUrl,
-    image_urls: formattedImages, // ✅ NEW: Store all cleaned image URLs
-  }
-})
+            console.log("Final formatted images:", formattedImages)
 
+            return {
+              ...item,
+              image_url: formattedImages.length > 0 ? formattedImages : null,
+              image_urls: formattedImages,
+            }
+          })
 
           setSubmissions(processedData || [])
         }
       } catch (error) {
-        console.error("Unexpected error fetching submissions:", error)
+        console.error("❌ Unexpected error fetching submissions:", error)
         setFetchError("An unexpected error occurred while fetching submissions.")
       } finally {
         setLoading(false)
@@ -411,31 +336,24 @@ export default function AdminDashboard() {
   }
 
   const viewItemDetails = (item: ItemSubmission) => {
-    console.log(`🖼️ Opening details for item ${item.id}`)
+    console.log(`🖼️ === OPENING DETAILS FOR ITEM ${item.id} ===`)
     setSelectedItem(item)
 
-    // Extract all images for the selected item
     const allImages = extractAllImageUrls(item)
-    console.log(`Found ${allImages.length} images for details view:`, allImages)
+    console.log(`Found ${allImages.length} raw images:`, allImages)
 
-    const formattedImages = allImages.map((url) => ensureCorrectSupabaseUrl(url))
-    console.log(`Formatted ${formattedImages.length} images:`, formattedImages)
+    const formattedImages = allImages.map((url, index) => {
+      console.log(`Formatting detail image ${index + 1}:`, url)
+      const formatted = ensureCorrectSupabaseUrl(url)
+      console.log(`Detail image ${index + 1} formatted:`, formatted)
+      return formatted
+    })
 
-    // If no images found, use placeholder
     const finalImages =
       formattedImages.length > 0 ? formattedImages : ["/placeholder.svg?height=400&width=400&text=No Image"]
 
     console.log(`Setting ${finalImages.length} images for dialog:`, finalImages)
     setItemImages(finalImages)
-  }
-
-  const debugImageUrl = (url: string, itemId: string) => {
-    console.log(`🖼️ Image Debug for item ${itemId}:`, {
-      originalUrl: url,
-      isValid: url && url.startsWith("http"),
-      containsBucket: url?.includes("item_images"),
-      urlLength: url?.length,
-    })
   }
 
   const updateItemDescription = async (id: string, newDescription: string) => {
@@ -477,6 +395,8 @@ export default function AdminDashboard() {
     rejected: submissions.filter((s) => s.status === "rejected").length,
     listed: submissions.filter((s) => s.status === "listed").length,
   }
+
+  // (The rest of your UI rendering code goes here, unchanged)
 
   // Password protection screen
   if (!isAuthenticated) {
@@ -621,10 +541,13 @@ export default function AdminDashboard() {
                   </TableHeader>
                   <TableBody>
                     {submissions.map((submission) => {
-                      // Get all images for this submission
+                      // Get all images for this submission with debugging
+                      console.log(`🖼️ Table row for item ${submission.id}`)
                       const allImages = extractAllImageUrls(submission)
                       const firstImage = allImages.length > 0 ? ensureCorrectSupabaseUrl(allImages[0]) : null
                       const imageCount = allImages.length
+
+                      console.log(`Table: Item ${submission.id} has ${imageCount} images, first: ${firstImage}`)
 
                       return (
                         <TableRow key={submission.id}>
@@ -637,12 +560,11 @@ export default function AdminDashboard() {
                                 height={80}
                                 className="rounded-lg object-cover"
                                 onError={(e) => {
-                                  console.error(`❌ Failed to load image for item ${submission.id}:`, firstImage)
-                                  debugImageUrl(firstImage || "", submission.id)
+                                  console.error(`❌ Failed to load table image for item ${submission.id}:`, firstImage)
                                   e.currentTarget.src = "/placeholder.svg?height=80&width=80&text=No Image"
                                 }}
                                 onLoad={() => {
-                                  console.log(`✅ Successfully loaded image for item ${submission.id}`)
+                                  console.log(`✅ Successfully loaded table image for item ${submission.id}`)
                                 }}
                               />
                               {imageCount > 1 && (
