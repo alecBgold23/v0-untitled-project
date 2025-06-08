@@ -104,27 +104,35 @@ export default function AdminDashboard() {
   }
 
   // Extract image URLs from submission.image_url array with debugging
-  const extractAllImageUrls = (submission: ItemSubmission): string[] => {
-    console.log(`🔍 === DEBUGGING ITEM ${submission.id} ===`)
-    console.log("Full submission object:", submission)
-    console.log("image_url field type:", Array.isArray(submission.image_url) ? "array" : typeof submission.image_url)
-    console.log("image_url field value:", submission.image_url)
+ const extractAllImageUrls = (submission: ItemSubmission): string[] => {
+  const raw = submission.image_url
 
-    if (!submission.image_url || !Array.isArray(submission.image_url)) {
-      console.log("❌ image_url is null or not an array, returning empty list")
-      return []
-    }
+  if (!raw) return []
 
-    // Filter valid URLs (non-empty strings starting with http/https)
-    const validUrls = submission.image_url
+  console.log(`🔍 START DEBUG ITEM ${submission.id} ===`)
+  console.log("📦 Raw image_url:", raw)
+
+  let validUrls: string[] = []
+
+  // Case 1: image_url is a single string with commas
+  if (raw.length === 1 && typeof raw[0] === "string" && raw[0].includes(",")) {
+    validUrls = raw[0]
+      .split(",")
       .map((url) => url.trim())
-      .filter((url) => url.length > 0 && (url.startsWith("http://") || url.startsWith("https://")))
-
-    console.log(`🎯 Final result: ${validUrls.length} valid URLs found:`, validUrls)
-    console.log(`🔍 === END DEBUG ITEM ${submission.id} ===`)
-
-    return validUrls
+      .filter((url) => url.startsWith("http://") || url.startsWith("https://"))
+  } else {
+    // Case 2: image_url is a proper array of strings
+    validUrls = raw
+      .map((url) => url.trim())
+      .filter((url) => url.startsWith("http://") || url.startsWith("https://"))
   }
+
+  console.log(`🎯 Final result: ${validUrls.length} valid URLs found:`, validUrls)
+  console.log(`🔍 === END DEBUG ITEM ${submission.id} ===`)
+
+  return validUrls
+}
+
 
   // Simplified URL formatter - returns URL as-is if already complete
   const ensureCorrectSupabaseUrl = (url: string): string => {
