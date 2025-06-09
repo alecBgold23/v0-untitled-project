@@ -43,22 +43,39 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
           "Content-Type": "application/json",
           "Accept-Language": "en-US",
         },
-      },
+      }
     )
-    const json = await res.json()
-    const categoryId = json?.categorySuggestions?.[0]?.category?.categoryId
 
-    if (!categoryId) {
-      console.warn("⚠️ No category suggestion returned. Using fallback.")
-      return "139971" // fallback category ID
+    const json = await res.json()
+    console.log("📂 Raw category suggestions:", JSON.stringify(json, null, 2))
+
+    const suggestions = json?.categorySuggestions || []
+    if (suggestions.length === 0) {
+      console.warn("⚠️ No category suggestions returned. Using fallback.")
+      return "139971" // fallback
     }
 
-    return categoryId
+    // Sort by eBay's confidence level (if available)
+    const sorted = suggestions.sort((a: any, b: any) => {
+      const aScore = a?.confidence || 0
+      const bScore = b?.confidence || 0
+      return bScore - aScore
+    })
+
+    const best = sorted[0]?.category?.categoryId
+    if (!best) {
+      console.warn("⚠️ No valid category ID found in sorted suggestions. Using fallback.")
+      return "139971"
+    }
+
+    console.log(`🧠 Chosen eBay category ID: ${best} (based on confidence score)`)
+    return best
   } catch (err) {
     console.warn("⚠️ Category suggestion failed. Using fallback.", err)
-    return "139971" // same fallback here
+    return "139971"
   }
 }
+
 
 export async function POST(request: Request) {
   try {
