@@ -32,7 +32,15 @@ function extractBrand(itemName: string): string {
   return brand || "Unbranded"
 }
 
-async function getSuggestedCategoryId(query: string, accessToken: string): Promise<string> {
+interface CategoryAndType {
+  categoryId: string;
+  typeValue: string | null;
+}
+
+async function getSuggestedCategoryIdAndType(
+  query: string,
+  accessToken: string
+): Promise<CategoryAndType> {
   try {
     // Step 1: Get the default category tree ID for the eBay US marketplace
     const treeIdRes = await fetch(
@@ -42,55 +50,188 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-      },
-    )
+      }
+    );
 
     if (!treeIdRes.ok) {
-      throw new Error(`Failed to get default category tree ID: ${treeIdRes.statusText}`)
+      throw new Error(`Failed to get default category tree ID: ${treeIdRes.statusText}`);
     }
 
-    const { categoryTreeId } = await treeIdRes.json()
+    const { categoryTreeId } = await treeIdRes.json();
 
     // Step 2: Get category suggestions based on the provided query
     const res = await fetch(
-      `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_suggestions?q=${encodeURIComponent(query)}`,
+      `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_suggestions?q=${encodeURIComponent(
+        query
+      )}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
           "Accept-Language": "en-US",
         },
-      },
-    )
+      }
+    );
 
-    const json = await res.json()
-    console.log("📂 Raw category suggestions:", JSON.stringify(json, null, 2))
+    if (!res.ok) {
+      throw new Error(`Failed to get category suggestions: ${res.statusText}`);
+    }
 
-    const suggestions = json?.categorySuggestions || []
+    const json = await res.json();
+    console.log("📂 Raw category suggestions:", JSON.stringify(json, null, 2));
+
+    const suggestions = json?.categorySuggestions || [];
     if (suggestions.length === 0) {
-      console.warn("⚠️ No category suggestions returned. Using fallback.")
-      return "139971" // fallback
+      console.warn("⚠️ No category suggestions returned. Using fallback categoryId 139971.");
+      return { categoryId: "139971", typeValue: null };
     }
 
     // Sort by confidence score if present
     const sorted = suggestions.sort((a: any, b: any) => {
-      const aScore = a?.confidence || 0
-      const bScore = b?.confidence || 0
-      return bScore - aScore
-    })
+      const aScore = a?.confidence || 0;
+      const bScore = b?.confidence || 0;
+      return bScore - aScore;
+    });
 
-    const best = sorted[0]?.category?.categoryId
-    if (!best) {
-      console.warn("⚠️ No valid category ID found in sorted suggestions. Using fallback.")
-      return "139971"
+    const bestCategoryId = sorted[0]?.category?.categoryId;
+    if (!bestCategoryId) {
+      console.warn("⚠️ No valid category ID found in sorted suggestions. Using fallback categoryId 139971.");
+      return { categoryId: "139971", typeValue: null };
     }
 
-    console.log(`🧠 Chosen eBay category ID: ${best} (based on confidence score)`)
-    return best
+    console.log(`🧠 Chosen eBay category ID: ${bestCategoryId} (based on confidence score)`);
+
+    // Step 3: Fetch required 'Type' aspect for the category
+    const aspectsRes = await fetch(
+      `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_item_aspects_for_category?category_id=${bestCategoryId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "Accept-Language": "en-US",
+        },
+      }
+    );
+
+    if (!aspectsRes.ok) {
+      console.warn(`⚠️ Failed to get item aspects for category ${bestCategoryId}: ${aspectsRes.statusText}`);
+      return { categoryId: bestCategoryId, typeValue: null };
+    }
+
+    const aspectsJson = await aspectsRes.json();
+    const aspects = aspectsJson?.aspects || [];
+
+    const typeAspect = aspects.find(
+      (aspect: any) => aspect.name?.toLowerCase() === "type"
+    );
+
+    if (!typeAspect || !typeAspect.values || typeAspect.values.length === 0) {
+      console.warn("⚠️ No 'Type' aspect or no valid values found for this category.");
+      return { categoryId: bestCategoryId, typeValue: null };
+    }
+
+    // Return first valid 'Type' value found
+    const typeValue = typeAspect.values[0]?.localizedValue || null;
+    console.log(`🔧 Found 'Type' aspect value: ${typeValue}`);
+
+    return { categoryId: bestCategoryId, typeValue };
+
   } catch (err) {
-    console.warn("⚠️ Category suggestion failed. Using fallback.", err)
-    return "139971" // fallback category ID
+    console.warn("⚠️ Category suggestion and 'Type' aspect retrieval failed. Using fallback.", err);
+    return { categoryId: "139971", typeValue: null };
   }
+}
+
+
+function detectItemType(itemName: string, description: string): string {
+  const combined = `${itemName} ${description}`.toLowerCase()
+
+  // Electronics
+  if (combined.includes("iphone") || combined.includes("smartphone") || combined.includes("phone")) return "Smartphone"
+  if (combined.includes("ipad") || combined.includes("tablet")) return "Tablet"
+  if (combined.includes("laptop") || combined.includes("macbook") || combined.includes("notebook")) return "Laptop"
+  if (combined.includes("desktop") || combined.includes("computer") || combined.includes("pc"))
+    return "Desktop Computer"
+  if (combined.includes("monitor") || combined.includes("display") || combined.includes("screen")) return "Monitor"
+  if (combined.includes("keyboard")) return "Keyboard"
+  if (combined.includes("mouse")) return "Mouse"
+  if (combined.includes("headphones") || combined.includes("earbuds") || combined.includes("airpods"))
+    return "Headphones"
+  if (combined.includes("speaker")) return "Speaker"
+  if (combined.includes("camera")) return "Digital Camera"
+  if (combined.includes("tv") || combined.includes("television")) return "Television"
+  if (
+    combined.includes("gaming") ||
+    combined.includes("console") ||
+    combined.includes("playstation") ||
+    combined.includes("xbox")
+  )
+    return "Video Game Console"
+
+  // Furniture
+  if (combined.includes("chair") || combined.includes("seat")) return "Chair"
+  if (combined.includes("table") || combined.includes("desk")) return "Table"
+  if (combined.includes("sofa") || combined.includes("couch")) return "Sofa"
+  if (combined.includes("bed") || combined.includes("mattress")) return "Bed"
+  if (combined.includes("dresser") || combined.includes("drawer")) return "Dresser"
+  if (combined.includes("bookshelf") || combined.includes("shelf")) return "Bookcase"
+  if (combined.includes("lamp") || combined.includes("light")) return "Lamp"
+
+  // Clothing
+  if (combined.includes("shirt") || combined.includes("tee") || combined.includes("top")) return "T-Shirt"
+  if (combined.includes("jeans") || combined.includes("pants") || combined.includes("trousers")) return "Jeans"
+  if (combined.includes("dress")) return "Dress"
+  if (combined.includes("jacket") || combined.includes("coat")) return "Jacket"
+  if (combined.includes("shoes") || combined.includes("sneakers") || combined.includes("boots")) return "Athletic Shoes"
+  if (combined.includes("watch")) return "Watch"
+  if (combined.includes("bag") || combined.includes("purse") || combined.includes("backpack")) return "Handbag"
+
+  // Appliances
+  if (combined.includes("refrigerator") || combined.includes("fridge")) return "Refrigerator"
+  if (combined.includes("microwave")) return "Microwave"
+  if (combined.includes("washer") || combined.includes("washing machine")) return "Washing Machine"
+  if (combined.includes("dryer")) return "Dryer"
+  if (combined.includes("dishwasher")) return "Dishwasher"
+  if (combined.includes("vacuum")) return "Vacuum Cleaner"
+
+  // Tools
+  if (combined.includes("drill")) return "Drill"
+  if (combined.includes("saw")) return "Saw"
+  if (combined.includes("hammer")) return "Hammer"
+  if (combined.includes("wrench")) return "Wrench"
+
+  // Books & Media
+  if (combined.includes("book")) return "Book"
+  if (combined.includes("dvd")) return "DVD"
+  if (combined.includes("cd") || combined.includes("music")) return "CD"
+  if (combined.includes("vinyl") || combined.includes("record")) return "LP Record"
+
+  // Sports & Outdoors
+  if (combined.includes("bike") || combined.includes("bicycle")) return "Bicycle"
+  if (combined.includes("golf")) return "Golf Club"
+  if (combined.includes("tennis")) return "Tennis Racket"
+  if (combined.includes("basketball")) return "Basketball"
+  if (combined.includes("football")) return "Football"
+
+  // Automotive
+  if (combined.includes("tire")) return "Tire"
+  if (combined.includes("battery")) return "Battery"
+  if (combined.includes("engine")) return "Engine Part"
+  if (combined.includes("brake")) return "Brake Part"
+
+  // Jewelry
+  if (combined.includes("ring")) return "Ring"
+  if (combined.includes("necklace")) return "Necklace"
+  if (combined.includes("bracelet")) return "Bracelet"
+  if (combined.includes("earrings")) return "Earrings"
+
+  // Default fallback based on common categories
+  if (combined.includes("vintage") || combined.includes("antique")) return "Collectible"
+  if (combined.includes("art") || combined.includes("painting")) return "Painting"
+  if (combined.includes("toy") || combined.includes("game")) return "Game"
+
+  // Generic fallbacks
+  return "Other"
 }
 
 export async function POST(request: Request) {
@@ -151,6 +292,9 @@ export async function POST(request: Request) {
 
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing:`, imageUrls)
 
+    const detectedType = detectItemType(submission.item_name, submission.item_description || "")
+    console.log(`🔍 Detected item type: "${detectedType}" for item: "${submission.item_name}"`)
+
     const inventoryItem = {
       product: {
         title,
@@ -159,6 +303,14 @@ export async function POST(request: Request) {
           Condition: [submission.item_condition || "Used"],
           Brand: [brand],
           Model: [submission.item_name],
+          Type: [detectedType],
+          // Add other commonly required fields
+          Color: ["Multi-Color"], // Default color
+          Material: ["Mixed Materials"], // Default material
+          Size: ["One Size"], // Default size
+          Country: ["United States"], // Default country
+          MPN: ["Does Not Apply"], // Manufacturer Part Number
+          UPC: ["Does Not Apply"], // Universal Product Code
         },
         imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
       },
@@ -182,6 +334,8 @@ export async function POST(request: Request) {
         },
       },
     }
+
+    console.log("📋 Item aspects being sent to eBay:", JSON.stringify(inventoryItem.product.aspects, null, 2))
 
     console.log("📦 Creating inventory item with PUT API...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
