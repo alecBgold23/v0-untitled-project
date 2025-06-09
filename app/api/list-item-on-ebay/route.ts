@@ -114,7 +114,9 @@ export async function POST(request: Request) {
       }
     }
 
-    imageUrls = [...new Set(imageUrls)].filter((url) => url && url.trim().length > 0)
+    imageUrls = [...new Set(imageUrls)].filter(
+  (url) => typeof url === "string" && url.trim().length > 0
+)
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing`)
 
     const inventoryItem = {
