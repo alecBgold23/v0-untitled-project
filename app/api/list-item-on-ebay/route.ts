@@ -1,292 +1,320 @@
+import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase-server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
+import { extractImageUrls } from "@/lib/image-url-utils"
 
-// Function to detect item type based on name and description
-function detectItemType(itemName: string, description = ""): string {
-  const text = (itemName + " " + description).toLowerCase()
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-  // Electronics
-  if (/phone|smartphone|iphone|android|samsung|pixel/i.test(text)) return "Smartphone"
-  if (/laptop|notebook|macbook|thinkpad|dell|hp|lenovo/i.test(text)) return "Laptop"
-  if (/tablet|ipad|galaxy tab|surface/i.test(text)) return "Tablet"
-  if (/tv|television|smart tv|roku|hdtv|4k/i.test(text)) return "Television"
-  if (/camera|dslr|mirrorless|canon|nikon|sony/i.test(text)) return "Digital Camera"
-  if (/headphone|earphone|earbud|airpod/i.test(text)) return "Headphones"
-  if (/speaker|sound bar|bluetooth speaker/i.test(text)) return "Speaker"
-  if (/monitor|display|screen/i.test(text)) return "Monitor"
-  if (/computer|pc|desktop/i.test(text)) return "Desktop"
-  if (/watch|smartwatch|apple watch|fitbit/i.test(text)) return "Smartwatch"
+function mapConditionToEbay(condition: string): string {
+  const normalized = String(condition || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[-_]/g, " ") // replace hyphens and underscores with spaces
 
-  // Furniture
-  if (/sofa|couch|loveseat/i.test(text)) return "Sofa"
-  if (/chair|stool|recliner/i.test(text)) return "Chair"
-  if (/table|desk|workstation/i.test(text)) return "Table"
-  if (/bed|mattress|frame/i.test(text)) return "Bed"
-  if (/dresser|drawer|chest/i.test(text)) return "Dresser"
-  if (/shelf|bookcase|bookshelf/i.test(text)) return "Bookshelf"
+  console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
 
-  // Clothing
-  if (/shirt|tee|t-shirt|top|blouse/i.test(text)) return "Shirt"
-  if (/pant|jean|trouser|slack/i.test(text)) return "Pants"
-  if (/shoe|sneaker|boot|sandal/i.test(text)) return "Shoes"
-  if (/jacket|coat|hoodie|sweater/i.test(text)) return "Jacket"
-  if (/dress|gown/i.test(text)) return "Dress"
-  if (/hat|cap|beanie/i.test(text)) return "Hat"
+  const conditionMap: { [key: string]: string } = {
+    "like new": "NEW_OTHER",
+    excellent: "USED_EXCELLENT",
+    good: "USED_GOOD",
+    fair: "USED_ACCEPTABLE",
+    poor: "FOR_PARTS_OR_NOT_WORKING",
+  }
 
-  // Appliances
-  if (/refrigerator|fridge/i.test(text)) return "Refrigerator"
-  if (/washer|dryer|washing machine/i.test(text)) return "Washer/Dryer"
-  if (/microwave|oven/i.test(text)) return "Microwave"
-  if (/dishwasher/i.test(text)) return "Dishwasher"
-  if (/vacuum|hoover/i.test(text)) return "Vacuum"
-  if (/blender|mixer/i.test(text)) return "Blender"
-  if (/coffee maker|espresso/i.test(text)) return "Coffee Maker"
-
-  // Tools
-  if (/drill|driver/i.test(text)) return "Drill"
-  if (/saw|circular saw/i.test(text)) return "Saw"
-  if (/hammer|mallet/i.test(text)) return "Hammer"
-  if (/wrench|socket/i.test(text)) return "Wrench"
-  if (/screwdriver/i.test(text)) return "Screwdriver"
-  if (/tool set|toolkit/i.test(text)) return "Tool Set"
-
-  // Books
-  if (/book|novel|textbook/i.test(text)) return "Book"
-
-  // Sports Equipment
-  if (/bike|bicycle/i.test(text)) return "Bicycle"
-  if (/treadmill|elliptical/i.test(text)) return "Exercise Equipment"
-  if (/weight|dumbbell|barbell/i.test(text)) return "Weights"
-  if (/golf|club|driver/i.test(text)) return "Golf Equipment"
-  if (/tennis|racket/i.test(text)) return "Tennis Equipment"
-
-  // Automotive
-  if (/car|auto|vehicle/i.test(text)) return "Car"
-  if (/tire|wheel/i.test(text)) return "Tire"
-  if (/part|engine|transmission/i.test(text)) return "Auto Part"
-
-  // Jewelry
-  if (/ring|diamond/i.test(text)) return "Ring"
-  if (/necklace|pendant/i.test(text)) return "Necklace"
-  if (/bracelet|bangle/i.test(text)) return "Bracelet"
-  if (/earring/i.test(text)) return "Earrings"
-  if (/watch|timepiece/i.test(text)) return "Watch"
-
-  // Default fallback
-  return "Other"
+  const mapped = conditionMap[normalized] || "FOR_PARTS_OR_NOT_WORKING"
+  console.log(`✅ Mapped condition to eBay: "${mapped}"`)
+  return mapped
 }
 
-// Function to get suggested category ID based on item name and description
-async function getSuggestedCategoryId(itemName: string, description = ""): Promise<string> {
-  // Default category ID for "Everything Else" category
-  const defaultCategoryId = "10290"
+function extractBrand(itemName: string): string {
+  const knownBrands = ["Apple", "Samsung", "Sony", "Dell", "HP", "Lenovo", "Google", "Microsoft"]
+  const brand = knownBrands.find((b) => itemName.toLowerCase().includes(b.toLowerCase()))
+  return brand || "Unbranded"
+}
 
-  // This would ideally call eBay's getSuggestedCategories API
-  // For now, we'll use a simple mapping based on keywords
-  const text = (itemName + " " + description).toLowerCase()
+async function getSuggestedCategoryId(query: string, accessToken: string): Promise<string> {
+  try {
+    // Step 1: Get the default category tree ID for the eBay US marketplace
+    const treeIdRes = await fetch(
+      `https://api.ebay.com/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=EBAY_US`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      },
+    )
 
-  if (/phone|smartphone|iphone|android|samsung|pixel/i.test(text)) return "9355" // Cell Phones & Smartphones
-  if (/laptop|notebook|macbook|thinkpad|dell|hp|lenovo/i.test(text)) return "175672" // Laptops & Netbooks
-  if (/tablet|ipad|galaxy tab|surface/i.test(text)) return "171485" // Tablets & eReaders
-  if (/tv|television|smart tv|roku|hdtv|4k/i.test(text)) return "11071" // Televisions
-  if (/camera|dslr|mirrorless|canon|nikon|sony/i.test(text)) return "31388" // Digital Cameras
-  if (/headphone|earphone|earbud|airpod/i.test(text)) return "112529" // Headphones
-  if (/speaker|sound bar|bluetooth speaker/i.test(text)) return "111694" // Speakers & Subwoofers
-  if (/monitor|display|screen/i.test(text)) return "80053" // Monitors
-  if (/computer|pc|desktop/i.test(text)) return "179" // Desktop Computers
-  if (/watch|smartwatch|apple watch|fitbit/i.test(text)) return "178893" // Smart Watches
+    if (!treeIdRes.ok) {
+      throw new Error(`Failed to get default category tree ID: ${treeIdRes.statusText}`)
+    }
 
-  // Furniture
-  if (/sofa|couch|loveseat|chair|table|desk|bed|mattress|dresser|shelf/i.test(text)) return "3197" // Furniture
+    const { categoryTreeId } = await treeIdRes.json()
 
-  // Clothing
-  if (/shirt|tee|t-shirt|top|blouse|pant|jean|trouser|shoe|sneaker|boot|jacket|coat|dress/i.test(text)) return "11450" // Clothing, Shoes & Accessories
+    // Step 2: Get category suggestions based on the provided query
+    const res = await fetch(
+      `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_suggestions?q=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "Accept-Language": "en-US",
+        },
+      },
+    )
 
-  // Appliances
-  if (/refrigerator|fridge|washer|dryer|microwave|oven|dishwasher|vacuum|blender|mixer|coffee/i.test(text))
-    return "20710" // Major Appliances
+    const json = await res.json()
+    console.log("📂 Raw category suggestions:", JSON.stringify(json, null, 2))
 
-  // Tools
-  if (/drill|saw|hammer|wrench|screwdriver|tool set/i.test(text)) return "631" // Tools
+    const suggestions = json?.categorySuggestions || []
+    if (suggestions.length === 0) {
+      console.warn("⚠️ No category suggestions returned. Using fallback.")
+      return "139971" // fallback
+    }
 
-  // Books
-  if (/book|novel|textbook/i.test(text)) return "267" // Books
+    // Sort by confidence score if present
+    const sorted = suggestions.sort((a: any, b: any) => {
+      const aScore = a?.confidence || 0
+      const bScore = b?.confidence || 0
+      return bScore - aScore
+    })
 
-  // Sports Equipment
-  if (/bike|bicycle|treadmill|elliptical|weight|dumbbell|barbell|golf|tennis/i.test(text)) return "888" // Sporting Goods
+    const best = sorted[0]?.category?.categoryId
+    if (!best) {
+      console.warn("⚠️ No valid category ID found in sorted suggestions. Using fallback.")
+      return "139971"
+    }
 
-  // Automotive
-  if (/car|auto|vehicle|tire|wheel|part|engine|transmission/i.test(text)) return "6000" // eBay Motors
-
-  // Jewelry
-  if (/ring|diamond|necklace|pendant|bracelet|bangle|earring|watch|timepiece/i.test(text)) return "281" // Jewelry & Watches
-
-  return defaultCategoryId
+    console.log(`🧠 Chosen eBay category ID: ${best} (based on confidence score)`)
+    return best
+  } catch (err) {
+    console.warn("⚠️ Category suggestion failed. Using fallback.", err)
+    return "139971" // fallback category ID
+  }
 }
 
 export async function POST(request: Request) {
   try {
-    const supabase = createClient()
-    const data = await request.json()
-    const { submission_id } = data
+    console.log("🚀 Starting eBay listing process...")
 
-    if (!submission_id) {
-      return NextResponse.json({ error: "Missing submission_id" }, { status: 400 })
+    const { id } = await request.json()
+    if (!id) {
+      console.error("❌ No item ID provided")
+      return NextResponse.json({ error: "Item ID is required" }, { status: 400 })
     }
 
-    // Get the submission from the database
-    const { data: submission, error } = await supabase.from("sell_items").select("*").eq("id", submission_id).single()
+    console.log(`📝 Processing item ID: ${id}`)
 
+    const { data: submission, error } = await supabase.from("sell_items").select("*").eq("id", id).single()
     if (error || !submission) {
-      console.error("Error fetching submission:", error)
-      return NextResponse.json({ error: "Failed to fetch submission", details: error }, { status: 500 })
+      console.error("❌ Item not found:", error)
+      return NextResponse.json({ error: "Item not found or error fetching data" }, { status: 404 })
     }
 
-    // Get a valid eBay access token
-    const accessToken = await getValidEbayAccessToken()
-    if (!accessToken) {
-      return NextResponse.json({ error: "Failed to get valid eBay access token" }, { status: 500 })
+    console.log("✅ Item data retrieved:", {
+      name: submission.item_name,
+      condition: submission.item_condition,
+      price: submission.estimated_price,
+    })
+
+    let accessToken: string
+    try {
+      accessToken = await getValidEbayAccessToken()
+      console.log("✅ eBay access token obtained")
+    } catch (tokenError) {
+      console.error("❌ Failed to get eBay access token:", tokenError)
+      return NextResponse.json(
+        {
+          error: `Failed to get eBay access token: ${
+            tokenError instanceof Error ? tokenError.message : "Unknown error"
+          }`,
+        },
+        { status: 500 },
+      )
     }
 
-    // Prepare the inventory item
-    const brand = submission.brand || "Unbranded"
-    const description = submission.description || `${submission.item_name} - Listed via BluBerry`
-    const price = submission.estimated_price || 9.99
+    const timestamp = Date.now()
+    const sku = `ITEM-${submission.id}-${timestamp}`
+    const title = submission.item_name.substring(0, 80)
+    const ebayCondition = mapConditionToEbay(submission.item_condition)
+    const brand = extractBrand(submission.item_name)
 
-    // Detect item type
-    const itemType = detectItemType(submission.item_name, submission.description)
+    const searchQuery = `${submission.item_name} ${submission.item_description}`.trim()
+    const categoryId = await getSuggestedCategoryId(searchQuery, accessToken)
+    console.log(`🧠 Suggested eBay category ID: ${categoryId}`)
 
-    // Get suggested category ID
-    const categoryId = await getSuggestedCategoryId(submission.item_name, submission.description)
+    const imageUrls = extractImageUrls(submission.image_urls || submission.image_url)
 
-    // Create the inventory item
+    if (imageUrls.length === 0) {
+      console.warn("⚠️ No valid images found for item", submission.id)
+    }
+
+    console.log(`🖼️ Prepared ${imageUrls.length} images for listing:`, imageUrls)
+
     const inventoryItem = {
       product: {
-        title: submission.item_name,
-        description: description,
+        title,
+        description: submission.item_description,
         aspects: {
           Condition: [submission.item_condition || "Used"],
           Brand: [brand],
           Model: [submission.item_name],
-          Type: [itemType], // Add the required Type field
-          Color: ["Not Specified"],
-          Features: ["Gently Used"],
-          MPN: ["Does Not Apply"],
         },
-        brand: brand,
-        imageUrls: submission.image_urls ? JSON.parse(submission.image_urls) : [],
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
       },
+      condition: ebayCondition,
       availability: {
         shipToLocationAvailability: {
           quantity: 1,
         },
       },
-      condition: submission.item_condition || "USED_GOOD",
-    }
-
-    console.log("Creating inventory item:", JSON.stringify(inventoryItem, null, 2))
-
-    // Create the inventory item on eBay
-    const inventoryResponse = await fetch(
-      "https://api.ebay.com/sell/inventory/v1/inventory_item/BluBerry-" + submission_id,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+      packageWeightAndSize: {
+        packageType: "USPS_LARGE_PACK",
+        weight: {
+          value: 2.0,
+          unit: "POUND",
         },
-        body: JSON.stringify(inventoryItem),
+        dimensions: {
+          length: 10,
+          width: 7,
+          height: 3,
+          unit: "INCH",
+        },
       },
-    )
-
-    if (!inventoryResponse.ok) {
-      const errorText = await inventoryResponse.text()
-      console.error("eBay inventory API error:", errorText)
-      return NextResponse.json({ error: "Failed to create inventory item", response: errorText }, { status: 500 })
     }
 
-    // Create an offer for the inventory item
-    const offer = {
-      sku: "BluBerry-" + submission_id,
+    console.log("📦 Creating inventory item with PUT API...")
+    const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
+      },
+      body: JSON.stringify(inventoryItem),
+    })
+
+    const putText = await putResponse.text()
+    console.log("📩 Raw PUT inventory response:", putText)
+
+    if (!putResponse.ok) {
+      console.error("❌ PUT inventory item creation failed:", {
+        status: putResponse.status,
+        statusText: putResponse.statusText,
+        response: putText,
+      })
+      return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
+    }
+
+    console.log("✅ Inventory item created")
+
+    const requiredEnvVars = {
+      fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
+      paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID,
+      returnPolicyId: process.env.EBAY_RETURN_POLICY_ID,
+      locationKey: process.env.EBAY_LOCATION_KEY,
+    }
+
+    for (const [key, value] of Object.entries(requiredEnvVars)) {
+      if (!value) {
+        console.error(`❌ Missing environment variable: EBAY_${key.toUpperCase()}`)
+        return NextResponse.json({ error: `Missing required eBay configuration: ${key}` }, { status: 500 })
+      }
+    }
+
+    const rawPrice = submission.estimated_price
+    const cleanedPrice = typeof rawPrice === "string" ? rawPrice.replace(/[^0-9.-]+/g, "") : rawPrice
+    const priceValue = Number(cleanedPrice)
+    if (isNaN(priceValue) || priceValue <= 0) {
+      console.error("❌ Invalid or missing estimated price:", submission.estimated_price)
+      return NextResponse.json({ error: "Invalid or missing estimated price" }, { status: 400 })
+    }
+
+    console.log("💰 Creating offer on eBay...")
+    const offerData = {
+      sku,
       marketplaceId: "EBAY_US",
       format: "FIXED_PRICE",
       availableQuantity: 1,
-      categoryId: categoryId,
-      listingDescription: description,
+      categoryId,
+      listingDescription: submission.item_description,
       listingPolicies: {
-        fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
-        paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID,
-        returnPolicyId: process.env.EBAY_RETURN_POLICY_ID,
+        fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
+        paymentPolicyId: requiredEnvVars.paymentPolicyId,
+        returnPolicyId: requiredEnvVars.returnPolicyId,
       },
       pricingSummary: {
         price: {
+          value: priceValue.toFixed(2),
           currency: "USD",
-          value: price.toString(),
         },
       },
-      merchantLocationKey: process.env.EBAY_LOCATION_KEY,
+      merchantLocationKey: requiredEnvVars.locationKey,
     }
 
-    console.log("Creating offer:", JSON.stringify(offer, null, 2))
-
-    // Create the offer on eBay
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
       },
-      body: JSON.stringify(offer),
+      body: JSON.stringify(offerData),
     })
 
+    const offerText = await offerResponse.text()
+    console.log("📩 Raw offer response:", offerText)
+
     if (!offerResponse.ok) {
-      const errorText = await offerResponse.text()
-      console.error("eBay offer API error:", errorText)
-      return NextResponse.json({ error: "Failed to create offer", response: errorText }, { status: 500 })
+      console.error("❌ Offer creation failed:", {
+        status: offerResponse.status,
+        statusText: offerResponse.statusText,
+        response: offerText,
+      })
+      return NextResponse.json({ error: "Offer creation failed", response: offerText }, { status: 500 })
     }
 
-    const offerData = await offerResponse.json()
-    const offerId = offerData.offerId
+    const offerResult = JSON.parse(offerText)
+    const offerId = offerResult.offerId
+    if (!offerId) {
+      console.error("❌ No offer ID returned")
+      return NextResponse.json({ error: "No offer ID from eBay" }, { status: 500 })
+    }
 
-    // Publish the offer
+    console.log(`✅ Offer created: ${offerId}`)
+
+    console.log("🚀 Publishing offer...")
     const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
+        "Accept-Language": "en-US",
       },
     })
 
+    const publishText = await publishResponse.text()
+    console.log("📩 Raw publish response:", publishText)
+
     if (!publishResponse.ok) {
-      const errorText = await publishResponse.text()
-      console.error("eBay publish API error:", errorText)
-      return NextResponse.json({ error: "Offer publishing failed", response: errorText }, { status: 500 })
-    }
-
-    const publishData = await publishResponse.json()
-
-    // Update the submission with the eBay listing ID
-    const { error: updateError } = await supabase
-      .from("sell_items")
-      .update({
-        ebay_listing_id: publishData.listingId,
-        ebay_offer_id: offerId,
+      console.error("❌ Publishing offer failed:", {
+        status: publishResponse.status,
+        response: publishText,
       })
-      .eq("id", submission_id)
-
-    if (updateError) {
-      console.error("Error updating submission with eBay listing ID:", updateError)
+      return NextResponse.json({ error: "Offer publishing failed", response: publishText }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "Item listed on eBay successfully",
-      listingId: publishData.listingId,
-      offerId: offerId,
-    })
-  } catch (error) {
-    console.error("Error listing item on eBay:", error)
-    return NextResponse.json({ error: "Failed to list item on eBay", details: error }, { status: 500 })
+    const publishResult = JSON.parse(publishText)
+    const listingId = publishResult.listingId
+    console.log(`✅ Offer published: ${listingId}`)
+
+    return NextResponse.json({ success: true, listingId })
+  } catch (err: any) {
+    console.error("❌ Unexpected error:", err?.message || err)
+    console.error("📛 Stack trace:", err?.stack || "No stack trace")
+    return NextResponse.json({ error: err?.message || "Unexpected server error" }, { status: 500 })
   }
 }
