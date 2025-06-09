@@ -2,7 +2,6 @@ import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
-import { getOptimalCategory } from "@/lib/ebay-category-mapper"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -24,6 +23,33 @@ function extractBrand(itemName: string): string {
   const knownBrands = ["Apple", "Samsung", "Sony", "Dell", "HP", "Lenovo", "Google", "Microsoft"]
   const brand = knownBrands.find((b) => itemName.toLowerCase().includes(b.toLowerCase()))
   return brand || "Unbranded"
+}
+
+async function getSuggestedCategoryId(query: string, accessToken: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://api.ebay.com/commerce/taxonomy/v1_beta/category_tree/0/get_category_suggestions?q=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "Accept-Language": "en-US",
+        },
+      },
+    )
+    const json = await res.json()
+    const categoryId = json?.categorySuggestions?.[0]?.category?.categoryId
+
+    if (!categoryId) {
+      console.warn("⚠️ No category suggestion returned. Using fallback.")
+      return "139971" // fallback category ID
+    }
+
+    return categoryId
+  } catch (err) {
+    console.warn("⚠️ Category suggestion failed. Using fallback.", err)
+    return "139971" // same fallback here
+  }
 }
 
 export async function POST(request: Request) {
@@ -72,19 +98,9 @@ export async function POST(request: Request) {
     const ebayCondition = mapConditionToEbay(submission.item_condition)
     const brand = extractBrand(submission.item_name)
 
-    const itemAttributes = {
-      name: submission.item_name,
-      description: submission.item_description,
-      brand: extractBrand(submission.item_name),
-      condition: submission.item_condition,
-    }
-
-    const categoryResult = await getOptimalCategory(itemAttributes, accessToken)
-    const categoryId = categoryResult.categoryId
-
-    console.log(`🧠 Selected eBay category: ${categoryResult.categoryName} (${categoryId})`)
-    console.log(`   Confidence: ${(categoryResult.confidence * 100).toFixed(1)}%`)
-    console.log(`   Source: ${categoryResult.source}`)
+    const searchQuery = `${submission.item_name} ${submission.item_description}`.trim()
+    const categoryId = await getSuggestedCategoryId(searchQuery, accessToken)
+    console.log(`🧠 Suggested eBay category ID: ${categoryId}`)
 
     const imageUrls = extractImageUrls(submission.image_urls || submission.image_url)
 
