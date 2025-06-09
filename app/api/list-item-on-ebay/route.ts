@@ -1,11 +1,14 @@
 import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
+import { extractImageUrls } from "@/lib/image-url-utils"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 function mapConditionToEbay(condition: string): string {
-  const normalized = String(condition || "").trim().toLowerCase()
+  const normalized = String(condition || "")
+    .trim()
+    .toLowerCase()
   const conditionMap: { [key: string]: string } = {
     "like new": "NEW_OTHER",
     excellent: "USED_EXCELLENT",
@@ -99,25 +102,13 @@ export async function POST(request: Request) {
     const categoryId = await getSuggestedCategoryId(searchQuery, accessToken)
     console.log(`🧠 Suggested eBay category ID: ${categoryId}`)
 
-    let imageUrls: string[] = []
-    if (submission.image_url) imageUrls.push(submission.image_url)
+    const imageUrls = extractImageUrls(submission.image_urls || submission.image_url)
 
-    if (submission.image_urls) {
-      try {
-        const parsedUrls = JSON.parse(submission.image_urls)
-        if (Array.isArray(parsedUrls)) {
-          imageUrls = [...imageUrls, ...parsedUrls]
-        }
-      } catch {
-        const additionalUrls = submission.image_urls.split(",").map((url) => url.trim())
-        imageUrls = [...imageUrls, ...additionalUrls]
-      }
+    if (imageUrls.length === 0) {
+      console.warn("⚠️ No valid images found for item", submission.id)
     }
 
-    imageUrls = [...new Set(imageUrls)].filter(
-  (url) => typeof url === "string" && url.trim().length > 0
-)
-    console.log(`🖼️ Prepared ${imageUrls.length} images for listing`)
+    console.log(`🖼️ Prepared ${imageUrls.length} images for listing:`, imageUrls)
 
     const inventoryItem = {
       product: {

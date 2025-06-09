@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { extractImageUrls, getFirstImageUrl } from "@/lib/image-url-utils"
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { MoreHorizontal, Package, Users, DollarSign, CheckCircle, Loader2, AlertCircle, X, LogOut } from "lucide-react"
@@ -103,37 +103,6 @@ export default function AdminDashboard() {
     localStorage.removeItem("adminAuthenticated")
   }
 
-  // Extract image URLs from submission.image_url array with debugging
- const extractAllImageUrls = (submission: ItemSubmission): string[] => {
-  const raw = submission.image_url
-
-  if (!raw) return []
-
-  console.log(`🔍 START DEBUG ITEM ${submission.id} ===`)
-  console.log("📦 Raw image_url:", raw)
-
-  let validUrls: string[] = []
-
-  // Case 1: image_url is a single string with commas
-  if (raw.length === 1 && typeof raw[0] === "string" && raw[0].includes(",")) {
-    validUrls = raw[0]
-      .split(",")
-      .map((url) => url.trim())
-      .filter((url) => url.startsWith("http://") || url.startsWith("https://"))
-  } else {
-    // Case 2: image_url is a proper array of strings
-    validUrls = raw
-      .map((url) => url.trim())
-      .filter((url) => url.startsWith("http://") || url.startsWith("https://"))
-  }
-
-  console.log(`🎯 Final result: ${validUrls.length} valid URLs found:`, validUrls)
-  console.log(`🔍 === END DEBUG ITEM ${submission.id} ===`)
-
-  return validUrls
-}
-
-
   // Simplified URL formatter - returns URL as-is if already complete
   const ensureCorrectSupabaseUrl = (url: string): string => {
     console.log("🔧 URL formatting input:", url)
@@ -196,7 +165,7 @@ export default function AdminDashboard() {
             console.log("Raw image_url from database:", item.image_url)
 
             // Extract all images with debugging
-            const allImages = extractAllImageUrls(item)
+            const allImages = extractImageUrls(item.image_urls || item.image_url)
             console.log("Extracted images:", allImages)
 
             // Format images URLs (do not over-process fully qualified URLs)
@@ -347,18 +316,10 @@ export default function AdminDashboard() {
     console.log(`🖼️ === OPENING DETAILS FOR ITEM ${item.id} ===`)
     setSelectedItem(item)
 
-    const allImages = extractAllImageUrls(item)
-    console.log(`Found ${allImages.length} raw images:`, allImages)
+    const allImages = extractImageUrls(item.image_urls || item.image_url)
+    console.log(`Found ${allImages.length} images:`, allImages)
 
-    const formattedImages = allImages.map((url, index) => {
-      console.log(`Formatting detail image ${index + 1}:`, url)
-      const formatted = ensureCorrectSupabaseUrl(url)
-      console.log(`Detail image ${index + 1} formatted:`, formatted)
-      return formatted
-    })
-
-    const finalImages =
-      formattedImages.length > 0 ? formattedImages : ["/placeholder.svg?height=400&width=400&text=No Image"]
+    const finalImages = allImages.length > 0 ? allImages : ["/placeholder.svg?height=400&width=400&text=No+Image"]
 
     console.log(`Setting ${finalImages.length} images for dialog:`, finalImages)
     setItemImages(finalImages)
@@ -403,8 +364,6 @@ export default function AdminDashboard() {
     rejected: submissions.filter((s) => s.status === "rejected").length,
     listed: submissions.filter((s) => s.status === "listed").length,
   }
-
-  // (The rest of your UI rendering code goes here, unchanged)
 
   // Password protection screen
   if (!isAuthenticated) {
@@ -551,8 +510,8 @@ export default function AdminDashboard() {
                     {submissions.map((submission) => {
                       // Get all images for this submission with debugging
                       console.log(`🖼️ Table row for item ${submission.id}`)
-                      const allImages = extractAllImageUrls(submission)
-                      const firstImage = allImages.length > 0 ? ensureCorrectSupabaseUrl(allImages[0]) : null
+                      const allImages = extractImageUrls(submission.image_urls || submission.image_url)
+                      const firstImage = getFirstImageUrl(allImages)
                       const imageCount = allImages.length
 
                       console.log(`Table: Item ${submission.id} has ${imageCount} images, first: ${firstImage}`)

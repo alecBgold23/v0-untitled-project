@@ -1,6 +1,7 @@
 "use server"
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
+import { prepareImageUrlsForStorage } from "@/lib/image-url-utils"
 
 interface ItemData {
   name: string
@@ -56,10 +57,10 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
         item_description: item.description,
         item_condition: item.condition,
         item_issues: item.issues || "None",
-        // Explicitly map imageUrl to image_url column
-        image_url: item.imageUrl || "",
-        // Keep image_path for backward compatibility
-        image_path: item.imagePath || "",
+        // Standardize on image_urls as the primary field
+        image_urls: prepareImageUrlsForStorage(item.imageUrls || item.imageUrl),
+        // Keep image_url for backward compatibility (first URL)
+        image_url: item.imageUrl || (item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[0] : ""),
         email: contactInfo.email,
         phone: contactInfo.phone,
         address: contactInfo.address,
@@ -67,15 +68,6 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
         pickup_date: contactInfo.pickupDate,
         status: "pending",
         submission_date: new Date().toISOString(),
-      }
-
-      // Only add image_paths and image_urls if they have values
-      if (item.imagePaths && item.imagePaths.length > 0) {
-        itemData.image_paths = item.imagePaths
-      }
-
-      if (item.imageUrls && item.imageUrls.length > 0) {
-        itemData.image_urls = item.imageUrls
       }
 
       return itemData
@@ -102,10 +94,10 @@ export async function submitMultipleItemsToSupabase(items: ItemData[], contactIn
             item_description: item.description,
             item_condition: item.condition,
             item_issues: item.issues || "None",
-            // Explicitly map imageUrl to image_url column
-            image_url: item.imageUrl || "",
-            // Keep image_path for backward compatibility
-            image_path: item.imagePath || (item.imagePaths && item.imagePaths.length > 0 ? item.imagePaths[0] : ""),
+            // Standardize on image_urls as the primary field
+            image_urls: prepareImageUrlsForStorage(item.imageUrls || item.imageUrl),
+            // Keep image_url for backward compatibility (first URL)
+            image_url: item.imageUrl || (item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[0] : ""),
             email: contactInfo.email,
             phone: contactInfo.phone,
             address: contactInfo.address,
