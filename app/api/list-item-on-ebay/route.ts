@@ -33,9 +33,12 @@ function extractBrand(itemName: string): string {
   return brand || "Unbranded"
 }
 
-async function getSuggestedCategoryId(query: string, accessToken: string): Promise<string> {
+async function getSuggestedCategoryId(
+  query: string,
+  accessToken: string
+): Promise<CategorySuggestionResult> {
   try {
-    // Step 1: Get the default category tree ID for the eBay US marketplace
+    // 1. Get the default category tree ID for US marketplace
     const treeIdRes = await fetch(
       `https://api.ebay.com/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=EBAY_US`,
       {
@@ -52,8 +55,8 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
 
     const { categoryTreeId } = await treeIdRes.json();
 
-    // Step 2: Get category suggestions based on the provided query
-    const res = await fetch(
+    // 2. Get category suggestions based on query
+    const suggestionsRes = await fetch(
       `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_suggestions?q=${encodeURIComponent(query)}`,
       {
         headers: {
@@ -64,13 +67,20 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
       }
     );
 
-    const json = await res.json();
-    console.log("📂 Raw category suggestions:", JSON.stringify(json, null, 2));
+    if (!suggestionsRes.ok) {
+      throw new Error(`Failed to get category suggestions: ${suggestionsRes.statusText}`);
+    }
 
-    const suggestions = json?.categorySuggestions || [];
+    const suggestionsJson = await suggestionsRes.json();
+    console.log("📂 Raw category suggestions:", JSON.stringify(suggestionsJson, null, 2));
+
+    const suggestions = suggestionsJson?.categorySuggestions || [];
     if (suggestions.length === 0) {
       console.warn("⚠️ No category suggestions returned. Using fallback.");
-      return "139971"; // fallback
+      return {
+        categoryId: "139971", // fallback category ID
+        requiredAspects: [],
+      };
     }
 
     // Sort by confidence score if present
@@ -80,19 +90,87 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
       return bScore - aScore;
     });
 
-    const best = sorted[0]?.category?.categoryId;
-    if (!best) {
+    const bestCategoryId = sorted[0]?.category?.categoryId;
+    if (!bestCategoryId) {
       console.warn("⚠️ No valid category ID found in sorted suggestions. Using fallback.");
-      return "139971";
+      return {
+        categoryId: "139971",
+        requiredAspects: [],
+      };
     }
 
-    console.log(`🧠 Chosen eBay category ID: ${best} (based on confidence score)`);
-    return best;
+    // 3. Fetch category subtree to get required aspects for this category
+    const subtreeRes = await fetch(
+      `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_subtree?category_id=${bestCategoryId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!subtreeRes.ok) {
+      console.warn(
+        `⚠️ Failed to fetch category subtree for category ${bestCategoryId}: ${subtreeRes.statusText}`
+      );
+      // Return categoryId without required aspects in case of failure
+      return {
+        categoryId: bestCategoryId,
+        requiredAspects: [],
+      };
+    }
+
+    const subtreeJson = await subtreeRes.json();
+
+    // 4. Extract required aspects (item specifics)
+    const requiredAspects: { name: string; possibleValues?: string[] }[] = [];
+
+    const aspectGroups = subtreeJson?.categorySubtree?.aspectGroups || [];
+    for (const group of aspectGroups) {
+      if (!group.aspects) continue;
+
+      for (const aspect of group.aspects) {
+        if (aspect.restriction?.required) {
+          const aspectName = aspect.name;
+          let values: string[] | undefined = undefined;
+
+          // Try to get possible values from aspect.valueConstraints.allowedValues if present
+          if (
+            aspect.valueConstraints &&
+            Array.isArray(aspect.valueConstraints.allowedValues)
+          ) {
+            values = aspect.valueConstraints.allowedValues.map(
+              (val: any) => val.localizedValue || val.value
+            );
+          }
+
+          requiredAspects.push({
+            name: aspectName,
+            possibleValues: values,
+          });
+        }
+      }
+    }
+
+    console.log(
+      `🧠 Chosen category ID: ${bestCategoryId}, Required aspects:`,
+      requiredAspects
+    );
+
+    return {
+      categoryId: bestCategoryId,
+      requiredAspects,
+    };
   } catch (err) {
     console.warn("⚠️ Category suggestion failed. Using fallback.", err);
-    return "139971"; // fallback category ID
+    return {
+      categoryId: "139971", // fallback category ID
+      requiredAspects: [],
+    };
   }
 }
+
 
 
 
