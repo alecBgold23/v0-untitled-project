@@ -73,7 +73,6 @@ export default function AdminDashboard() {
   const [itemImages, setItemImages] = useState<string[]>([])
   const [editingDescription, setEditingDescription] = useState<string | null>(null)
   const [editedDescription, setEditedDescription] = useState<string>("")
-  const [unlistingLoading, setUnlistingLoading] = useState<string | null>(null)
 
   // Password protection
   const [password, setPassword] = useState("")
@@ -205,49 +204,7 @@ export default function AdminDashboard() {
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
       const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-      // If rejecting a listed item, unlist it from eBay first
-      if (newStatus === "rejected") {
-        const submission = submissions.find((s) => s.id === id)
-        if (submission?.status === "listed") {
-          setUnlistingLoading(id)
-
-          try {
-            console.log(`🔄 Unlisting item ${id} from eBay before rejecting...`)
-
-            const response = await fetch("/api/unlist-item-from-ebay", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ id }),
-            })
-
-            const result = await response.json()
-
-            if (!response.ok && !result.partialSuccess) {
-              throw new Error(result.error || "Failed to unlist from eBay")
-            }
-
-            if (result.unlisted) {
-              console.log("✅ Item successfully unlisted from eBay")
-            } else if (result.skipped) {
-              console.log("ℹ️ Item was not listed on eBay")
-            } else if (result.partialSuccess) {
-              console.warn("⚠️ Partial success: Item rejected but eBay unlisting failed")
-            }
-          } catch (unlistError) {
-            console.error("❌ Failed to unlist from eBay:", unlistError)
-            setListingError(
-              `Failed to unlist from eBay: ${unlistError instanceof Error ? unlistError.message : "Unknown error"}`,
-            )
-            return
-          } finally {
-            setUnlistingLoading(null)
-          }
-        }
-      }
-
-      // Update status in database (this might be redundant if unlisting API already updated it)
+      // Update status in database
       const { error } = await supabase.from("sell_items").update({ status: newStatus }).eq("id", id)
 
       if (error) throw error
@@ -258,7 +215,6 @@ export default function AdminDashboard() {
       )
     } catch (error) {
       console.error("Failed to update submission status:", error)
-      setListingError(`Failed to update status: ${error instanceof Error ? error.message : "Unknown error"}`)
     }
   }
 
@@ -703,28 +659,16 @@ export default function AdminDashboard() {
                               {submission.status !== "rejected" ? (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      disabled={unlistingLoading === submission.id}
-                                    >
-                                      {unlistingLoading === submission.id ? (
-                                        <>
-                                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                          {submission.status === "listed" ? "Unlisting..." : "Rejecting..."}
-                                        </>
-                                      ) : (
-                                        "Reject"
-                                      )}
+                                    <Button size="sm" variant="destructive">
+                                      Reject
                                     </Button>
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
                                       <AlertDialogTitle>Reject Submission</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        {submission.status === "listed"
-                                          ? "This item is currently listed on eBay. Rejecting it will automatically unlist it from eBay and mark it as rejected. This action cannot be undone."
-                                          : "Are you sure you want to reject this item submission? You can unreject it later if needed."}
+                                        Are you sure you want to reject this item submission? You can unreject it later
+                                        if needed.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -733,7 +677,7 @@ export default function AdminDashboard() {
                                         onClick={() => updateSubmissionStatus(submission.id, "rejected")}
                                         className="bg-red-600 hover:bg-red-700"
                                       >
-                                        {submission.status === "listed" ? "Unlist & Reject" : "Reject"}
+                                        Reject
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
