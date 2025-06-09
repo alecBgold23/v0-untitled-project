@@ -35,8 +35,26 @@ function extractBrand(itemName: string): string {
 
 async function getSuggestedCategoryId(query: string, accessToken: string): Promise<string> {
   try {
+    // Step 1: Get the default category tree ID for the eBay US marketplace
+    const treeIdRes = await fetch(
+      `https://api.ebay.com/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=EBAY_US`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!treeIdRes.ok) {
+      throw new Error(`Failed to get default category tree ID: ${treeIdRes.statusText}`);
+    }
+
+    const { categoryTreeId } = await treeIdRes.json();
+
+    // Step 2: Get category suggestions based on the provided query
     const res = await fetch(
-      `https://api.ebay.com/commerce/taxonomy/v1_beta/category_tree/0/get_category_suggestions?q=${encodeURIComponent(query)}`,
+      `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_suggestions?q=${encodeURIComponent(query)}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -44,37 +62,38 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
           "Accept-Language": "en-US",
         },
       }
-    )
+    );
 
-    const json = await res.json()
-    console.log("📂 Raw category suggestions:", JSON.stringify(json, null, 2))
+    const json = await res.json();
+    console.log("📂 Raw category suggestions:", JSON.stringify(json, null, 2));
 
-    const suggestions = json?.categorySuggestions || []
+    const suggestions = json?.categorySuggestions || [];
     if (suggestions.length === 0) {
-      console.warn("⚠️ No category suggestions returned. Using fallback.")
-      return "139971" // fallback
+      console.warn("⚠️ No category suggestions returned. Using fallback.");
+      return "139971"; // fallback
     }
 
-    // Sort by eBay's confidence level (if available)
+    // Sort by confidence score if present
     const sorted = suggestions.sort((a: any, b: any) => {
-      const aScore = a?.confidence || 0
-      const bScore = b?.confidence || 0
-      return bScore - aScore
-    })
+      const aScore = a?.confidence || 0;
+      const bScore = b?.confidence || 0;
+      return bScore - aScore;
+    });
 
-    const best = sorted[0]?.category?.categoryId
+    const best = sorted[0]?.category?.categoryId;
     if (!best) {
-      console.warn("⚠️ No valid category ID found in sorted suggestions. Using fallback.")
-      return "139971"
+      console.warn("⚠️ No valid category ID found in sorted suggestions. Using fallback.");
+      return "139971";
     }
 
-    console.log(`🧠 Chosen eBay category ID: ${best} (based on confidence score)`)
-    return best
+    console.log(`🧠 Chosen eBay category ID: ${best} (based on confidence score)`);
+    return best;
   } catch (err) {
-    console.warn("⚠️ Category suggestion failed. Using fallback.", err)
-    return "139971"
+    console.warn("⚠️ Category suggestion failed. Using fallback.", err);
+    return "139971"; // fallback category ID
   }
 }
+
 
 
 export async function POST(request: Request) {
