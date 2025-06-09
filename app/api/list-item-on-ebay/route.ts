@@ -5,7 +5,7 @@ import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 function mapConditionToEbay(condition: string): string {
-  const normalized = condition?.trim().toLowerCase() || "used"
+  const normalized = String(condition || "").trim().toLowerCase()
   const conditionMap: { [key: string]: string } = {
     "like new": "NEW_OTHER",
     excellent: "USED_EXCELLENT",
