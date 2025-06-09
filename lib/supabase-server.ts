@@ -16,3 +16,6 @@ export function createServerSupabaseClient() {
     },
   })
 }
+
+// Export createClient as a named export for compatibility
+export { createClient }
