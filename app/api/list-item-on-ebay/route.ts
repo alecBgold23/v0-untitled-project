@@ -6,9 +6,8 @@ import { extractImageUrls } from "@/lib/image-url-utils"
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 function mapConditionToEbay(condition: string): string {
-  const normalized = String(condition || "")
-    .trim()
-    .toLowerCase()
+  const normalized = String(condition || "").trim().toLowerCase()
+  console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
   const conditionMap: { [key: string]: string } = {
     "like new": "NEW_OTHER",
     excellent: "USED_EXCELLENT",
@@ -16,7 +15,9 @@ function mapConditionToEbay(condition: string): string {
     fair: "USED_ACCEPTABLE",
     poor: "FOR_PARTS_OR_NOT_WORKING",
   }
-  return conditionMap[normalized] || "FOR_PARTS_OR_NOT_WORKING"
+  const mapped = conditionMap[normalized] || "FOR_PARTS_OR_NOT_WORKING"
+  console.log(`✅ Mapped condition to eBay: "${mapped}"`)
+  return mapped
 }
 
 function extractBrand(itemName: string): string {
