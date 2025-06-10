@@ -3,7 +3,10 @@ import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 function mapConditionToEbay(condition: string): string {
   const normalized = String(condition || "")
@@ -32,10 +35,7 @@ function extractBrand(itemName: string): string {
   return brand || "Unbranded"
 }
 
-async function getSuggestedCategoryId(
-  query: string,
-  accessToken: string,
-): Promise<{ categoryId: string; treeId: string }> {
+async function getSuggestedCategoryId(query: string, accessToken: string): Promise<{ categoryId: string; treeId: string }> {
   try {
     const treeIdRes = await fetch(
       `https://api.ebay.com/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=EBAY_US`,
@@ -44,7 +44,7 @@ async function getSuggestedCategoryId(
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     )
 
     if (!treeIdRes.ok) {
@@ -61,7 +61,7 @@ async function getSuggestedCategoryId(
           "Content-Type": "application/json",
           "Accept-Language": "en-US",
         },
-      },
+      }
     )
 
     const json = await res.json()
@@ -101,7 +101,7 @@ async function getRequiredAspectsForCategory(categoryTreeId: string, categoryId:
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-    },
+    }
   )
 
   if (!res.ok) {
@@ -111,47 +111,8 @@ async function getRequiredAspectsForCategory(categoryTreeId: string, categoryId:
 
   const json = await res.json()
   const requiredAspects = json?.aspects?.filter((a: any) => a.aspectConstraint.aspectRequired) || []
-  console.log(
-    "📌 Required aspects:",
-    requiredAspects.map((a: any) => a.aspectName),
-  )
+  console.log("📌 Required aspects:", requiredAspects.map((a: any) => a.aspectName))
   return requiredAspects
-}
-
-// Add this function after the existing helper functions
-async function validateAndProcessImages(imageUrls: string[]): Promise<string[]> {
-  const validImages: string[] = []
-
-  for (const url of imageUrls) {
-    try {
-      // Test if eBay can access the image
-      const response = await fetch(url, { method: "HEAD" })
-      if (response.ok) {
-        const contentType = response.headers.get("content-type")
-        const contentLength = response.headers.get("content-length")
-
-        // Check if it's a valid image type
-        if (contentType && contentType.startsWith("image/")) {
-          // Check file size (eBay max is usually 12MB, but 7MB is safer)
-          const sizeInMB = contentLength ? Number.parseInt(contentLength) / (1024 * 1024) : 0
-          if (sizeInMB < 7) {
-            validImages.push(url)
-            console.log(`✅ Valid image: ${url} (${contentType}, ${sizeInMB.toFixed(2)}MB)`)
-          } else {
-            console.warn(`⚠️ Image too large: ${url} (${sizeInMB.toFixed(2)}MB)`)
-          }
-        } else {
-          console.warn(`⚠️ Invalid content type: ${url} (${contentType})`)
-        }
-      } else {
-        console.warn(`⚠️ Image not accessible: ${url} (${response.status})`)
-      }
-    } catch (error) {
-      console.warn(`⚠️ Error validating image: ${url}`, error)
-    }
-  }
-
-  return validImages
 }
 
 export async function POST(request: Request) {
@@ -190,7 +151,7 @@ export async function POST(request: Request) {
             tokenError instanceof Error ? tokenError.message : "Unknown error"
           }`,
         },
-        { status: 500 },
+        { status: 500 }
       )
     }
 
@@ -207,15 +168,8 @@ export async function POST(request: Request) {
     console.log(`🧠 Suggested eBay category ID: ${categoryId}`)
 
     const imageUrls = extractImageUrls(submission.image_urls || submission.image_url)
-    console.log(`🖼️ Raw images found: ${imageUrls.length}`, imageUrls)
-
-    // Validate images that eBay can access
-    const validImageUrls = await validateAndProcessImages(imageUrls)
-    console.log(`✅ Valid images for eBay: ${validImageUrls.length}`, validImageUrls)
-
-    if (validImageUrls.length === 0) {
-      console.warn("⚠️ No valid/accessible images found for eBay listing")
-      // You might want to continue without images or return an error
+    if (imageUrls.length === 0) {
+      console.warn("⚠️ No valid images found for item", submission.id)
     }
 
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing:`, imageUrls)
@@ -229,38 +183,36 @@ export async function POST(request: Request) {
     }
 
     const inventoryItem = {
-      product: {
-        title,
-        description: submission.item_description,
-        aspects,
-        imageUrls: validImageUrls.length > 0 ? validImageUrls : undefined,
-      },
-      condition: ebayCondition,
-      availability: {
-        shipToLocationAvailability: {
-          quantity: 1,
-        },
-      },
-      packageWeightAndSize: {
-        packageType: "USPS_LARGE_PACK",
-        weight: {
-          value: 2.0,
-          unit: "POUND",
-        },
-        dimensions: {
-          length: 10,
-          width: 7,
-          height: 3,
-          unit: "INCH",
-        },
-      },
-    }
+  product: {
+    title,
+    description: submission.item_description,
+    aspects,
+    imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+    primaryImage: {
+      imageUrl: imageUrls[0],
+    },
+  },
+  condition: ebayCondition,
+  availability: {
+    shipToLocationAvailability: {
+      quantity: 1,
+    },
+  },
+  packageWeightAndSize: {
+    packageType: "USPS_LARGE_PACK",
+    weight: {
+      value: 2.0,
+      unit: "POUND",
+    },
+    dimensions: {
+      length: 10,
+      width: 7,
+      height: 3,
+      unit: "INCH",
+    },
+  },
+}
 
-    console.log("📋 Final inventory item being sent to eBay:")
-    console.log("- Title:", inventoryItem.product.title)
-    console.log("- Images:", inventoryItem.product.imageUrls?.length || 0)
-    console.log("- First image (main photo):", inventoryItem.product.imageUrls?.[0])
-    console.log("- Aspects:", JSON.stringify(inventoryItem.product.aspects, null, 2))
 
     console.log("📦 Creating inventory item with PUT API...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
