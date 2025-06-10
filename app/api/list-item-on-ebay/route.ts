@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
+import sharp from "sharp"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -30,6 +31,85 @@ function extractBrand(itemName: string): string {
   const knownBrands = ["Apple", "Samsung", "Sony", "Dell", "HP", "Lenovo", "Google", "Microsoft"]
   const brand = knownBrands.find((b) => itemName.toLowerCase().includes(b.toLowerCase()))
   return brand || "Unbranded"
+}
+
+// Function to resize images specifically for eBay listings
+async function resizeImageForEbay(imageUrl: string, itemId: string, imageIndex: number): Promise<string | null> {
+  try {
+    console.log(`🖼️ Resizing image ${imageIndex + 1} for eBay: ${imageUrl}`)
+
+    // Download the original image
+    const response = await fetch(imageUrl)
+    if (!response.ok) {
+      console.error(`❌ Failed to fetch image: ${response.statusText}`)
+      return null
+    }
+
+    const imageBuffer = await response.arrayBuffer()
+    const buffer = Buffer.from(imageBuffer)
+
+    // Resize image to eBay's preferred specifications
+    const resizedImage = await sharp(buffer)
+      .resize({
+        width: 1600,
+        height: 1600,
+        fit: "contain", // Maintain aspect ratio with white padding
+        background: { r: 255, g: 255, b: 255 }, // White background
+      })
+      .jpeg({
+        quality: 95, // High quality for eBay
+        progressive: true,
+      })
+      .toBuffer()
+
+    // Create a unique filename for the eBay-optimized image
+    const timestamp = Date.now()
+    const fileName = `ebay-optimized/${itemId}/${timestamp}-${imageIndex}.jpg`
+
+    console.log(`📤 Uploading eBay-optimized image: ${fileName}`)
+
+    // Upload the resized image to Supabase
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("item_images")
+      .upload(fileName, resizedImage, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: "image/jpeg",
+      })
+
+    if (uploadError) {
+      console.error("❌ Failed to upload resized image:", uploadError)
+      return null
+    }
+
+    // Get the public URL for the resized image
+    const { data: publicUrlData } = supabase.storage.from("item_images").getPublicUrl(fileName)
+    const optimizedUrl = publicUrlData.publicUrl
+
+    console.log(`✅ eBay-optimized image uploaded: ${optimizedUrl}`)
+    console.log(`📏 Original size: ${imageBuffer.byteLength} bytes, Optimized: ${resizedImage.length} bytes`)
+
+    return optimizedUrl
+  } catch (error) {
+    console.error(`❌ Error resizing image for eBay:`, error)
+    return null
+  }
+}
+
+// Function to resize all images for eBay listing
+async function prepareImagesForEbay(originalImageUrls: string[], itemId: string): Promise<string[]> {
+  console.log(`🎨 Preparing ${originalImageUrls.length} images for eBay listing...`)
+
+  const resizedImagePromises = originalImageUrls.map((url, index) => resizeImageForEbay(url, itemId, index))
+
+  const resizedImages = await Promise.all(resizedImagePromises)
+
+  // Filter out any failed resizes and return successful ones
+  const validResizedImages = resizedImages.filter((url): url is string => url !== null)
+
+  console.log(`✅ Successfully prepared ${validResizedImages.length}/${originalImageUrls.length} images for eBay`)
+
+  return validResizedImages
 }
 
 async function getSuggestedCategoryId(
@@ -120,7 +200,7 @@ async function getRequiredAspectsForCategory(categoryTreeId: string, categoryId:
 
 export async function POST(request: Request) {
   try {
-    console.log("🚀 Starting eBay listing process...")
+    console.log("🚀 Starting eBay listing process with image optimization...")
 
     const { id } = await request.json()
     if (!id) {
@@ -170,19 +250,31 @@ export async function POST(request: Request) {
 
     console.log(`🧠 Suggested eBay category ID: ${categoryId}`)
 
-    const imageUrls = extractImageUrls(submission.image_urls || submission.image_url)
-    if (imageUrls.length === 0) {
+    // Get original image URLs
+    const originalImageUrls = extractImageUrls(submission.image_urls || submission.image_url)
+    if (originalImageUrls.length === 0) {
       console.warn("⚠️ No valid images found for item", submission.id)
     }
 
-    console.log(`🖼️ Prepared ${imageUrls.length} images for listing:`, imageUrls)
+    console.log(`🖼️ Found ${originalImageUrls.length} original images`)
+
+    // Resize images specifically for eBay
+    const ebayOptimizedImageUrls = await prepareImagesForEbay(originalImageUrls, submission.id)
+
+    if (ebayOptimizedImageUrls.length === 0) {
+      console.warn("⚠️ No images could be optimized for eBay")
+      // Fall back to original images if resizing fails
+      ebayOptimizedImageUrls.push(...originalImageUrls)
+    }
+
+    console.log(`🎯 Using ${ebayOptimizedImageUrls.length} eBay-optimized images for listing`)
 
     // Prepare aspects for inventory item product
     const aspects: Record<string, string[]> = {
       Condition: [submission.item_condition || "Used"],
       Brand: [brand],
       Model: [submission.item_name],
-      Type: ["ExampleType"], // <-- Hardcoded Type value here
+      Type: ["ExampleType"],
     }
 
     const inventoryItem = {
@@ -190,10 +282,7 @@ export async function POST(request: Request) {
         title,
         description: submission.item_description,
         aspects,
-        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
-        primaryImage: {
-          imageUrl: imageUrls[0],
-        },
+        imageUrls: ebayOptimizedImageUrls, // Use eBay-optimized images
       },
       condition: ebayCondition,
       availability: {
@@ -216,7 +305,7 @@ export async function POST(request: Request) {
       },
     }
 
-    console.log("📦 Creating inventory item with PUT API...")
+    console.log("📦 Creating inventory item with eBay-optimized images...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
       method: "PUT",
       headers: {
@@ -240,7 +329,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
     }
 
-    console.log("✅ Inventory item created")
+    console.log("✅ Inventory item created with optimized images")
 
     const requiredEnvVars = {
       fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
@@ -291,7 +380,7 @@ export async function POST(request: Request) {
         },
       },
       merchantLocationKey: requiredEnvVars.locationKey,
-      itemSpecifics, // <-- This is the key change to add required specifics like "Type"
+      itemSpecifics,
     }
 
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
@@ -352,7 +441,7 @@ export async function POST(request: Request) {
     const listingId = publishResult.listingId
     console.log(`✅ Offer published: ${listingId}`)
 
-    // Update the item status in the database to "listed"
+    // Update the item status in the database to "listed" and store optimized image URLs
     const { error: updateError } = await supabase
       .from("sell_items")
       .update({
@@ -360,6 +449,7 @@ export async function POST(request: Request) {
         ebay_listing_id: listingId,
         ebay_offer_id: offerId,
         listed_on_ebay: true,
+        ebay_optimized_images: ebayOptimizedImageUrls, // Store the optimized image URLs
       })
       .eq("id", id)
 
@@ -377,6 +467,8 @@ export async function POST(request: Request) {
       listingId,
       ebay_listing_id: listingId,
       ebay_offer_id: offerId,
+      optimized_images: ebayOptimizedImageUrls,
+      original_images: originalImageUrls,
     })
   } catch (err: any) {
     console.error("❌ Unexpected error:", err?.message || err)
