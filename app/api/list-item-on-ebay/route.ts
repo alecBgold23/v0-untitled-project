@@ -283,6 +283,9 @@ export async function POST(request: Request) {
         description: submission.item_description,
         aspects,
         imageUrls: ebayOptimizedImageUrls, // Use eBay-optimized images
+        primaryImage: {
+          imageUrl: ebayOptimizedImageUrls[0], // First optimized image
+        },
       },
       condition: ebayCondition,
       availability: {
