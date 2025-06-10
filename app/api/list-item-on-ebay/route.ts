@@ -182,9 +182,22 @@ export async function POST(request: Request) {
     }
 
     // Add Type if required
-    if (requiredAspects.some(a => a.aspectName === "Type")) {
-      aspects.Type = ["Not Specified"] // TODO: Improve by detecting real Type from item_name or user input
-    }
+    const typeAspect = requiredAspects.find((a: any) => a.aspectName === "Type")
+
+if (typeAspect && Array.isArray(typeAspect.aspectValues)) {
+  const allowedValues: string[] = typeAspect.aspectValues.map((v: any) => v.value)
+  console.log("📐 Allowed Type values from eBay:", allowedValues)
+
+  const match = allowedValues.find((v) =>
+    submission.item_name.toLowerCase().includes(v.toLowerCase())
+  )
+
+  aspects.Type = [match || allowedValues[0]]
+  console.log("✅ Set 'Type' aspect to:", aspects.Type)
+} else {
+  console.warn("⚠️ 'Type' aspect required, but no allowed values found")
+}
+
 
     const inventoryItem = {
       product: {
