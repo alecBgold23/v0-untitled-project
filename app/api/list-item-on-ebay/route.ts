@@ -174,14 +174,16 @@ export async function POST(request: Request) {
 
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing:`, imageUrls)
 
+    // Prepare aspects for inventory item product
     const aspects: Record<string, string[]> = {
       Condition: [submission.item_condition || "Used"],
       Brand: [brand],
       Model: [submission.item_name],
     }
 
+    // Add Type if required
     if (requiredAspects.some(a => a.aspectName === "Type")) {
-      aspects.Type = ["Not Specified"] // You can later improve this by detecting from item name
+      aspects.Type = ["Not Specified"] // TODO: Improve by detecting real Type from item_name or user input
     }
 
     const inventoryItem = {
@@ -261,6 +263,13 @@ export async function POST(request: Request) {
     }
 
     console.log("💰 Creating offer on eBay...")
+
+    // Prepare item specifics for offer (required by eBay, including "Type")
+    const itemSpecifics = Object.entries(aspects).map(([name, values]) => ({
+      name,
+      value: values,
+    }))
+
     const offerData = {
       sku,
       marketplaceId: "EBAY_US",
@@ -280,6 +289,7 @@ export async function POST(request: Request) {
         },
       },
       merchantLocationKey: requiredEnvVars.locationKey,
+      itemSpecifics, // <-- This is the key change to add required specifics like "Type"
     }
 
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
