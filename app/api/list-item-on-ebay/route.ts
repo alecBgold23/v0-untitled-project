@@ -179,25 +179,8 @@ export async function POST(request: Request) {
       Condition: [submission.item_condition || "Used"],
       Brand: [brand],
       Model: [submission.item_name],
+      Type: ["ExampleType"], // <-- Hardcoded Type value here
     }
-
-    // Add Type if required
-    const typeAspect = requiredAspects.find((a: any) => a.aspectName === "Type")
-
-if (typeAspect && Array.isArray(typeAspect.aspectValues)) {
-  const allowedValues: string[] = typeAspect.aspectValues.map((v: any) => v.value)
-  console.log("📐 Allowed Type values from eBay:", allowedValues)
-
-  const match = allowedValues.find((v) =>
-    submission.item_name.toLowerCase().includes(v.toLowerCase())
-  )
-
-  aspects.Type = [match || allowedValues[0]]
-  console.log("✅ Set 'Type' aspect to:", aspects.Type)
-} else {
-  console.warn("⚠️ 'Type' aspect required, but no allowed values found")
-}
-
 
     const inventoryItem = {
       product: {
