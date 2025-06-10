@@ -3,13 +3,16 @@ import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 function mapConditionToEbay(condition: string): string {
   const normalized = String(condition || "")
     .trim()
     .toLowerCase()
-    .replace(/[-_]/g, " ") // replace hyphens and underscores with spaces
+    .replace(/[-_]/g, " ")
 
   console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
 
@@ -32,9 +35,8 @@ function extractBrand(itemName: string): string {
   return brand || "Unbranded"
 }
 
-async function getSuggestedCategoryId(query: string, accessToken: string): Promise<string> {
+async function getSuggestedCategoryId(query: string, accessToken: string): Promise<{ categoryId: string; treeId: string }> {
   try {
-    // Step 1: Get the default category tree ID for the eBay US marketplace
     const treeIdRes = await fetch(
       `https://api.ebay.com/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=EBAY_US`,
       {
@@ -42,7 +44,7 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     )
 
     if (!treeIdRes.ok) {
@@ -51,7 +53,6 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
 
     const { categoryTreeId } = await treeIdRes.json()
 
-    // Step 2: Get category suggestions based on the provided query
     const res = await fetch(
       `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_suggestions?q=${encodeURIComponent(query)}`,
       {
@@ -60,7 +61,7 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
           "Content-Type": "application/json",
           "Accept-Language": "en-US",
         },
-      },
+      }
     )
 
     const json = await res.json()
@@ -69,10 +70,9 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
     const suggestions = json?.categorySuggestions || []
     if (suggestions.length === 0) {
       console.warn("⚠️ No category suggestions returned. Using fallback.")
-      return "139971" // fallback
+      return { categoryId: "139971", treeId: categoryTreeId }
     }
 
-    // Sort by confidence score if present
     const sorted = suggestions.sort((a: any, b: any) => {
       const aScore = a?.confidence || 0
       const bScore = b?.confidence || 0
@@ -82,15 +82,37 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
     const best = sorted[0]?.category?.categoryId
     if (!best) {
       console.warn("⚠️ No valid category ID found in sorted suggestions. Using fallback.")
-      return "139971"
+      return { categoryId: "139971", treeId: categoryTreeId }
     }
 
     console.log(`🧠 Chosen eBay category ID: ${best} (based on confidence score)`)
-    return best
+    return { categoryId: best, treeId: categoryTreeId }
   } catch (err) {
     console.warn("⚠️ Category suggestion failed. Using fallback.", err)
-    return "139971" // fallback category ID
+    return { categoryId: "139971", treeId: "0" }
   }
+}
+
+async function getRequiredAspectsForCategory(categoryTreeId: string, categoryId: string, accessToken: string) {
+  const res = await fetch(
+    `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/fetch_item_aspects?category_id=${categoryId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    }
+  )
+
+  if (!res.ok) {
+    console.warn("⚠️ Failed to fetch required aspects:", res.statusText)
+    return []
+  }
+
+  const json = await res.json()
+  const requiredAspects = json?.aspects?.filter((a: any) => a.aspectConstraint?.aspectRequired) || []
+  console.log("📌 Required aspects:", requiredAspects.map((a: any) => a.aspectName))
+  return requiredAspects
 }
 
 export async function POST(request: Request) {
@@ -129,7 +151,7 @@ export async function POST(request: Request) {
             tokenError instanceof Error ? tokenError.message : "Unknown error"
           }`,
         },
-        { status: 500 },
+        { status: 500 }
       )
     }
 
@@ -140,26 +162,33 @@ export async function POST(request: Request) {
     const brand = extractBrand(submission.item_name)
 
     const searchQuery = `${submission.item_name} ${submission.item_description}`.trim()
-    const categoryId = await getSuggestedCategoryId(searchQuery, accessToken)
+    const { categoryId, treeId } = await getSuggestedCategoryId(searchQuery, accessToken)
+    const requiredAspects = await getRequiredAspectsForCategory(treeId, categoryId, accessToken)
+
     console.log(`🧠 Suggested eBay category ID: ${categoryId}`)
 
     const imageUrls = extractImageUrls(submission.image_urls || submission.image_url)
-
     if (imageUrls.length === 0) {
       console.warn("⚠️ No valid images found for item", submission.id)
     }
 
     console.log(`🖼️ Prepared ${imageUrls.length} images for listing:`, imageUrls)
 
+    const aspects: Record<string, string[]> = {
+      Condition: [submission.item_condition || "Used"],
+      Brand: [brand],
+      Model: [submission.item_name],
+    }
+
+    if (requiredAspects.some(a => a.aspectName === "Type")) {
+      aspects.Type = ["Not Specified"] // You can later improve this by detecting from item name
+    }
+
     const inventoryItem = {
       product: {
         title,
         description: submission.item_description,
-        aspects: {
-          Condition: [submission.item_condition || "Used"],
-          Brand: [brand],
-          Model: [submission.item_name],
-        },
+        aspects,
         imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
       },
       condition: ebayCondition,
