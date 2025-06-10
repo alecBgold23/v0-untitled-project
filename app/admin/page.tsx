@@ -61,6 +61,9 @@ export interface ItemSubmission {
   image_url: string[] | null // Changed from string to string[] or null
   estimated_price: number | null
   item_condition: "Like New" | "Excellent" | "Good" | "Fair" | "Poor"
+  ebay_listing_id: string | null
+  ebay_offer_id: string | null
+  listed_on_ebay: boolean | null
 }
 
 export default function AdminDashboard() {
@@ -204,17 +207,27 @@ export default function AdminDashboard() {
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
       const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-      // Update status in database
-      const { error } = await supabase.from("sell_items").update({ status: newStatus }).eq("id", id)
+      console.log(`🔄 Updating item ${id} status to: ${newStatus}`)
 
-      if (error) throw error
+      // Update status in database
+      const { error, data } = await supabase.from("sell_items").update({ status: newStatus }).eq("id", id).select()
+
+      if (error) {
+        console.error("❌ Database update failed:", error)
+        throw error
+      }
+
+      console.log(`✅ Database update successful:`, data)
 
       // Update local state
       setSubmissions((prev) =>
         prev.map((submission) => (submission.id === id ? { ...submission, status: newStatus } : submission)),
       )
+
+      return true
     } catch (error) {
       console.error("Failed to update submission status:", error)
+      return false
     }
   }
 
@@ -247,12 +260,27 @@ export default function AdminDashboard() {
       // Success case
       console.log(`✅ Successfully listed item ${id} on eBay:`, {
         offerId: result.ebay_offer_id,
-        listingId: result.ebay_listing_id,
+        listingId: result.listingId,
         listingUrl: result.ebay_listing_url,
       })
 
       // Update local state only after successful API call
       await updateSubmissionStatus(id, "listed")
+
+      // Also update other eBay-related fields in local state
+      setSubmissions((prev) =>
+        prev.map((submission) =>
+          submission.id === id
+            ? {
+                ...submission,
+                status: "listed",
+                ebay_listing_id: result.listingId,
+                ebay_offer_id: result.ebay_offer_id,
+                listed_on_ebay: true,
+              }
+            : submission,
+        ),
+      )
 
       // Show success message (optional)
       if (result.ebay_listing_url) {
@@ -638,7 +666,7 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {(submission.status === "pending" || submission.status === "approved") && (
+                              {submission.status !== "listed" && (
                                 <Button
                                   size="sm"
                                   onClick={() => listItemOnEbay(submission.id)}
@@ -654,6 +682,12 @@ export default function AdminDashboard() {
                                     "List on eBay"
                                   )}
                                 </Button>
+                              )}
+
+                              {submission.status === "listed" && (
+                                <Badge variant="outline" className="border-green-500 text-green-500">
+                                  Listed on eBay
+                                </Badge>
                               )}
 
                               {submission.status !== "rejected" ? (
@@ -873,16 +907,16 @@ export default function AdminDashboard() {
             </div>
 
             <DialogFooter>
-              {(selectedItem.status === "pending" || selectedItem.status === "approved") && (
+              {selectedItem && selectedItem.status !== "listed" && (
                 <Button
                   onClick={() => {
                     listItemOnEbay(selectedItem.id)
                     setSelectedItem(null)
                   }}
-                  disabled={listingLoading === selectedItem.id}
+                  disabled={listingLoading === selectedItem?.id}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {listingLoading === selectedItem.id ? (
+                  {listingLoading === selectedItem?.id ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       Listing on eBay...
@@ -891,6 +925,11 @@ export default function AdminDashboard() {
                     "List on eBay"
                   )}
                 </Button>
+              )}
+              {selectedItem && selectedItem.status === "listed" && (
+                <Badge variant="outline" className="border-green-500 text-green-500 py-2 px-4">
+                  Listed on eBay
+                </Badge>
               )}
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
