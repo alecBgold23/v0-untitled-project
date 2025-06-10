@@ -95,7 +95,7 @@ async function getSuggestedCategoryId(query: string, accessToken: string): Promi
 
 async function getRequiredAspectsForCategory(categoryTreeId: string, categoryId: string, accessToken: string) {
   const res = await fetch(
-    `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/fetch_item_aspects?category_id=${categoryId}`,
+    `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_item_aspects_for_category?category_id=${categoryId}`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -110,7 +110,7 @@ async function getRequiredAspectsForCategory(categoryTreeId: string, categoryId:
   }
 
   const json = await res.json()
-  const requiredAspects = json?.aspects?.filter((a: any) => a.aspectConstraint?.aspectRequired) || []
+  const requiredAspects = json?.aspects?.filter((a: any) => a.aspectConstraint.aspectRequired) || []
   console.log("📌 Required aspects:", requiredAspects.map((a: any) => a.aspectName))
   return requiredAspects
 }
