@@ -281,54 +281,62 @@ export async function POST(request: Request) {
       Type: ["ExampleType"],
     }
 
-    const ebayCondition = conditionMapping[submission.item_condition] || 2000; // Default to "Good" if unknown
+    // Use your existing function instead of undefined conditionMapping
+const ebayCondition = mapConditionToEbay(submission.item_condition);
 
-const itemDescription = submission.item_description?.trim() || "No description provided.";
-const itemIssues = submission.item_issues?.trim() || "";
+// Safely handle description
+const itemDescription = (submission.item_description?.trim() ?? "") || "No description provided.";
+const itemIssues = (submission.item_issues?.trim() ?? "") || "";
 const conditionNote = itemIssues || "No major defects.";
 
+// Create HTML-formatted description for eBay
 const combinedDescription = itemIssues
-  ? `${itemDescription}<br><br><strong>Notable Issues:</strong><br>${itemIssues}`
-  : itemDescription;
+  ? `<p>${itemDescription}</p><p><strong>Notable Issues:</strong><br>${itemIssues}</p>`
+  : `<p>${itemDescription}</p>`;
 
-// Assume you already processed image URLs into ebayOptimizedImageUrls (array of strings)
-const ebayOptimizedImageUrls = submission.image_urls && submission.image_urls.length > 0
-  ? submission.image_urls
-  : ["https://example.com/default-image.jpg"]; // fallback image URL
+// Don't redefine ebayOptimizedImageUrls - use the one from your image processing
+// If you need a fallback:
+if (ebayOptimizedImageUrls.length === 0) {
+  ebayOptimizedImageUrls.push("https://example.com/default-image.jpg");
+}
 
 const inventoryItem = {
-  title: submission.item_name,
-  description: combinedDescription,
-  condition: ebayCondition,
-  conditionDescription: conditionNote,
   product: {
-    title: submission.item_name,
-    description: itemDescription,
-    aspects: [], // You can fill this with item specifics from eBay API if you want
+    title: submission.item_name || "Untitled Item",
+    aspects, // Use your existing aspects object
     imageUrls: ebayOptimizedImageUrls,
     primaryImage: {
       imageUrl: ebayOptimizedImageUrls[0],
     },
   },
+  condition: ebayCondition,
+  conditionDescription: conditionNote, // Note: Check if eBay API accepts this field
   availability: {
     shipToLocationAvailability: {
       quantity: 1,
     },
   },
   packageWeightAndSize: {
-    packageType: "USPS_LARGE_PACK", // adjust if needed
+    packageType: "USPS_LARGE_PACK",
     weight: {
-      value: 2.0,  // adjust if you have weight info
+      value: 2.0,
       unit: "POUND",
     },
     dimensions: {
-      length: 10,  // adjust if you have dimension info
+      length: 10,
       width: 7,
       height: 3,
       unit: "INCH",
     },
   },
-}
+};
+
+// Then in your offer data:
+const offerData = {
+  // ...other fields
+  listingDescription: combinedDescription, // Use the HTML-formatted description here
+  // ...other fields
+};
 
     console.log("📦 Creating inventory item with eBay-optimized square images...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
