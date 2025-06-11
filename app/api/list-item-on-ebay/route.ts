@@ -368,27 +368,30 @@ export async function POST(request: Request) {
       value: values,
     }))
 
-    const offerData = {
-      sku,
-      marketplaceId: "EBAY_US",
-      format: "FIXED_PRICE",
-      availableQuantity: 1,
-      categoryId,
-      listingDescription: submission.item_description,
-      listingPolicies: {
-        fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
-        paymentPolicyId: requiredEnvVars.paymentPolicyId,
-        returnPolicyId: requiredEnvVars.returnPolicyId,
-      },
-      pricingSummary: {
-        price: {
-          value: priceValue.toFixed(2),
-          currency: "USD",
-        },
-      },
-      merchantLocationKey: requiredEnvVars.locationKey,
-      itemSpecifics,
-    }
+    // Log the item description for debugging
+console.log("📦 Listing description from Supabase:", submission.item_description);
+
+const offerData = {
+  sku,
+  marketplaceId: "EBAY_US",
+  format: "FIXED_PRICE",
+  availableQuantity: 1,
+  categoryId,
+  listingDescription: submission.item_description,
+  listingPolicies: {
+    fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
+    paymentPolicyId: requiredEnvVars.paymentPolicyId,
+    returnPolicyId: requiredEnvVars.returnPolicyId,
+  },
+  pricingSummary: {
+    price: {
+      value: priceValue.toFixed(2),
+      currency: "USD",
+    },
+  },
+  merchantLocationKey: requiredEnvVars.locationKey,
+  itemSpecifics,
+};
 
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
       method: "POST",
