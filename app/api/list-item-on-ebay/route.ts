@@ -62,6 +62,10 @@ async function resizeImageForEbay(imageUrl: string, itemId: string, imageIndex: 
       })
       .toBuffer()
 
+    // Add metadata logging to check actual dimensions
+    const metadata = await sharp(resizedImage).metadata()
+    console.log(`📐 Resized image dimensions: ${metadata.width}x${metadata.height}`)
+
     // Create a unique filename for the eBay-optimized image
     const timestamp = Date.now()
     const fileName = `ebay-optimized/${itemId}/${timestamp}-${imageIndex}.jpg`
