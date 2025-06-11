@@ -281,23 +281,30 @@ export async function POST(request: Request) {
       Type: ["ExampleType"],
     }
 
-    const itemDescription = item.item_description?.trim() || generateFallbackDescription(item);
-const itemIssues = item.item_issues?.trim();
+    const ebayCondition = conditionMapping[submission.item_condition] || 2000; // Default to "Good" if unknown
+
+const itemDescription = submission.item_description?.trim() || "No description provided.";
+const itemIssues = submission.item_issues?.trim() || "";
 const conditionNote = itemIssues || "No major defects.";
 
 const combinedDescription = itemIssues
   ? `${itemDescription}<br><br><strong>Notable Issues:</strong><br>${itemIssues}`
   : itemDescription;
 
+// Assume you already processed image URLs into ebayOptimizedImageUrls (array of strings)
+const ebayOptimizedImageUrls = submission.image_urls && submission.image_urls.length > 0
+  ? submission.image_urls
+  : ["https://example.com/default-image.jpg"]; // fallback image URL
+
 const inventoryItem = {
-  title: item.item_name,
+  title: submission.item_name,
   description: combinedDescription,
-  condition: conditionCode,
+  condition: ebayCondition,
   conditionDescription: conditionNote,
   product: {
-    title: item.item_name,
+    title: submission.item_name,
     description: itemDescription,
-    aspects,
+    aspects: [], // You can fill this with item specifics from eBay API if you want
     imageUrls: ebayOptimizedImageUrls,
     primaryImage: {
       imageUrl: ebayOptimizedImageUrls[0],
@@ -309,19 +316,19 @@ const inventoryItem = {
     },
   },
   packageWeightAndSize: {
-    packageType: "USPS_LARGE_PACK",
+    packageType: "USPS_LARGE_PACK", // adjust if needed
     weight: {
-      value: 2.0,
+      value: 2.0,  // adjust if you have weight info
       unit: "POUND",
     },
     dimensions: {
-      length: 10,
+      length: 10,  // adjust if you have dimension info
       width: 7,
       height: 3,
       unit: "INCH",
     },
   },
-};
+}
 
     console.log("📦 Creating inventory item with eBay-optimized square images...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
