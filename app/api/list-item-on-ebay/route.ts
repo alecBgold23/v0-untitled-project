@@ -281,62 +281,35 @@ export async function POST(request: Request) {
       Type: ["ExampleType"],
     }
 
-    // Use your existing function instead of undefined conditionMapping
-const ebayCondition = mapConditionToEbay(submission.item_condition);
-
-// Safely handle description
-const itemDescription = (submission.item_description?.trim() ?? "") || "No description provided.";
-const itemIssues = (submission.item_issues?.trim() ?? "") || "";
-const conditionNote = itemIssues || "No major defects.";
-
-// Create HTML-formatted description for eBay
-const combinedDescription = itemIssues
-  ? `<p>${itemDescription}</p><p><strong>Notable Issues:</strong><br>${itemIssues}</p>`
-  : `<p>${itemDescription}</p>`;
-
-// Don't redefine ebayOptimizedImageUrls - use the one from your image processing
-// If you need a fallback:
-if (ebayOptimizedImageUrls.length === 0) {
-  ebayOptimizedImageUrls.push("https://example.com/default-image.jpg");
-}
-
-const inventoryItem = {
-  product: {
-    title: submission.item_name || "Untitled Item",
-    aspects, // Use your existing aspects object
-    imageUrls: ebayOptimizedImageUrls,
-    primaryImage: {
-      imageUrl: ebayOptimizedImageUrls[0],
-    },
-  },
-  condition: ebayCondition,
-  conditionDescription: conditionNote, // Note: Check if eBay API accepts this field
-  availability: {
-    shipToLocationAvailability: {
-      quantity: 1,
-    },
-  },
-  packageWeightAndSize: {
-    packageType: "USPS_LARGE_PACK",
-    weight: {
-      value: 2.0,
-      unit: "POUND",
-    },
-    dimensions: {
-      length: 10,
-      width: 7,
-      height: 3,
-      unit: "INCH",
-    },
-  },
-};
-
-// Then in your offer data:
-const offerData = {
-  // ...other fields
-  listingDescription: combinedDescription, // Use the HTML-formatted description here
-  // ...other fields
-};
+    const inventoryItem = {
+      product: {
+        title,
+        aspects,
+        imageUrls: ebayOptimizedImageUrls,
+        primaryImage: {
+          imageUrl: ebayOptimizedImageUrls[0],
+        },
+      },
+      condition: ebayCondition,
+      availability: {
+        shipToLocationAvailability: {
+          quantity: 1,
+        },
+      },
+      packageWeightAndSize: {
+        packageType: "USPS_LARGE_PACK",
+        weight: {
+          value: 2.0,
+          unit: "POUND",
+        },
+        dimensions: {
+          length: 10,
+          width: 7,
+          height: 3,
+          unit: "INCH",
+        },
+      },
+    }
 
     console.log("📦 Creating inventory item with eBay-optimized square images...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
