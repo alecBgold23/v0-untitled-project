@@ -48,23 +48,23 @@ async function resizeImageForEbay(imageUrl: string, itemId: string, imageIndex: 
     const imageBuffer = await response.arrayBuffer()
     const buffer = Buffer.from(imageBuffer)
 
-    /// Resize image to eBay's preferred specifications
-const resizedImage = await sharp(buffer)
-  .resize({
-    width: 1600,
-    height: 1600,
-    fit: "contain", // Maintain aspect ratio with white padding
-    background: { r: 255, g: 255, b: 255 }, // White background
-  })
-  .jpeg({
-    quality: 95, // High quality for eBay
-    progressive: true,
-  })
-  .toBuffer()
+    // Resize image to eBay's preferred specifications with proper square cropping
+    const resizedImage = await sharp(buffer)
+      .resize({
+        width: 1600,
+        height: 1600,
+        fit: "cover", // ✅ Changed from "contain" to "cover" for proper square thumbnails
+        position: "center", // ✅ Center the crop for best product visibility
+      })
+      .jpeg({
+        quality: 95, // High quality for eBay
+        progressive: false, // ✅ Removed progressive for better eBay compatibility
+      })
+      .toBuffer()
 
-// ✅ Add this after resizing
-const metadata = await sharp(resizedImage).metadata()
-console.log(`📐 Resized image dimensions: ${metadata.width}x${metadata.height}`)
+    // ✅ Add this after resizing
+    const metadata = await sharp(resizedImage).metadata()
+    console.log(`📐 Resized image dimensions: ${metadata.width}x${metadata.height}`)
 
     // Create a unique filename for the eBay-optimized image
     const timestamp = Date.now()
@@ -204,7 +204,7 @@ async function getRequiredAspectsForCategory(categoryTreeId: string, categoryId:
 
 export async function POST(request: Request) {
   try {
-    console.log("🚀 Starting eBay listing process with image optimization...")
+    console.log("🚀 Starting eBay listing process with optimized square image resizing...")
 
     const { id } = await request.json()
     if (!id) {
@@ -262,7 +262,7 @@ export async function POST(request: Request) {
 
     console.log(`🖼️ Found ${originalImageUrls.length} original images`)
 
-    // Resize images specifically for eBay
+    // Resize images specifically for eBay with proper square cropping
     const ebayOptimizedImageUrls = await prepareImagesForEbay(originalImageUrls, submission.id)
 
     if (ebayOptimizedImageUrls.length === 0) {
@@ -271,7 +271,7 @@ export async function POST(request: Request) {
       ebayOptimizedImageUrls.push(...originalImageUrls)
     }
 
-    console.log(`🎯 Using ${ebayOptimizedImageUrls.length} eBay-optimized images for listing`)
+    console.log(`🎯 Using ${ebayOptimizedImageUrls.length} eBay-optimized square images for listing`)
 
     // Prepare aspects for inventory item product
     const aspects: Record<string, string[]> = {
@@ -286,9 +286,9 @@ export async function POST(request: Request) {
         title,
         description: submission.item_description,
         aspects,
-        imageUrls: ebayOptimizedImageUrls, // Use eBay-optimized images
+        imageUrls: ebayOptimizedImageUrls, // Use eBay-optimized square images
         primaryImage: {
-          imageUrl: ebayOptimizedImageUrls[0], // First optimized image
+          imageUrl: ebayOptimizedImageUrls[0], // First optimized square image
         },
       },
       condition: ebayCondition,
@@ -312,7 +312,7 @@ export async function POST(request: Request) {
       },
     }
 
-    console.log("📦 Creating inventory item with eBay-optimized images...")
+    console.log("📦 Creating inventory item with eBay-optimized square images...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
       method: "PUT",
       headers: {
@@ -336,7 +336,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
     }
 
-    console.log("✅ Inventory item created with optimized images")
+    console.log("✅ Inventory item created with optimized square images")
 
     const requiredEnvVars = {
       fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
@@ -456,7 +456,7 @@ export async function POST(request: Request) {
         ebay_listing_id: listingId,
         ebay_offer_id: offerId,
         listed_on_ebay: true,
-        ebay_optimized_images: ebayOptimizedImageUrls, // Store the optimized image URLs
+        ebay_optimized_images: ebayOptimizedImageUrls, // Store the optimized square image URLs
       })
       .eq("id", id)
 
@@ -476,6 +476,7 @@ export async function POST(request: Request) {
       ebay_offer_id: offerId,
       optimized_images: ebayOptimizedImageUrls,
       original_images: originalImageUrls,
+      message: "Item listed with properly cropped square thumbnails for eBay",
     })
   } catch (err: any) {
     console.error("❌ Unexpected error:", err?.message || err)
