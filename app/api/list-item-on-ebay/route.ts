@@ -48,19 +48,23 @@ async function resizeImageForEbay(imageUrl: string, itemId: string, imageIndex: 
     const imageBuffer = await response.arrayBuffer()
     const buffer = Buffer.from(imageBuffer)
 
-    // Resize image to eBay's preferred specifications
-    const resizedImage = await sharp(buffer)
-      .resize({
-        width: 1600,
-        height: 1600,
-        fit: "contain", // Maintain aspect ratio with white padding
-        background: { r: 255, g: 255, b: 255 }, // White background
-      })
-      .jpeg({
-        quality: 95, // High quality for eBay
-        progressive: true,
-      })
-      .toBuffer()
+    /// Resize image to eBay's preferred specifications
+const resizedImage = await sharp(buffer)
+  .resize({
+    width: 1600,
+    height: 1600,
+    fit: "contain", // Maintain aspect ratio with white padding
+    background: { r: 255, g: 255, b: 255 }, // White background
+  })
+  .jpeg({
+    quality: 95, // High quality for eBay
+    progressive: true,
+  })
+  .toBuffer()
+
+// ✅ Add this after resizing
+const metadata = await sharp(resizedImage).metadata()
+console.log(`📐 Resized image dimensions: ${metadata.width}x${metadata.height}`)
 
     // Create a unique filename for the eBay-optimized image
     const timestamp = Date.now()
