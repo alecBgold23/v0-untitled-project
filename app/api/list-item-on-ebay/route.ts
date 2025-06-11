@@ -282,36 +282,35 @@ export async function POST(request: Request) {
     }
 
     const inventoryItem = {
-  title, // ✅ Add this if it's not already included at the top level
-  description: submission.item_description, // ✅ Correct placement
-  product: {
-    title,
-    aspects,
-    imageUrls: ebayOptimizedImageUrls,
-    primaryImage: {
-      imageUrl: ebayOptimizedImageUrls[0],
-    },
-  },
-  condition: ebayCondition,
-  availability: {
-    shipToLocationAvailability: {
-      quantity: 1,
-    },
-  },
-  packageWeightAndSize: {
-    packageType: "USPS_LARGE_PACK",
-    weight: {
-      value: 2.0,
-      unit: "POUND",
-    },
-    dimensions: {
-      length: 10,
-      width: 7,
-      height: 3,
-      unit: "INCH",
-    },
-  },
-};
+      title, // ✅ Add this if it's not already included at the top level
+      product: {
+        title,
+        aspects,
+        imageUrls: ebayOptimizedImageUrls,
+        primaryImage: {
+          imageUrl: ebayOptimizedImageUrls[0],
+        },
+      },
+      condition: ebayCondition,
+      availability: {
+        shipToLocationAvailability: {
+          quantity: 1,
+        },
+      },
+      packageWeightAndSize: {
+        packageType: "USPS_LARGE_PACK",
+        weight: {
+          value: 2.0,
+          unit: "POUND",
+        },
+        dimensions: {
+          length: 10,
+          width: 7,
+          height: 3,
+          unit: "INCH",
+        },
+      },
+    }
 
     console.log("📦 Creating inventory item with eBay-optimized square images...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
@@ -370,29 +369,29 @@ export async function POST(request: Request) {
     }))
 
     // Log the item description for debugging
-console.log("📦 Listing description from Supabase:", submission.item_description);
+    console.log("📦 Listing description from Supabase:", submission.item_description)
 
-const offerData = {
-  sku,
-  marketplaceId: "EBAY_US",
-  format: "FIXED_PRICE",
-  availableQuantity: 1,
-  categoryId,
-  listingDescription: submission.item_description,
-  listingPolicies: {
-    fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
-    paymentPolicyId: requiredEnvVars.paymentPolicyId,
-    returnPolicyId: requiredEnvVars.returnPolicyId,
-  },
-  pricingSummary: {
-    price: {
-      value: priceValue.toFixed(2),
-      currency: "USD",
-    },
-  },
-  merchantLocationKey: requiredEnvVars.locationKey,
-  itemSpecifics,
-};
+    const offerData = {
+      sku,
+      marketplaceId: "EBAY_US",
+      format: "FIXED_PRICE",
+      availableQuantity: 1,
+      categoryId,
+      listingDescription: submission.item_description,
+      listingPolicies: {
+        fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
+        paymentPolicyId: requiredEnvVars.paymentPolicyId,
+        returnPolicyId: requiredEnvVars.returnPolicyId,
+      },
+      pricingSummary: {
+        price: {
+          value: priceValue.toFixed(2),
+          currency: "USD",
+        },
+      },
+      merchantLocationKey: requiredEnvVars.locationKey,
+      itemSpecifics,
+    }
 
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
       method: "POST",
