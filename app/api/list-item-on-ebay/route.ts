@@ -282,35 +282,36 @@ export async function POST(request: Request) {
     }
 
     const inventoryItem = {
-      product: {
-        title,
-        description: submission.item_description,
-        aspects,
-        imageUrls: ebayOptimizedImageUrls, // Use eBay-optimized square images
-        primaryImage: {
-          imageUrl: ebayOptimizedImageUrls[0], // First optimized square image
-        },
-      },
-      condition: ebayCondition,
-      availability: {
-        shipToLocationAvailability: {
-          quantity: 1,
-        },
-      },
-      packageWeightAndSize: {
-        packageType: "USPS_LARGE_PACK",
-        weight: {
-          value: 2.0,
-          unit: "POUND",
-        },
-        dimensions: {
-          length: 10,
-          width: 7,
-          height: 3,
-          unit: "INCH",
-        },
-      },
-    }
+  title, // ✅ Add this if it's not already included at the top level
+  description: submission.item_description, // ✅ Correct placement
+  product: {
+    title,
+    aspects,
+    imageUrls: ebayOptimizedImageUrls,
+    primaryImage: {
+      imageUrl: ebayOptimizedImageUrls[0],
+    },
+  },
+  condition: ebayCondition,
+  availability: {
+    shipToLocationAvailability: {
+      quantity: 1,
+    },
+  },
+  packageWeightAndSize: {
+    packageType: "USPS_LARGE_PACK",
+    weight: {
+      value: 2.0,
+      unit: "POUND",
+    },
+    dimensions: {
+      length: 10,
+      width: 7,
+      height: 3,
+      unit: "INCH",
+    },
+  },
+};
 
     console.log("📦 Creating inventory item with eBay-optimized square images...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
