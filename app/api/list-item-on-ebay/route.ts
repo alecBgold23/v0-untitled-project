@@ -281,36 +281,47 @@ export async function POST(request: Request) {
       Type: ["ExampleType"],
     }
 
-    const inventoryItem = {
-      title, // ✅ Add this if it's not already included at the top level
-      product: {
-        title,
-        aspects,
-        imageUrls: ebayOptimizedImageUrls,
-        primaryImage: {
-          imageUrl: ebayOptimizedImageUrls[0],
-        },
-      },
-      condition: ebayCondition,
-      availability: {
-        shipToLocationAvailability: {
-          quantity: 1,
-        },
-      },
-      packageWeightAndSize: {
-        packageType: "USPS_LARGE_PACK",
-        weight: {
-          value: 2.0,
-          unit: "POUND",
-        },
-        dimensions: {
-          length: 10,
-          width: 7,
-          height: 3,
-          unit: "INCH",
-        },
-      },
-    }
+    const itemDescription = item.item_description?.trim() || generateFallbackDescription(item);
+const itemIssues = item.item_issues?.trim();
+const conditionNote = itemIssues || "No major defects.";
+
+const combinedDescription = itemIssues
+  ? `${itemDescription}<br><br><strong>Notable Issues:</strong><br>${itemIssues}`
+  : itemDescription;
+
+const inventoryItem = {
+  title: item.item_name,
+  description: combinedDescription,
+  condition: conditionCode,
+  conditionDescription: conditionNote,
+  product: {
+    title: item.item_name,
+    description: itemDescription,
+    aspects,
+    imageUrls: ebayOptimizedImageUrls,
+    primaryImage: {
+      imageUrl: ebayOptimizedImageUrls[0],
+    },
+  },
+  availability: {
+    shipToLocationAvailability: {
+      quantity: 1,
+    },
+  },
+  packageWeightAndSize: {
+    packageType: "USPS_LARGE_PACK",
+    weight: {
+      value: 2.0,
+      unit: "POUND",
+    },
+    dimensions: {
+      length: 10,
+      width: 7,
+      height: 3,
+      unit: "INCH",
+    },
+  },
+};
 
     console.log("📦 Creating inventory item with eBay-optimized square images...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
