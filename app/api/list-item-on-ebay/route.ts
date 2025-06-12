@@ -289,8 +289,20 @@ export async function POST(request: Request) {
       conditionNote = "Contact seller for more details."
     }
 
+    // Create a basic listing description (required by eBay)
+    const listingDescription = `
+<div>
+  <h3>${submission.item_name}</h3>
+  <p><strong>Condition:</strong> ${submission.item_condition || "Used"}</p>
+  <p><strong>Brand:</strong> ${brand}</p>
+  <div>
+    <p>${conditionNote}</p>
+  </div>
+  <p><em>Please contact seller with any questions before purchasing.</em></p>
+</div>`.trim()
+
     console.log("🔍 Debug - Condition note for eBay:", conditionNote)
-    console.log("🔍 Debug - Condition note length:", conditionNote.length)
+    console.log("🔍 Debug - Listing description for eBay:", listingDescription)
 
     const inventoryItem = {
       product: {
@@ -322,7 +334,7 @@ export async function POST(request: Request) {
       },
     }
 
-    console.log("📦 Creating inventory item with eBay-optimized square images and description...")
+    console.log("📦 Creating inventory item with eBay-optimized square images...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
       method: "PUT",
       headers: {
@@ -346,7 +358,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
     }
 
-    console.log("✅ Inventory item created with optimized square images and description")
+    console.log("✅ Inventory item created with optimized square images")
 
     const requiredEnvVars = {
       fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
@@ -380,7 +392,7 @@ export async function POST(request: Request) {
 
     // Log the item description for debugging
     console.log("📦 Condition description being sent to eBay:", conditionNote)
-    console.log("📦 Condition description character count:", conditionNote.length)
+    console.log("📦 Listing description being sent to eBay:", listingDescription)
 
     const offerData = {
       sku,
@@ -389,6 +401,7 @@ export async function POST(request: Request) {
       availableQuantity: 1,
       categoryId,
       conditionDescription: conditionNote, // ✅ This appears right under the condition section
+      listingDescription: listingDescription, // ✅ ADDED BACK: Required by eBay
       listingPolicies: {
         fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
         paymentPolicyId: requiredEnvVars.paymentPolicyId,
