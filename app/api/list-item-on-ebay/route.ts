@@ -281,55 +281,35 @@ export async function POST(request: Request) {
       Type: ["ExampleType"],
     }
 
-    // Extract description fields safely
-const itemDescription = (submission.item_description?.trim() ?? "") || "No description provided.";
-const itemIssues = (submission.item_issues?.trim() ?? "") || "";
-const conditionNote = itemIssues || "No major defects.";
-
-const combinedDescription = itemIssues
-  ? `<p>${itemDescription}</p><p><strong>Notable Issues:</strong><br>${itemIssues}</p>`
-  : `<p>${itemDescription}</p>`;
-
-// Ensure image URLs are available
-const fallbackImageUrl = "https://example.com/default-image.jpg";
-const ebayOptimizedImageUrls = Array.isArray(submission.image_urls) && submission.image_urls.length > 0
-  ? submission.image_urls
-  : [fallbackImageUrl];
-
-// Final inventory item object
-const inventoryItem = {
-  title: submission.item_name || "Untitled Item",
-  description: combinedDescription, // ✅ REQUIRED by eBay to avoid publishOffer failure
-  condition: ebayCondition,
-  conditionDescription: conditionNote,
-  product: {
-    title: submission.item_name || "Untitled Item",
-    description: itemDescription, // ✅ optional, enriches catalog
-    aspects: aspects || {}, // ✅ Should be valid object from aspect API
-    imageUrls: ebayOptimizedImageUrls,
-    primaryImage: {
-      imageUrl: ebayOptimizedImageUrls[0],
-    },
-  },
-  availability: {
-    shipToLocationAvailability: {
-      quantity: 1,
-    },
-  },
-  packageWeightAndSize: {
-    packageType: "USPS_LARGE_PACK",
-    weight: {
-      value: 2.0,
-      unit: "POUND",
-    },
-    dimensions: {
-      length: 10,
-      width: 7,
-      height: 3,
-      unit: "INCH",
-    },
-  },
-};
+    const inventoryItem = {
+      product: {
+        title,
+        aspects,
+        imageUrls: ebayOptimizedImageUrls,
+        primaryImage: {
+          imageUrl: ebayOptimizedImageUrls[0],
+        },
+      },
+      condition: ebayCondition,
+      availability: {
+        shipToLocationAvailability: {
+          quantity: 1,
+        },
+      },
+      packageWeightAndSize: {
+        packageType: "USPS_LARGE_PACK",
+        weight: {
+          value: 2.0,
+          unit: "POUND",
+        },
+        dimensions: {
+          length: 10,
+          width: 7,
+          height: 3,
+          unit: "INCH",
+        },
+      },
+    }
 
     console.log("📦 Creating inventory item with eBay-optimized square images...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
@@ -396,7 +376,7 @@ const inventoryItem = {
       format: "FIXED_PRICE",
       availableQuantity: 1,
       categoryId,
-      listingDescription: combinedDescription,
+      listingDescription: submission.item_description,
       listingPolicies: {
         fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
         paymentPolicyId: requiredEnvVars.paymentPolicyId,
