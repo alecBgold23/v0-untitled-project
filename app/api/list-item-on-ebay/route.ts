@@ -202,11 +202,77 @@ async function getRequiredAspectsForCategory(categoryTreeId: string, categoryId:
   return requiredAspects
 }
 
+// Helper function to sanitize and validate description text
+function sanitizeDescription(text: string | null | undefined): string {
+  console.log(`🧹 Sanitizing description: "${text}"`)
+
+  if (!text) {
+    console.warn("⚠️ Description is empty or undefined, using fallback text")
+    return "Contact seller for more details."
+  }
+
+  // Trim whitespace
+  const trimmed = text.trim()
+  console.log(`✂️ Trimmed description (${trimmed.length} chars): "${trimmed}"`)
+
+  // Check for HTML tags
+  const hasHtmlTags = /<[^>]*>/g.test(trimmed)
+  console.log(`🔍 Description contains HTML tags: ${hasHtmlTags}`)
+
+  // Check for special characters
+  const specialChars = trimmed.match(/[^\w\s.,!?-]/g) || []
+  if (specialChars.length > 0) {
+    console.log(`⚠️ Description contains special characters: ${JSON.stringify(specialChars)}`)
+  }
+
+  // Check length constraints
+  if (trimmed.length < 10) {
+    console.warn(`⚠️ Description is very short (${trimmed.length} chars), might be rejected`)
+  } else if (trimmed.length > 4000) {
+    console.warn(`⚠️ Description is very long (${trimmed.length} chars), might be truncated`)
+  }
+
+  return trimmed || "Contact seller for more details."
+}
+
+// Helper function to create a valid eBay HTML description
+function createEbayDescription(itemName: string, condition: string, brand: string, description: string): string {
+  console.log(`📝 Creating eBay description for item: "${itemName}"`)
+
+  const sanitizedDescription = sanitizeDescription(description)
+  console.log(`🧼 Using sanitized description (${sanitizedDescription.length} chars)`)
+
+  const htmlDescription = `
+<div>
+  <h3>${itemName}</h3>
+  <p><strong>Condition:</strong> ${condition || "Used"}</p>
+  <p><strong>Brand:</strong> ${brand}</p>
+  <div>
+    <p>${sanitizedDescription}</p>
+  </div>
+  <p><em>Please contact seller with any questions before purchasing.</em></p>
+</div>`.trim()
+
+  console.log(`📋 Final HTML description (${htmlDescription.length} chars):`)
+  console.log(htmlDescription)
+
+  // Check for potential issues
+  if (htmlDescription.length > 500000) {
+    console.error(`❌ HTML description exceeds eBay's maximum length (${htmlDescription.length} > 500000)`)
+  }
+
+  return htmlDescription
+}
+
 export async function POST(request: Request) {
   try {
     console.log("🚀 Starting eBay listing process with optimized square image resizing...")
+    console.log("⏱️ Process started at:", new Date().toISOString())
 
-    const { id } = await request.json()
+    const requestBody = await request.json()
+    console.log("📥 Received request body:", JSON.stringify(requestBody, null, 2))
+
+    const { id } = requestBody
     if (!id) {
       console.error("❌ No item ID provided")
       return NextResponse.json({ error: "Item ID is required" }, { status: 400 })
@@ -220,11 +286,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Item not found or error fetching data" }, { status: 404 })
     }
 
-    console.log("✅ Item data retrieved:", {
-      name: submission.item_name,
-      condition: submission.item_condition,
-      price: submission.estimated_price,
-    })
+    console.log("✅ Item data retrieved from database:")
+    console.log(
+      JSON.stringify(
+        {
+          id: submission.id,
+          name: submission.item_name,
+          condition: submission.item_condition,
+          price: submission.estimated_price,
+          description: submission.item_description,
+          description_length: submission.item_description?.length || 0,
+          image_url: submission.image_url,
+          image_urls: submission.image_urls,
+        },
+        null,
+        2,
+      ),
+    )
+
+    // Validate description
+    console.log("🔍 DESCRIPTION VALIDATION:")
+    console.log(`📄 Raw description from database: "${submission.item_description}"`)
+    console.log(`📏 Description length: ${submission.item_description?.length || 0} characters`)
+    console.log(`🔤 Description type: ${typeof submission.item_description}`)
+
+    if (!submission.item_description) {
+      console.warn("⚠️ Item description is empty or null")
+    } else if (typeof submission.item_description !== "string") {
+      console.error(`❌ Item description is not a string, it's a ${typeof submission.item_description}`)
+    }
+
+    // Check for problematic characters
+    if (submission.item_description) {
+      const problematicChars = submission.item_description.match(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g)
+      if (problematicChars) {
+        console.error(`❌ Description contains ${problematicChars.length} control characters that may cause issues`)
+      }
+    }
 
     let accessToken: string
     try {
@@ -281,31 +379,31 @@ export async function POST(request: Request) {
       Type: ["ExampleType"],
     }
 
-    // Prepare description for condition section - keep it simple and direct
-    let conditionNote = submission.item_description?.trim() || ""
+    // DESCRIPTION PROCESSING - Enhanced with detailed logging
+    console.log("📝 DESCRIPTION PROCESSING:")
 
-    // Ensure we have some description
-    if (!conditionNote) {
-      conditionNote = "Contact seller for more details."
-    }
+    // Prepare description for condition section - keep it simple and direct
+    const conditionNote = sanitizeDescription(submission.item_description)
 
     // Create a basic listing description (required by eBay)
-    const listingDescription = `
-<div>
-  <h3>${submission.item_name}</h3>
-  <p><strong>Condition:</strong> ${submission.item_condition || "Used"}</p>
-  <p><strong>Brand:</strong> ${brand}</p>
-  <div>
-    <p>${conditionNote}</p>
-  </div>
-  <p><em>Please contact seller with any questions before purchasing.</em></p>
-</div>`.trim()
+    const listingDescription = createEbayDescription(
+      submission.item_name,
+      submission.item_condition || "Used",
+      brand,
+      submission.item_description,
+    )
 
-    console.log("🔍 Debug - Condition note for eBay:", conditionNote)
-    console.log("🔍 Debug - Listing description for eBay:", listingDescription)
-    console.log("🔍 Debug - Condition note length:", conditionNote.length)
-    console.log("🔍 Debug - Listing description length:", listingDescription.length)
-    console.log("🔍 Debug - Original item description from DB:", submission.item_description)
+    console.log("🔍 FINAL DESCRIPTION DATA:")
+    console.log(`📄 Condition note (${conditionNote.length} chars): "${conditionNote}"`)
+    console.log(`📄 Listing description (${listingDescription.length} chars): "${listingDescription}"`)
+
+    // Check for empty descriptions
+    if (!conditionNote || conditionNote.length < 5) {
+      console.error("❌ Condition note is too short or empty, eBay may reject it")
+    }
+    if (!listingDescription || listingDescription.length < 20) {
+      console.error("❌ Listing description is too short, eBay may reject it")
+    }
 
     const inventoryItem = {
       product: {
@@ -338,6 +436,8 @@ export async function POST(request: Request) {
     }
 
     console.log("📦 Creating inventory item with eBay-optimized square images...")
+    console.log("📦 Inventory item payload:", JSON.stringify(inventoryItem, null, 2))
+
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
       method: "PUT",
       headers: {
@@ -351,6 +451,7 @@ export async function POST(request: Request) {
 
     const putText = await putResponse.text()
     console.log("📩 Raw PUT inventory response:", putText)
+    console.log("📩 PUT inventory response status:", putResponse.status, putResponse.statusText)
 
     if (!putResponse.ok) {
       console.error("❌ PUT inventory item creation failed:", {
@@ -370,11 +471,13 @@ export async function POST(request: Request) {
       locationKey: process.env.EBAY_LOCATION_KEY,
     }
 
+    console.log("🔑 Checking required eBay environment variables:")
     for (const [key, value] of Object.entries(requiredEnvVars)) {
       if (!value) {
         console.error(`❌ Missing environment variable: EBAY_${key.toUpperCase()}`)
         return NextResponse.json({ error: `Missing required eBay configuration: ${key}` }, { status: 500 })
       }
+      console.log(`✅ Found EBAY_${key.toUpperCase()}: ${value.substring(0, 5)}...`)
     }
 
     const rawPrice = submission.estimated_price
@@ -386,11 +489,7 @@ export async function POST(request: Request) {
     }
 
     console.log("💰 Creating offer on eBay...")
-    console.log("📦 Original item description:", submission.item_description)
-    console.log("📦 Condition note being sent to eBay:", conditionNote)
-    console.log("📦 Listing description being sent to eBay:", listingDescription)
-    console.log("📦 Condition note character count:", conditionNote.length)
-    console.log("📦 Listing description character count:", listingDescription.length)
+    console.log(`💰 Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`)
 
     // Prepare item specifics for offer (required by eBay, including "Type")
     const itemSpecifics = Object.entries(aspects).map(([name, values]) => ({
@@ -399,8 +498,20 @@ export async function POST(request: Request) {
     }))
 
     // Log the item description for debugging
-    console.log("📦 Condition description being sent to eBay:", conditionNote)
-    console.log("📦 Listing description being sent to eBay:", listingDescription)
+    console.log("📦 OFFER CREATION - DESCRIPTION DATA:")
+    console.log(`📄 Condition description (${conditionNote.length} chars): "${conditionNote}"`)
+    console.log(`📄 Listing description (${listingDescription.length} chars): "${listingDescription}"`)
+
+    // Check for HTML entities that might cause issues
+    const htmlEntityCheck = (text: string) => {
+      const entities = text.match(/&[a-z]+;/g)
+      if (entities) {
+        console.warn(`⚠️ Found HTML entities that might cause issues: ${entities.join(", ")}`)
+      }
+    }
+
+    htmlEntityCheck(conditionNote)
+    htmlEntityCheck(listingDescription)
 
     const offerData = {
       sku,
@@ -425,9 +536,19 @@ export async function POST(request: Request) {
       itemSpecifics,
     }
 
-    console.log("📦 Complete offer data being sent to eBay:")
+    console.log("📦 COMPLETE OFFER PAYLOAD:")
     console.log(JSON.stringify(offerData, null, 2))
 
+    // Validate offer data before sending
+    if (!offerData.conditionDescription || offerData.conditionDescription.length < 1) {
+      console.error("❌ CRITICAL: conditionDescription is empty in the final payload")
+    }
+
+    if (!offerData.listingDescription || offerData.listingDescription.length < 1) {
+      console.error("❌ CRITICAL: listingDescription is empty in the final payload")
+    }
+
+    console.log("📤 Sending offer creation request to eBay API...")
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
       method: "POST",
       headers: {
@@ -441,6 +562,25 @@ export async function POST(request: Request) {
 
     const offerText = await offerResponse.text()
     console.log("📩 Raw offer response:", offerText)
+    console.log("📩 Offer response status:", offerResponse.status, offerResponse.statusText)
+
+    // Try to parse the response as JSON for better error reporting
+    try {
+      const offerResponseJson = JSON.parse(offerText)
+      console.log("📩 Parsed offer response:", JSON.stringify(offerResponseJson, null, 2))
+
+      // Check for specific error codes related to descriptions
+      if (offerResponseJson.errors) {
+        offerResponseJson.errors.forEach((error: any) => {
+          console.error(`❌ eBay API Error: ${error.errorId} - ${error.message}`)
+          if (error.message?.includes("description")) {
+            console.error("❌ DESCRIPTION ERROR DETECTED in eBay response")
+          }
+        })
+      }
+    } catch (e) {
+      console.log("⚠️ Could not parse offer response as JSON")
+    }
 
     if (!offerResponse.ok) {
       console.error("❌ Offer creation failed:", {
@@ -451,6 +591,23 @@ export async function POST(request: Request) {
 
       // ✅ ADDED: Log the exact data we sent when there's an error
       console.error("📦 Data that was sent to eBay when error occurred:", JSON.stringify(offerData, null, 2))
+
+      // Try to create a modified offer with minimal description if the original failed
+      if (offerResponse.status === 400 && offerText.includes("description")) {
+        console.log("🔄 Attempting to create offer with simplified description...")
+
+        // Create a simplified version
+        const simplifiedOfferData = {
+          ...offerData,
+          conditionDescription: "Item in described condition. Contact seller for details.",
+          listingDescription: `<div><h3>${submission.item_name}</h3><p>Item for sale. Please contact with questions.</p></div>`,
+        }
+
+        console.log("📦 Simplified offer payload:", JSON.stringify(simplifiedOfferData, null, 2))
+
+        // Log this attempt but don't actually try it - just showing what could be done
+        console.log("⚠️ This is a simulation of a retry with simplified description - not actually sending")
+      }
 
       return NextResponse.json({ error: "Offer creation failed", response: offerText }, { status: 500 })
     }
@@ -477,12 +634,28 @@ export async function POST(request: Request) {
 
     const publishText = await publishResponse.text()
     console.log("📩 Raw publish response:", publishText)
+    console.log("📩 Publish response status:", publishResponse.status, publishResponse.statusText)
 
     if (!publishResponse.ok) {
       console.error("❌ Publishing offer failed:", {
         status: publishResponse.status,
         response: publishText,
       })
+
+      // Try to parse the response as JSON for better error reporting
+      try {
+        const publishResponseJson = JSON.parse(publishText)
+        console.log("📩 Parsed publish response:", JSON.stringify(publishResponseJson, null, 2))
+
+        if (publishResponseJson.errors) {
+          publishResponseJson.errors.forEach((error: any) => {
+            console.error(`❌ eBay Publish Error: ${error.errorId} - ${error.message}`)
+          })
+        }
+      } catch (e) {
+        console.log("⚠️ Could not parse publish response as JSON")
+      }
+
       return NextResponse.json({ error: "Offer publishing failed", response: publishText }, { status: 500 })
     }
 
@@ -491,6 +664,7 @@ export async function POST(request: Request) {
     console.log(`✅ Offer published: ${listingId}`)
 
     // Update the item status in the database to "listed" and store optimized image URLs
+    console.log("💾 Updating item status in database...")
     const { error: updateError } = await supabase
       .from("sell_items")
       .update({
@@ -511,6 +685,9 @@ export async function POST(request: Request) {
       })
     }
 
+    console.log("✅ Database updated successfully")
+    console.log("⏱️ Process completed at:", new Date().toISOString())
+
     return NextResponse.json({
       success: true,
       listingId,
@@ -523,6 +700,25 @@ export async function POST(request: Request) {
   } catch (err: any) {
     console.error("❌ Unexpected error:", err?.message || err)
     console.error("📛 Stack trace:", err?.stack || "No stack trace")
+
+    // Log additional context about the error
+    console.error("🔍 Error type:", typeof err)
+    if (err instanceof Error) {
+      console.error("🔍 Error name:", err.name)
+      console.error("🔍 Error cause:", err.cause)
+    }
+
+    // If it's a fetch error, try to get more details
+    if (err.response) {
+      try {
+        console.error("🔍 Response status:", err.response.status)
+        console.error("🔍 Response headers:", JSON.stringify(err.response.headers))
+        console.error("🔍 Response body:", await err.response.text())
+      } catch (e) {
+        console.error("🔍 Could not extract response details:", e)
+      }
+    }
+
     return NextResponse.json({ error: err?.message || "Unexpected server error" }, { status: 500 })
   }
 }
