@@ -391,8 +391,11 @@ export async function POST(request: Request) {
     }))
 
     // Log the item description for debugging
-    console.log("📦 Condition description being sent to eBay:", conditionNote)
+    console.log("📦 Original item description:", submission.item_description)
+    console.log("📦 Condition note being sent to eBay:", conditionNote)
     console.log("📦 Listing description being sent to eBay:", listingDescription)
+    console.log("📦 Condition note length:", conditionNote.length)
+    console.log("📦 Listing description length:", listingDescription.length)
 
     const offerData = {
       sku,
@@ -401,7 +404,7 @@ export async function POST(request: Request) {
       availableQuantity: 1,
       categoryId,
       conditionDescription: conditionNote, // ✅ This appears right under the condition section
-      listingDescription: listingDescription, // ✅ ADDED BACK: Required by eBay
+      listingDescription: listingDescription, // ✅ This appears in the main description area
       listingPolicies: {
         fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
         paymentPolicyId: requiredEnvVars.paymentPolicyId,
@@ -416,6 +419,9 @@ export async function POST(request: Request) {
       merchantLocationKey: requiredEnvVars.locationKey,
       itemSpecifics,
     }
+
+    console.log("📦 Complete offer data being sent to eBay:")
+    console.log(JSON.stringify(offerData, null, 2))
 
     const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
       method: "POST",
@@ -437,6 +443,10 @@ export async function POST(request: Request) {
         statusText: offerResponse.statusText,
         response: offerText,
       })
+
+      // ✅ ADDED: Log the exact data we sent when there's an error
+      console.error("📦 Data that was sent to eBay:", JSON.stringify(offerData, null, 2))
+
       return NextResponse.json({ error: "Offer creation failed", response: offerText }, { status: 500 })
     }
 
