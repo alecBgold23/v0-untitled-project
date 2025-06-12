@@ -281,40 +281,20 @@ export async function POST(request: Request) {
       Type: ["ExampleType"],
     }
 
-    // Prepare description - ensure it meets eBay's requirements
-    let itemDescription = submission.item_description?.trim() || ""
+    // Prepare description for condition section - keep it simple and direct
+    let conditionNote = submission.item_description?.trim() || ""
 
-    // ✅ ENHANCED: Ensure description meets eBay's minimum requirements
-    if (itemDescription.length < 10) {
-      // Pad short descriptions with item details
-      const conditionText = submission.item_condition ? ` in ${submission.item_condition} condition` : ""
-      const brandText = brand !== "Unbranded" ? ` by ${brand}` : ""
-      itemDescription = `${submission.item_name}${brandText}${conditionText}. ${itemDescription || "Contact seller for more details."}`
+    // Ensure we have some description
+    if (!conditionNote) {
+      conditionNote = "Contact seller for more details."
     }
 
-    // ✅ ENHANCED: Create proper HTML description with structure
-    const formattedDescription = `
-<div>
-  <h3>${submission.item_name}</h3>
-  <p><strong>Condition:</strong> ${submission.item_condition || "Used"}</p>
-  <p><strong>Brand:</strong> ${brand}</p>
-  <div>
-    <h4>Description:</h4>
-    <p>${itemDescription}</p>
-  </div>
-  <p><em>Please contact seller with any questions before purchasing.</em></p>
-</div>`.trim()
-
-    // Debug logging for description
-    console.log("🔍 Debug - Original description:", JSON.stringify(submission.item_description))
-    console.log("🔍 Debug - Enhanced description:", itemDescription)
-    console.log("🔍 Debug - Final HTML description length:", formattedDescription.length)
-    console.log("🔍 Debug - Final HTML description:", formattedDescription)
+    console.log("🔍 Debug - Condition note for eBay:", conditionNote)
+    console.log("🔍 Debug - Condition note length:", conditionNote.length)
 
     const inventoryItem = {
       product: {
         title: submission.item_name,
-        description: formattedDescription, // ✅ Using enhanced HTML description
         aspects,
         imageUrls: ebayOptimizedImageUrls,
         primaryImage: {
@@ -399,8 +379,8 @@ export async function POST(request: Request) {
     }))
 
     // Log the item description for debugging
-    console.log("📦 Enhanced listing description being sent to eBay:", formattedDescription)
-    console.log("📦 Description character count:", formattedDescription.length)
+    console.log("📦 Condition description being sent to eBay:", conditionNote)
+    console.log("📦 Condition description character count:", conditionNote.length)
 
     const offerData = {
       sku,
@@ -408,7 +388,7 @@ export async function POST(request: Request) {
       format: "FIXED_PRICE",
       availableQuantity: 1,
       categoryId,
-      listingDescription: formattedDescription, // ✅ ADDED: Backup description in offer (same as inventory item)
+      conditionDescription: conditionNote, // ✅ This appears right under the condition section
       listingPolicies: {
         fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
         paymentPolicyId: requiredEnvVars.paymentPolicyId,
