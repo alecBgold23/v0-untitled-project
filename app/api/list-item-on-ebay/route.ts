@@ -303,6 +303,9 @@ export async function POST(request: Request) {
 
     console.log("🔍 Debug - Condition note for eBay:", conditionNote)
     console.log("🔍 Debug - Listing description for eBay:", listingDescription)
+    console.log("🔍 Debug - Condition note length:", conditionNote.length)
+    console.log("🔍 Debug - Listing description length:", listingDescription.length)
+    console.log("🔍 Debug - Original item description from DB:", submission.item_description)
 
     const inventoryItem = {
       product: {
@@ -383,6 +386,11 @@ export async function POST(request: Request) {
     }
 
     console.log("💰 Creating offer on eBay...")
+    console.log("📦 Original item description:", submission.item_description)
+    console.log("📦 Condition note being sent to eBay:", conditionNote)
+    console.log("📦 Listing description being sent to eBay:", listingDescription)
+    console.log("📦 Condition note character count:", conditionNote.length)
+    console.log("📦 Listing description character count:", listingDescription.length)
 
     // Prepare item specifics for offer (required by eBay, including "Type")
     const itemSpecifics = Object.entries(aspects).map(([name, values]) => ({
@@ -391,11 +399,8 @@ export async function POST(request: Request) {
     }))
 
     // Log the item description for debugging
-    console.log("📦 Original item description:", submission.item_description)
-    console.log("📦 Condition note being sent to eBay:", conditionNote)
+    console.log("📦 Condition description being sent to eBay:", conditionNote)
     console.log("📦 Listing description being sent to eBay:", listingDescription)
-    console.log("📦 Condition note length:", conditionNote.length)
-    console.log("📦 Listing description length:", listingDescription.length)
 
     const offerData = {
       sku,
@@ -404,7 +409,7 @@ export async function POST(request: Request) {
       availableQuantity: 1,
       categoryId,
       conditionDescription: conditionNote, // ✅ This appears right under the condition section
-      listingDescription: listingDescription, // ✅ This appears in the main description area
+      listingDescription: listingDescription, // ✅ ADDED BACK: Required by eBay
       listingPolicies: {
         fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
         paymentPolicyId: requiredEnvVars.paymentPolicyId,
@@ -445,7 +450,7 @@ export async function POST(request: Request) {
       })
 
       // ✅ ADDED: Log the exact data we sent when there's an error
-      console.error("📦 Data that was sent to eBay:", JSON.stringify(offerData, null, 2))
+      console.error("📦 Data that was sent to eBay when error occurred:", JSON.stringify(offerData, null, 2))
 
       return NextResponse.json({ error: "Offer creation failed", response: offerText }, { status: 500 })
     }
