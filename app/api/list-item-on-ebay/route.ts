@@ -281,9 +281,19 @@ export async function POST(request: Request) {
       Type: ["ExampleType"],
     }
 
+    // Prepare description - ensure it's not empty and add basic HTML formatting
+    const itemDescription = submission.item_description?.trim() || "No description provided."
+    const formattedDescription = itemDescription.includes("<") ? itemDescription : `<p>${itemDescription}</p>`
+
+    // Debug logging for description
+    console.log("🔍 Debug - item_description value:", JSON.stringify(submission.item_description))
+    console.log("🔍 Debug - item_description length:", submission.item_description?.length || 0)
+    console.log("🔍 Debug - formatted description:", formattedDescription)
+
     const inventoryItem = {
       product: {
         title: submission.item_name,
+        description: formattedDescription, // ✅ ADDED: Required by eBay for publishOffer to succeed
         aspects,
         imageUrls: ebayOptimizedImageUrls,
         primaryImage: {
@@ -311,7 +321,7 @@ export async function POST(request: Request) {
       },
     }
 
-    console.log("📦 Creating inventory item with eBay-optimized square images...")
+    console.log("📦 Creating inventory item with eBay-optimized square images and description...")
     const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
       method: "PUT",
       headers: {
@@ -335,7 +345,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
     }
 
-    console.log("✅ Inventory item created with optimized square images")
+    console.log("✅ Inventory item created with optimized square images and description")
 
     const requiredEnvVars = {
       fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
@@ -368,7 +378,7 @@ export async function POST(request: Request) {
     }))
 
     // Log the item description for debugging
-    console.log("📦 Listing description from Supabase:", submission.item_description)
+    console.log("📦 Listing description being sent to eBay:", formattedDescription)
 
     const offerData = {
       sku,
@@ -376,7 +386,7 @@ export async function POST(request: Request) {
       format: "FIXED_PRICE",
       availableQuantity: 1,
       categoryId,
-      listingDescription: submission.item_description,
+      listingDescription: formattedDescription, // ✅ ADDED: Backup description in offer (same as inventory item)
       listingPolicies: {
         fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
         paymentPolicyId: requiredEnvVars.paymentPolicyId,
@@ -478,7 +488,7 @@ export async function POST(request: Request) {
       ebay_offer_id: offerId,
       optimized_images: ebayOptimizedImageUrls,
       original_images: originalImageUrls,
-      message: "Item listed with properly cropped square thumbnails for eBay",
+      message: "Item listed with properly cropped square thumbnails and description for eBay",
     })
   } catch (err: any) {
     console.error("❌ Unexpected error:", err?.message || err)
