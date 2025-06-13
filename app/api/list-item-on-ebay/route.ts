@@ -621,94 +621,132 @@ export async function POST(request: Request) {
 
     console.log(`✅ Offer created: ${offerId}`)
 
-    console.log("🚀 Publishing offer...")
-    const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Language": "en-US",
-        "Accept-Language": "en-US",
-      },
+    console.log("🚀 Publishing offer...");
+const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Language": "en-US",
+    "Accept-Language": "en-US",
+  },
+});
+
+const publishText = await publishResponse.text();
+console.log("📩 Raw publish response:", publishText);
+console.log("📩 Publish response status:", publishResponse.status, publishResponse.statusText);
+
+try {
+  const publishResult = JSON.parse(publishText);
+
+  if (!publishResponse.ok) {
+    console.error("❌ Publishing offer failed:", publishResult);
+    if (publishResult.errors) {
+      publishResult.errors.forEach((error: any) => {
+        console.error(`❌ eBay Publish Error: ${error.errorId} - ${error.message}`);
+      });
+    }
+    return NextResponse.json({ error: "Offer publishing failed", response: publishText }, { status: 500 });
+  }
+
+  // Extract listingId (sometimes called itemId)
+  const listingId = publishResult.listingId || publishResult.itemId;
+  if (!listingId) {
+    console.warn("⚠️ No listingId returned by eBay");
+  } else {
+    console.log(`🆔 eBay listingId: ${listingId}`);
+
+    // Save listingId and offerId to Supabase
+    const { error: listingIdUpdateError } = await supabase
+      .from("sell_items")
+      .update({ ebay_listing_id: listingId, ebay_offer_id: offerId })
+      .eq("id", id);
+
+    if (listingIdUpdateError) {
+      console.warn("⚠️ Failed to update listingId in database:", listingIdUpdateError);
+    } else {
+      console.log("📝 listingId and offerId stored in Supabase");
+    }
+  }
+
+  // Update the item status in the database to "listed" and store optimized images
+  console.log("💾 Updating item status in database...");
+  const { error: updateError } = await supabase
+    .from("sell_items")
+    .update({
+      status: "listed",
+      ebay_listing_id: listingId,
+      ebay_offer_id: offerId,
+      listed_on_ebay: true,
+      ebay_optimized_images: ebayOptimizedImageUrls, // assuming this variable exists
     })
+    .eq("id", id);
 
-    const publishText = await publishResponse.text()
-    console.log("📩 Raw publish response:", publishText)
-    console.log("📩 Publish response status:", publishResponse.status, publishResponse.statusText)
+  if (updateError) {
+    console.error("❌ Failed to update item status in database:", updateError);
+    return NextResponse.json({
+      success: true,
+      listingId,
+      warning: "Item listed on eBay but status update failed in database",
+    });
+  }
 
-    try {
-      const publishResult = JSON.parse(publishText)
+  console.log("✅ Database updated successfully");
+  console.log("⏱️ Process completed at:", new Date().toISOString());
 
-      if (!publishResponse.ok) {
-        console.error("❌ Publishing offer failed:", publishResult)
-        if (publishResult.errors) {
-          publishResult.errors.forEach((error: any) => {
-            console.error(`❌ eBay Publish Error: ${error.errorId} - ${error.message}`)
-          })
-        }
-        return NextResponse.json({ error: "Offer publishing failed", response: publishText }, { status: 500 })
-      }
+  return NextResponse.json({
+    success: true,
+    listingId,
+    ebay_listing_id: listingId,
+    ebay_offer_id: offerId,
+    optimized_images: ebayOptimizedImageUrls, // again, assuming this exists
+    message: "Item listed with properly cropped square thumbnails and description for eBay",
+  });
 
-      // Extract listingId (sometimes called itemId)
-      const listingId = publishResult.listingId || publishResult.itemId
-      if (!listingId) {
-        console.warn("⚠️ No listingId returned by eBay")
-        return NextResponse.json({ error: "No listing ID returned from eBay" }, { status: 500 })
-      }
+} catch (e) {
+  console.log("⚠️ Could not parse publish response as JSON");
+  return NextResponse.json({ error: "Failed to parse publish response" }, { status: 500 });
+}
 
-      console.log(`🆔 eBay listingId: ${listingId}`)
 
-      // Update the item status in the database to "listed" and store all relevant IDs
-      console.log("💾 Updating item status in database with SKU, offerId, and listingId...")
-      const { error: updateError } = await supabase
-        .from("sell_items")
-        .update({
-          status: "listed",
-          ebay_listing_id: listingId,
-          ebay_offer_id: offerId,
-          ebay_sku: sku, // Save the SKU to the database
-          listed_on_ebay: true,
-          ebay_optimized_images: ebayOptimizedImageUrls,
-        })
-        .eq("id", id)
+    const publishResult = JSON.parse(publishText)
+    const listingId = publishResult.listingId
+    console.log(`✅ Offer published: ${listingId}`)
 
-      if (updateError) {
-        console.error("❌ Failed to update item status in database:", updateError)
-        return NextResponse.json({
-          success: true,
-          listingId,
-          offerId,
-          sku,
-          warning: "Item listed on eBay but status update failed in database",
-        })
-      }
+    // Update the item status in the database to "listed" and store optimized image URLs
+    console.log("💾 Updating item status in database...")
+    const { error: updateError } = await supabase
+      .from("sell_items")
+      .update({
+        status: "listed",
+        ebay_listing_id: listingId,
+        ebay_offer_id: offerId,
+        listed_on_ebay: true,
+        ebay_optimized_images: ebayOptimizedImageUrls, // Store the optimized square image URLs
+      })
+      .eq("id", id)
 
-      console.log("✅ Database updated successfully with SKU, offerId, and listingId")
-      console.log(`📝 Saved data: SKU=${sku}, offerId=${offerId}, listingId=${listingId}`)
-      console.log("⏱️ Process completed at:", new Date().toISOString())
-
+    if (updateError) {
+      console.error("❌ Failed to update item status in database:", updateError)
       return NextResponse.json({
         success: true,
         listingId,
-        offerId,
-        sku,
-        ebay_listing_id: listingId,
-        ebay_offer_id: offerId,
-        ebay_sku: sku,
-        optimized_images: ebayOptimizedImageUrls,
-        original_images: originalImageUrls,
-        message: "Item listed with properly cropped square thumbnails and description for eBay",
+        warning: "Item listed on eBay but status update failed in database",
       })
-    } catch (e) {
-      console.error("⚠️ Could not parse publish response as JSON:", e)
-      return NextResponse.json(
-        {
-          error: "Failed to parse publish response",
-          raw_response: publishText,
-        },
-        { status: 500 },
-      )
     }
+
+    console.log("✅ Database updated successfully")
+    console.log("⏱️ Process completed at:", new Date().toISOString())
+
+    return NextResponse.json({
+      success: true,
+      listingId,
+      ebay_listing_id: listingId,
+      ebay_offer_id: offerId,
+      optimized_images: ebayOptimizedImageUrls,
+      original_images: originalImageUrls,
+      message: "Item listed with properly cropped square thumbnails and description for eBay",
+    })
   } catch (err: any) {
     console.error("❌ Unexpected error:", err?.message || err)
     console.error("📛 Stack trace:", err?.stack || "No stack trace")
