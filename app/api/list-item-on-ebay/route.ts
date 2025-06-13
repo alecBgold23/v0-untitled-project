@@ -286,6 +286,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Item not found or error fetching data" }, { status: 404 })
     }
 
+    // Update status to indicate listing is in progress
+    console.log("🔄 Updating item status to 'listing'...")
+    const { error: listingStartError } = await supabase
+      .from("sell_items")
+      .update({
+        status: "listing",
+        ebay_status: "processing",
+      })
+      .eq("id", id)
+
+    if (listingStartError) {
+      console.warn("⚠️ Failed to update listing start status:", listingStartError)
+    }
+
     console.log("✅ Item data retrieved from database:")
     console.log(
       JSON.stringify(
@@ -459,6 +473,21 @@ export async function POST(request: Request) {
         statusText: putResponse.statusText,
         response: putText,
       })
+
+      // Update status to failed if listing process fails
+      const { error: failedUpdateError } = await supabase
+        .from("sell_items")
+        .update({
+          status: "approved", // Reset to approved so it can be retried
+          ebay_status: "failed",
+          listing_error: putText || "Unknown error",
+        })
+        .eq("id", id)
+
+      if (failedUpdateError) {
+        console.warn("⚠️ Failed to update failed listing status:", failedUpdateError)
+      }
+
       return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
     }
 
@@ -475,6 +504,21 @@ export async function POST(request: Request) {
     for (const [key, value] of Object.entries(requiredEnvVars)) {
       if (!value) {
         console.error(`❌ Missing environment variable: EBAY_${key.toUpperCase()}`)
+
+        // Update status to failed if listing process fails
+        const { error: failedUpdateError } = await supabase
+          .from("sell_items")
+          .update({
+            status: "approved", // Reset to approved so it can be retried
+            ebay_status: "failed",
+            listing_error: `Missing required eBay configuration: ${key}` || "Unknown error",
+          })
+          .eq("id", id)
+
+        if (failedUpdateError) {
+          console.warn("⚠️ Failed to update failed listing status:", failedUpdateError)
+        }
+
         return NextResponse.json({ error: `Missing required eBay configuration: ${key}` }, { status: 500 })
       }
       console.log(`✅ Found EBAY_${key.toUpperCase()}: ${value.substring(0, 5)}...`)
@@ -485,6 +529,21 @@ export async function POST(request: Request) {
     const priceValue = Number(cleanedPrice)
     if (isNaN(priceValue) || priceValue <= 0) {
       console.error("❌ Invalid or missing estimated price:", submission.estimated_price)
+
+      // Update status to failed if listing process fails
+      const { error: failedUpdateError } = await supabase
+        .from("sell_items")
+        .update({
+          status: "approved", // Reset to approved so it can be retried
+          ebay_status: "failed",
+          listing_error: "Invalid or missing estimated price" || "Unknown error",
+        })
+        .eq("id", id)
+
+      if (failedUpdateError) {
+        console.warn("⚠️ Failed to update failed listing status:", failedUpdateError)
+      }
+
       return NextResponse.json({ error: "Invalid or missing estimated price" }, { status: 400 })
     }
 
@@ -592,6 +651,20 @@ export async function POST(request: Request) {
       // ✅ ADDED: Log the exact data we sent when there's an error
       console.error("📦 Data that was sent to eBay when error occurred:", JSON.stringify(offerData, null, 2))
 
+      // Update status to failed if listing process fails
+      const { error: failedUpdateError } = await supabase
+        .from("sell_items")
+        .update({
+          status: "approved", // Reset to approved so it can be retried
+          ebay_status: "failed",
+          listing_error: offerText || "Unknown error",
+        })
+        .eq("id", id)
+
+      if (failedUpdateError) {
+        console.warn("⚠️ Failed to update failed listing status:", failedUpdateError)
+      }
+
       // Try to create a modified offer with minimal description if the original failed
       if (offerResponse.status === 400 && offerText.includes("description")) {
         console.log("🔄 Attempting to create offer with simplified description...")
@@ -616,6 +689,21 @@ export async function POST(request: Request) {
     const offerId = offerResult.offerId
     if (!offerId) {
       console.error("❌ No offer ID returned")
+
+      // Update status to failed if listing process fails
+      const { error: failedUpdateError } = await supabase
+        .from("sell_items")
+        .update({
+          status: "approved", // Reset to approved so it can be retried
+          ebay_status: "failed",
+          listing_error: "No offer ID from eBay" || "Unknown error",
+        })
+        .eq("id", id)
+
+      if (failedUpdateError) {
+        console.warn("⚠️ Failed to update failed listing status:", failedUpdateError)
+      }
+
       return NextResponse.json({ error: "No offer ID from eBay" }, { status: 500 })
     }
 
@@ -646,6 +734,21 @@ export async function POST(request: Request) {
             console.error(`❌ eBay Publish Error: ${error.errorId} - ${error.message}`)
           })
         }
+
+        // Update status to failed if listing process fails
+        const { error: failedUpdateError } = await supabase
+          .from("sell_items")
+          .update({
+            status: "approved", // Reset to approved so it can be retried
+            ebay_status: "failed",
+            listing_error: publishText || "Unknown error",
+          })
+          .eq("id", id)
+
+        if (failedUpdateError) {
+          console.warn("⚠️ Failed to update failed listing status:", failedUpdateError)
+        }
+
         return NextResponse.json({ error: "Offer publishing failed", response: publishText }, { status: 500 })
       }
 
@@ -655,35 +758,21 @@ export async function POST(request: Request) {
         console.warn("⚠️ No listingId returned by eBay")
       } else {
         console.log(`🆔 eBay listingId: ${listingId}`)
-
-        // Save listingId and offerId to Supabase
-        const { error: listingIdUpdateError } = await supabase
-          .from("sell_items")
-          .update({
-            ebay_listing_id: listingId,
-            ebay_offer_id: offerId,
-            ebay_sku: sku, // ← Add this line
-          })
-          .eq("id", id)
-
-        if (listingIdUpdateError) {
-          console.warn("⚠️ Failed to update listingId in database:", listingIdUpdateError)
-        } else {
-          console.log("📝 listingId and offerId stored in Supabase")
-        }
       }
 
-      // Update the item status in the database to "listed" and store optimized images
-      console.log("💾 Updating item status in database...")
+      // Update the item status in the database with all eBay information
+      console.log("💾 Updating item status in database with complete eBay information...")
       const { error: updateError } = await supabase
         .from("sell_items")
         .update({
           status: "listed",
+          listed_on_ebay: true,
+          ebay_status: "active",
           ebay_listing_id: listingId,
           ebay_offer_id: offerId,
-          listed_on_ebay: true,
-          ebay_optimized_images: ebayOptimizedImageUrls, // assuming this variable exists
-          ebay_sku: sku, // ← Add this line
+          ebay_sku: sku,
+          ebay_optimized_images: ebayOptimizedImageUrls,
+          listed_at: new Date().toISOString(),
         })
         .eq("id", id)
 
@@ -692,11 +781,14 @@ export async function POST(request: Request) {
         return NextResponse.json({
           success: true,
           listingId,
+          ebay_listing_id: listingId,
+          ebay_offer_id: offerId,
           warning: "Item listed on eBay but status update failed in database",
         })
       }
 
-      console.log("✅ Database updated successfully")
+      console.log("✅ Database updated successfully with complete listing information")
+
       console.log("⏱️ Process completed at:", new Date().toISOString())
 
       return NextResponse.json({
@@ -709,50 +801,40 @@ export async function POST(request: Request) {
       })
     } catch (e) {
       console.log("⚠️ Could not parse publish response as JSON")
+
+      // Update status to failed if listing process fails
+      const { error: failedUpdateError } = await supabase
+        .from("sell_items")
+        .update({
+          status: "approved", // Reset to approved so it can be retried
+          ebay_status: "failed",
+          listing_error: "Failed to parse publish response" || "Unknown error",
+        })
+        .eq("id", id)
+
+      if (failedUpdateError) {
+        console.warn("⚠️ Failed to update failed listing status:", failedUpdateError)
+      }
+
       return NextResponse.json({ error: "Failed to parse publish response" }, { status: 500 })
     }
-
-    const publishResult = JSON.parse(publishText)
-    const listingId = publishResult.listingId
-    console.log(`✅ Offer published: ${listingId}`)
-
-    // Update the item status in the database to "listed" and store optimized image URLs
-    console.log("💾 Updating item status in database...")
-    const { error: updateError } = await supabase
-      .from("sell_items")
-      .update({
-        status: "listed",
-        ebay_listing_id: listingId,
-        ebay_offer_id: offerId,
-        listed_on_ebay: true,
-        ebay_optimized_images: ebayOptimizedImageUrls, // Store the optimized square image URLs
-      })
-      .eq("id", id)
-
-    if (updateError) {
-      console.error("❌ Failed to update item status in database:", updateError)
-      return NextResponse.json({
-        success: true,
-        listingId,
-        warning: "Item listed on eBay but status update failed in database",
-      })
-    }
-
-    console.log("✅ Database updated successfully")
-    console.log("⏱️ Process completed at:", new Date().toISOString())
-
-    return NextResponse.json({
-      success: true,
-      listingId,
-      ebay_listing_id: listingId,
-      ebay_offer_id: offerId,
-      optimized_images: ebayOptimizedImageUrls,
-      original_images: originalImageUrls,
-      message: "Item listed with properly cropped square thumbnails and description for eBay",
-    })
   } catch (err: any) {
     console.error("❌ Unexpected error:", err?.message || err)
     console.error("📛 Stack trace:", err?.stack || "No stack trace")
+
+    // Update status to failed if listing process fails
+    const { error: failedUpdateError } = await supabase
+      .from("sell_items")
+      .update({
+        status: "approved", // Reset to approved so it can be retried
+        ebay_status: "failed",
+        listing_error: err?.message || "Unexpected server error",
+      })
+      .eq("id", id)
+
+    if (failedUpdateError) {
+      console.warn("⚠️ Failed to update failed listing status:", failedUpdateError)
+    }
 
     // Log additional context about the error
     console.error("🔍 Error type:", typeof err)
