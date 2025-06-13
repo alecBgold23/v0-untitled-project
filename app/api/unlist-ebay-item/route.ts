@@ -20,11 +20,11 @@ export async function POST(request: NextRequest) {
 
     console.log(`📋 Unlisting item id=${id}`)
 
-    // ✅ Fetch ebay_sku directly instead of reconstructing
-    console.log("🗂️ Fetching eBay SKU from Supabase...")
+    // ✅ Fetch ebay_sku and ebay_offer_id directly from Supabase
+    console.log("🗂️ Fetching eBay SKU and offerId from Supabase...")
     const { data: item, error } = await supabase
       .from("sell_items")
-      .select("ebay_sku")
+      .select("ebay_sku, ebay_offer_id")
       .eq("id", id)
       .single()
 
@@ -34,38 +34,20 @@ export async function POST(request: NextRequest) {
     }
 
     const sku = item.ebay_sku
+    const offerId = item.ebay_offer_id
+
     console.log(`🏷️ Using existing eBay SKU from Supabase: '${sku}'`)
+    console.log(`🆔 Using existing eBay offerId from Supabase: '${offerId}'`)
+
+    if (!offerId) {
+      console.error("❌ ebay_offer_id is missing in Supabase")
+      return NextResponse.json({ error: "ebay_offer_id not found" }, { status: 400 })
+    }
 
     // Get valid eBay access token
     console.log("🔑 Getting eBay access token")
     const accessToken = await getValidEbayAccessToken()
     console.log("✅ Access token obtained")
-
-    // Look up offer by SKU
-    console.log(`🔍 Looking up offer by SKU: '${sku}'`)
-    const offerLookupRes = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-          "Accept-Language": "en-US", // ✅ required by eBay API
-        },
-      }
-    )
-
-    console.log(`📊 Offer lookup status: ${offerLookupRes.status}`)
-    const offerData = await offerLookupRes.json()
-    console.log("📄 Offer lookup response:", JSON.stringify(offerData, null, 2))
-
-    if (!offerLookupRes.ok || !offerData.offers || offerData.offers.length === 0) {
-      console.error("❌ Offer lookup failed:", offerData)
-      return NextResponse.json({ error: "No offer found for this SKU" }, { status: 404 })
-    }
-
-    const offerId = offerData.offers[0].offerId
-    console.log(`🆔 Offer found with offerId: ${offerId}`)
 
     // Withdraw the offer
     console.log(`🗑️ Withdrawing offerId=${offerId}`)
