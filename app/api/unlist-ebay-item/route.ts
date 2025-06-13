@@ -10,7 +10,6 @@ export async function POST(request: NextRequest) {
   console.log("🔄 Starting eBay item unlisting process")
 
   try {
-    // Parse request body
     const body = await request.json()
     const { id } = body
 
@@ -21,29 +20,27 @@ export async function POST(request: NextRequest) {
 
     console.log(`📋 Unlisting item id=${id}`)
 
-    // 1. Fetch submission_date to reconstruct SKU
+    // ✅ Fetch ebay_sku directly instead of reconstructing
     const { data: item, error } = await supabase
       .from("sell_items")
-      .select("submission_date")
+      .select("ebay_sku")
       .eq("id", id)
       .single()
 
-    if (error || !item?.submission_date) {
-      console.error("❌ submission_date not found or error:", error)
-      return NextResponse.json({ error: "submission_date not found" }, { status: 400 })
+    if (error || !item?.ebay_sku) {
+      console.error("❌ ebay_sku not found or error:", error)
+      return NextResponse.json({ error: "ebay_sku not found" }, { status: 400 })
     }
 
-    // 2. Rebuild SKU (must exactly match listing SKU pattern)
-    const timestamp = new Date(item.submission_date).getTime()
-    const sku = `ITEM-${id}-${timestamp}`
-    console.log(`🏷️ Rebuilt SKU: ${sku}`)
+    const sku = item.ebay_sku
+    console.log(`🏷️ Using existing eBay SKU: ${sku}`)
 
     // Get valid eBay access token
     console.log("🔑 Getting eBay access token")
     const accessToken = await getValidEbayAccessToken()
     console.log("✅ Access token obtained")
 
-    // 3. Look up offer by SKU
+    // Look up offer by SKU
     console.log(`🔍 Looking up offer by SKU: ${sku}`)
     const offerLookupRes = await fetch(
       `https://api.ebay.com/sell/inventory/v1/offer?sku=${sku}`,
@@ -52,14 +49,12 @@ export async function POST(request: NextRequest) {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
-          "Accept-Language": "en-US", // Added Accept-Language header
+          "Accept-Language": "en-US", // ✅ required by eBay API
         },
       }
     )
 
-    // Log the raw response for debugging
     console.log(`📊 Offer lookup status: ${offerLookupRes.status}`)
-
     const offerData = await offerLookupRes.json()
     console.log("📄 Offer lookup response:", JSON.stringify(offerData, null, 2))
 
@@ -71,7 +66,7 @@ export async function POST(request: NextRequest) {
     const offerId = offerData.offers[0].offerId
     console.log(`🆔 Offer found with offerId: ${offerId}`)
 
-    // 4. Withdraw the offer
+    // Withdraw the offer
     console.log(`🗑️ Withdrawing offerId=${offerId}`)
     const withdrawRes = await fetch(
       `https://api.ebay.com/sell/inventory/v1/offer/${offerId}/withdraw`,
@@ -80,12 +75,11 @@ export async function POST(request: NextRequest) {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
-          "Accept-Language": "en-US", // Added Accept-Language header
+          "Accept-Language": "en-US", // ✅ required by eBay API
         },
       }
     )
 
-    // Log the raw response for debugging
     console.log(`📊 Withdraw status: ${withdrawRes.status}`)
 
     if (!withdrawRes.ok) {
@@ -93,18 +87,16 @@ export async function POST(request: NextRequest) {
       console.error("❌ Withdraw failed:", withdrawError)
 
       try {
-        // Try to parse as JSON if possible
         const parsedError = JSON.parse(withdrawError)
         return NextResponse.json({ error: parsedError }, { status: withdrawRes.status })
       } catch {
-        // If not JSON, return as text
         return NextResponse.json({ error: withdrawError }, { status: withdrawRes.status })
       }
     }
 
     console.log("✅ Item successfully unlisted.")
 
-    // 5. Update the item status in the database (optional)
+    // Update DB status to 'unlisted'
     const { error: updateError } = await supabase
       .from("sell_items")
       .update({ ebay_status: "unlisted" })
@@ -112,7 +104,6 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.warn("⚠️ Failed to update item status in database:", updateError)
-      // Continue anyway since the unlisting was successful
     } else {
       console.log("📝 Database updated with unlisted status")
     }
