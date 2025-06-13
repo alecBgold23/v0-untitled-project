@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import { extractImageUrls, getFirstImageUrl } from "@/lib/image-url-utils"
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { MoreHorizontal, Package, Users, DollarSign, CheckCircle, Loader2, AlertCircle, X, LogOut } from "lucide-react"
@@ -48,22 +47,60 @@ export interface ItemSubmission {
   id: string
   item_name: string
   item_description: string
-  item_issues: string | null
+  item_issues?: string | null
   full_name: string
   email: string
-  phone: string | null
-  address: string | null
-  pickup_date: string | null
-  photo_count: number | null
+  phone?: string | null
+  address?: string | null
+  pickup_date?: string | null
+  photo_count?: number | null
   status: SubmissionStatus
   submission_date: string
-  image_path: string | null
-  image_url: string[] | null // Changed from string to string[] or null
-  estimated_price: number | null
+  image_path?: string | null
+  image_url?: string[] | string | null
+  image_urls?: string[] | string | null
+  estimated_price?: number | null
   item_condition: "Like New" | "Excellent" | "Good" | "Fair" | "Poor"
-  ebay_listing_id: string | null
-  ebay_offer_id: string | null
-  listed_on_ebay: boolean | null
+  ebay_listing_id?: string | null
+  ebay_offer_id?: string | null
+  ebay_sku?: string | null
+  listed_on_ebay?: boolean | null
+  ebay_status?: string | null
+}
+
+// Helper function to safely extract image URLs
+const extractImageUrls = (imageData: string[] | string | null | undefined): string[] => {
+  if (!imageData) return []
+
+  try {
+    if (Array.isArray(imageData)) {
+      return imageData.filter((url) => url && typeof url === "string")
+    }
+
+    if (typeof imageData === "string") {
+      // Try to parse as JSON first
+      try {
+        const parsed = JSON.parse(imageData)
+        if (Array.isArray(parsed)) {
+          return parsed.filter((url) => url && typeof url === "string")
+        }
+        return [imageData]
+      } catch {
+        // If not JSON, treat as single URL
+        return [imageData]
+      }
+    }
+
+    return []
+  } catch (error) {
+    console.error("Error extracting image URLs:", error)
+    return []
+  }
+}
+
+// Helper function to get the first image URL
+const getFirstImageUrl = (images: string[]): string | null => {
+  return images.length > 0 ? images[0] : null
 }
 
 export default function AdminDashboard() {
@@ -86,9 +123,13 @@ export default function AdminDashboard() {
 
   // Check if already authenticated
   useEffect(() => {
-    const authStatus = localStorage.getItem("adminAuthenticated")
-    if (authStatus === "true") {
-      setIsAuthenticated(true)
+    try {
+      const authStatus = localStorage.getItem("adminAuthenticated")
+      if (authStatus === "true") {
+        setIsAuthenticated(true)
+      }
+    } catch (error) {
+      console.error("Error checking authentication:", error)
     }
   }, [])
 
@@ -96,7 +137,11 @@ export default function AdminDashboard() {
     e.preventDefault()
     if (password === "2923939") {
       setIsAuthenticated(true)
-      localStorage.setItem("adminAuthenticated", "true")
+      try {
+        localStorage.setItem("adminAuthenticated", "true")
+      } catch (error) {
+        console.error("Error setting authentication:", error)
+      }
       setPasswordError(false)
     } else {
       setPasswordError(true)
@@ -105,34 +150,37 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     setIsAuthenticated(false)
-    localStorage.removeItem("adminAuthenticated")
+    try {
+      localStorage.removeItem("adminAuthenticated")
+    } catch (error) {
+      console.error("Error removing authentication:", error)
+    }
   }
 
   // Simplified URL formatter - returns URL as-is if already complete
   const ensureCorrectSupabaseUrl = (url: string): string => {
-    console.log("🔧 URL formatting input:", url)
-
     if (!url) return url
 
     if (url.startsWith("http://") || url.startsWith("https://")) {
-      console.log("✅ URL already complete, returning as-is:", url)
       return url
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-    const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+    // Get Supabase URL from environment
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    if (!supabaseUrl) {
+      console.warn("NEXT_PUBLIC_SUPABASE_URL not found")
+      return url
+    }
 
+    const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
     if (!projectId) {
-      console.log("❌ No project ID found, returning original URL:", url)
+      console.warn("Could not extract project ID from Supabase URL")
       return url
     }
 
     // Remove possible leading slashes and folder name
     const cleanPath = url.replace(/^\/?(item_images\/)?/, "")
-    const constructedUrl = `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
-    console.log("🔧 Constructed URL:", constructedUrl)
-
-    return constructedUrl
+    return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
   }
 
   useEffect(() => {
@@ -143,15 +191,17 @@ export default function AdminDashboard() {
       setFetchError(null)
 
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+        // Check for required environment variables
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
         if (!supabaseUrl || !supabaseAnonKey) {
-          throw new Error("Missing Supabase environment variables")
+          throw new Error("Missing Supabase environment variables. Please check your configuration.")
         }
 
         console.log("🔗 Connecting to Supabase...")
         const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
         const { data, error } = await supabase
           .from("sell_items")
           .select("*")
@@ -159,42 +209,44 @@ export default function AdminDashboard() {
 
         if (error) {
           console.error("❌ Failed to fetch submissions:", error)
-          setFetchError(error.message)
-        } else {
-          console.log(`📊 Fetched ${data?.length || 0} submissions`)
-
-          const processedData = data?.map((item, index) => {
-            console.log(`\n🔄 Processing submission ${index + 1}/${data.length}:`)
-            console.log("Item ID:", item.id)
-            console.log("Item name:", item.item_name)
-            console.log("Raw image_url from database:", item.image_url)
-
-            // Extract all images with debugging
-            const allImages = extractImageUrls(item.image_urls || item.image_url)
-            console.log("Extracted images:", allImages)
-
-            // Format images URLs (do not over-process fully qualified URLs)
-            const formattedImages = allImages.map((url, urlIndex) => {
-              console.log(`Formatting URL ${urlIndex + 1}:`, url)
-              const formatted = ensureCorrectSupabaseUrl(url)
-              console.log(`Formatted result ${urlIndex + 1}:`, formatted)
-              return formatted
-            })
-
-            console.log("Final formatted images:", formattedImages)
-
-            return {
-              ...item,
-              image_url: formattedImages.length > 0 ? formattedImages : null,
-              image_urls: formattedImages,
-            }
-          })
-
-          setSubmissions(processedData || [])
+          throw new Error(`Database error: ${error.message}`)
         }
+
+        console.log(`📊 Fetched ${data?.length || 0} submissions`)
+
+        const processedData = data?.map((item) => {
+          // Extract all images with error handling
+          const allImages = extractImageUrls(item.image_urls || item.image_url)
+
+          // Format image URLs
+          const formattedImages = allImages.map((url) => ensureCorrectSupabaseUrl(url))
+
+          return {
+            ...item,
+            image_url: formattedImages.length > 0 ? formattedImages : null,
+            image_urls: formattedImages,
+            // Ensure required fields have defaults
+            item_issues: item.item_issues || null,
+            phone: item.phone || null,
+            address: item.address || null,
+            pickup_date: item.pickup_date || null,
+            photo_count: item.photo_count || null,
+            image_path: item.image_path || null,
+            estimated_price: item.estimated_price || null,
+            ebay_listing_id: item.ebay_listing_id || null,
+            ebay_offer_id: item.ebay_offer_id || null,
+            ebay_sku: item.ebay_sku || null,
+            listed_on_ebay: item.listed_on_ebay || null,
+            ebay_status: item.ebay_status || null,
+          } as ItemSubmission
+        })
+
+        setSubmissions(processedData || [])
       } catch (error) {
         console.error("❌ Unexpected error fetching submissions:", error)
-        setFetchError("An unexpected error occurred while fetching submissions.")
+        const errorMessage =
+          error instanceof Error ? error.message : "An unexpected error occurred while fetching submissions."
+        setFetchError(errorMessage)
       } finally {
         setLoading(false)
       }
@@ -205,13 +257,17 @@ export default function AdminDashboard() {
 
   const updateSubmissionStatus = async (id: string, newStatus: SubmissionStatus) => {
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error("Missing Supabase environment variables")
+      }
+
       const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
       console.log(`🔄 Updating item ${id} status to: ${newStatus}`)
 
-      // Update status in database
       const { error, data } = await supabase.from("sell_items").update({ status: newStatus }).eq("id", id).select()
 
       if (error) {
@@ -266,25 +322,22 @@ export default function AdminDashboard() {
         listingUrl: result.ebay_listing_url,
       })
 
-      // Update local state only after successful API call
-      await updateSubmissionStatus(id, "listed")
-
-      // Also update other eBay-related fields in local state
+      // Update local state with all listing-related fields
       setSubmissions((prev) =>
         prev.map((submission) =>
           submission.id === id
             ? {
                 ...submission,
                 status: "listed",
-                ebay_listing_id: result.listingId,
+                ebay_listing_id: result.listingId || result.ebay_listing_id,
                 ebay_offer_id: result.ebay_offer_id,
                 listed_on_ebay: true,
+                ebay_status: "active",
               }
             : submission,
         ),
       )
 
-      // Show success message (optional)
       if (result.ebay_listing_url) {
         console.log(`🔗 eBay listing URL: ${result.ebay_listing_url}`)
       }
@@ -348,10 +401,7 @@ export default function AdminDashboard() {
       // Success case
       console.log(`✅ Successfully unlisted item ${id} from eBay`)
 
-      // Update local state after successful API call
-      await updateSubmissionStatus(id, "approved")
-
-      // Also update eBay-related fields in local state
+      // Update local state with all unlisting-related fields
       setSubmissions((prev) =>
         prev.map((submission) =>
           submission.id === id
@@ -359,6 +409,7 @@ export default function AdminDashboard() {
                 ...submission,
                 status: "approved",
                 listed_on_ebay: false,
+                ebay_status: "unlisted",
               }
             : submission,
         ),
@@ -373,7 +424,6 @@ export default function AdminDashboard() {
         itemId: id,
       })
 
-      // Set user-friendly error message
       let userErrorMessage = "Failed to unlist item from eBay"
 
       if (errorMessage.includes("access token")) {
@@ -430,8 +480,13 @@ export default function AdminDashboard() {
 
   const updateItemDescription = async (id: string, newDescription: string) => {
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error("Missing Supabase environment variables")
+      }
+
       const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
       const { error } = await supabase.from("sell_items").update({ item_description: newDescription }).eq("id", id)
@@ -609,11 +664,28 @@ export default function AdminDashboard() {
               </div>
             )}
             {fetchError ? (
-              <div className="text-red-500">Error: {fetchError}</div>
+              <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex items-start">
+                  <AlertCircle className="h-5 w-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-medium text-red-800 mb-1">Failed to Load Data</h4>
+                    <p className="text-red-700 text-sm">{fetchError}</p>
+                    <Button size="sm" variant="outline" onClick={() => window.location.reload()} className="mt-2">
+                      Retry
+                    </Button>
+                  </div>
+                </div>
+              </div>
             ) : loading ? (
-              <div className="flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                Loading submissions...
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <span className="text-gray-400">Loading submissions...</span>
+              </div>
+            ) : submissions.length === 0 ? (
+              <div className="text-center py-8">
+                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No submissions found</h3>
+                <p className="text-gray-500">There are no item submissions to display.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -633,13 +705,9 @@ export default function AdminDashboard() {
                   </TableHeader>
                   <TableBody>
                     {submissions.map((submission) => {
-                      // Get all images for this submission with debugging
-                      console.log(`🖼️ Table row for item ${submission.id}`)
                       const allImages = extractImageUrls(submission.image_urls || submission.image_url)
                       const firstImage = getFirstImageUrl(allImages)
                       const imageCount = allImages.length
-
-                      console.log(`Table: Item ${submission.id} has ${imageCount} images, first: ${firstImage}`)
 
                       return (
                         <TableRow key={submission.id}>
@@ -654,9 +722,6 @@ export default function AdminDashboard() {
                                 onError={(e) => {
                                   console.error(`❌ Failed to load table image for item ${submission.id}:`, firstImage)
                                   e.currentTarget.src = "/placeholder.svg?height=80&width=80&text=No Image"
-                                }}
-                                onLoad={() => {
-                                  console.log(`✅ Successfully loaded table image for item ${submission.id}`)
                                 }}
                               />
                               {imageCount > 1 && (
@@ -725,18 +790,6 @@ export default function AdminDashboard() {
                                 >
                                   Edit Description
                                 </Button>
-                                {submission.item_issues && (
-                                  <div className="text-xs text-red-400 max-w-[200px] truncate">
-                                    Issues: {submission.item_issues}
-                                  </div>
-                                )}
-                                <Button
-                                  variant="link"
-                                  className="text-xs p-0 h-auto"
-                                  onClick={() => viewItemDetails(submission)}
-                                >
-                                  View Details
-                                </Button>
                               </div>
                             )}
                           </TableCell>
@@ -753,7 +806,7 @@ export default function AdminDashboard() {
                             </span>
                           </TableCell>
                           <TableCell className="font-medium text-white">
-                            {submission.estimated_price !== null
+                            {submission.estimated_price !== null && submission.estimated_price !== undefined
                               ? `$${submission.estimated_price.toLocaleString()}`
                               : "—"}
                           </TableCell>
@@ -890,7 +943,6 @@ export default function AdminDashboard() {
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-3">Images ({itemImages.length})</h3>
                   {itemImages.length <= 3 ? (
-                    // For 3 or fewer images, show them in a single row
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {itemImages.map((url, index) => (
                         <div
@@ -903,16 +955,7 @@ export default function AdminDashboard() {
                             fill
                             className="object-cover hover:scale-105 transition-transform duration-200"
                             onError={(e) => {
-                              console.error(
-                                `❌ Failed to load dialog image ${index + 1} for item ${selectedItem.id}:`,
-                                url,
-                              )
                               e.currentTarget.src = "/placeholder.svg?height=300&width=300&text=No Image"
-                            }}
-                            onLoad={() => {
-                              console.log(
-                                `✅ Successfully loaded dialog image ${index + 1} for item ${selectedItem.id}`,
-                              )
                             }}
                           />
                           <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
@@ -922,7 +965,6 @@ export default function AdminDashboard() {
                       ))}
                     </div>
                   ) : (
-                    // For more than 3 images, show them in a scrollable grid
                     <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
                       {itemImages.map((url, index) => (
                         <div
@@ -935,16 +977,7 @@ export default function AdminDashboard() {
                             fill
                             className="object-cover hover:scale-105 transition-transform duration-200"
                             onError={(e) => {
-                              console.error(
-                                `❌ Failed to load dialog image ${index + 1} for item ${selectedItem.id}:`,
-                                url,
-                              )
                               e.currentTarget.src = "/placeholder.svg?height=200&width=200&text=No Image"
-                            }}
-                            onLoad={() => {
-                              console.log(
-                                `✅ Successfully loaded dialog image ${index + 1} for item ${selectedItem.id}`,
-                              )
                             }}
                           />
                           <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
@@ -999,6 +1032,16 @@ export default function AdminDashboard() {
                       <p>
                         <span className="font-medium">Photos:</span> {itemImages.length}
                       </p>
+                      {selectedItem.ebay_listing_id && (
+                        <p>
+                          <span className="font-medium">eBay Listing ID:</span> {selectedItem.ebay_listing_id}
+                        </p>
+                      )}
+                      {selectedItem.ebay_status && (
+                        <p>
+                          <span className="font-medium">eBay Status:</span> {selectedItem.ebay_status}
+                        </p>
+                      )}
                     </div>
                   </div>
 
