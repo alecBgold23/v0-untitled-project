@@ -698,6 +698,7 @@ try {
   return NextResponse.json({
     success: true,
     listingId,
+    ebay_sku: sku, // ✅ This line adds the missing SKU
     ebay_listing_id: listingId,
     ebay_offer_id: offerId,
     optimized_images: ebayOptimizedImageUrls, // again, assuming this exists
