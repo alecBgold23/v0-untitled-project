@@ -22,7 +22,11 @@ export async function POST(request: NextRequest) {
     console.log(`📋 Unlisting item id=${id}`)
 
     // 1. Fetch submission_date to reconstruct SKU
-    const { data: item, error } = await supabase.from("sell_items").select("submission_date").eq("id", id).single()
+    const { data: item, error } = await supabase
+      .from("sell_items")
+      .select("submission_date")
+      .eq("id", id)
+      .single()
 
     if (error || !item?.submission_date) {
       console.error("❌ submission_date not found or error:", error)
@@ -41,13 +45,17 @@ export async function POST(request: NextRequest) {
 
     // 3. Look up offer by SKU
     console.log(`🔍 Looking up offer by SKU: ${sku}`)
-    const offerLookupRes = await fetch(`https://api.ebay.com/sell/inventory/v1/offer?sku=${sku}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    })
+    const offerLookupRes = await fetch(
+      `https://api.ebay.com/sell/inventory/v1/offer?sku=${sku}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "Accept-Language": "en-US", // Added Accept-Language header
+        },
+      }
+    )
 
     // Log the raw response for debugging
     console.log(`📊 Offer lookup status: ${offerLookupRes.status}`)
@@ -65,13 +73,17 @@ export async function POST(request: NextRequest) {
 
     // 4. Withdraw the offer
     console.log(`🗑️ Withdrawing offerId=${offerId}`)
-    const withdrawRes = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/withdraw`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    })
+    const withdrawRes = await fetch(
+      `https://api.ebay.com/sell/inventory/v1/offer/${offerId}/withdraw`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "Accept-Language": "en-US", // Added Accept-Language header
+        },
+      }
+    )
 
     // Log the raw response for debugging
     console.log(`📊 Withdraw status: ${withdrawRes.status}`)
@@ -93,7 +105,10 @@ export async function POST(request: NextRequest) {
     console.log("✅ Item successfully unlisted.")
 
     // 5. Update the item status in the database (optional)
-    const { error: updateError } = await supabase.from("sell_items").update({ ebay_status: "unlisted" }).eq("id", id)
+    const { error: updateError } = await supabase
+      .from("sell_items")
+      .update({ ebay_status: "unlisted" })
+      .eq("id", id)
 
     if (updateError) {
       console.warn("⚠️ Failed to update item status in database:", updateError)
@@ -114,7 +129,7 @@ export async function POST(request: NextRequest) {
         error: "An unexpected error occurred",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }
