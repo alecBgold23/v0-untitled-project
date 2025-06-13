@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     console.log(`📋 Unlisting item id=${id}`)
 
     // ✅ Fetch ebay_sku directly instead of reconstructing
+    console.log("🗂️ Fetching eBay SKU from Supabase...")
     const { data: item, error } = await supabase
       .from("sell_items")
       .select("ebay_sku")
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sku = item.ebay_sku
-    console.log(`🏷️ Using existing eBay SKU: ${sku}`)
+    console.log(`🏷️ Using existing eBay SKU from Supabase: '${sku}'`)
 
     // Get valid eBay access token
     console.log("🔑 Getting eBay access token")
@@ -41,9 +42,9 @@ export async function POST(request: NextRequest) {
     console.log("✅ Access token obtained")
 
     // Look up offer by SKU
-    console.log(`🔍 Looking up offer by SKU: ${sku}`)
+    console.log(`🔍 Looking up offer by SKU: '${sku}'`)
     const offerLookupRes = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/offer?sku=${sku}`,
+      `https://api.ebay.com/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}`,
       {
         method: "GET",
         headers: {
