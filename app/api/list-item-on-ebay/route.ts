@@ -675,7 +675,6 @@ try {
     .from("sell_items")
     .update({
       status: "listed",
-      ebay_sku: sku, // ✅ This line adds the missing SKU
       ebay_listing_id: listingId,
       ebay_offer_id: offerId,
       listed_on_ebay: true,
@@ -698,7 +697,6 @@ try {
   return NextResponse.json({
     success: true,
     listingId,
-    ebay_sku: sku, // ✅ This line adds the missing SKU
     ebay_listing_id: listingId,
     ebay_offer_id: offerId,
     optimized_images: ebayOptimizedImageUrls, // again, assuming this exists
@@ -711,7 +709,44 @@ try {
 }
 
 
-    
+    const publishResult = JSON.parse(publishText)
+    const listingId = publishResult.listingId
+    console.log(`✅ Offer published: ${listingId}`)
+
+    // Update the item status in the database to "listed" and store optimized image URLs
+    console.log("💾 Updating item status in database...")
+    const { error: updateError } = await supabase
+      .from("sell_items")
+      .update({
+        status: "listed",
+        ebay_listing_id: listingId,
+        ebay_offer_id: offerId,
+        listed_on_ebay: true,
+        ebay_optimized_images: ebayOptimizedImageUrls, // Store the optimized square image URLs
+      })
+      .eq("id", id)
+
+    if (updateError) {
+      console.error("❌ Failed to update item status in database:", updateError)
+      return NextResponse.json({
+        success: true,
+        listingId,
+        warning: "Item listed on eBay but status update failed in database",
+      })
+    }
+
+    console.log("✅ Database updated successfully")
+    console.log("⏱️ Process completed at:", new Date().toISOString())
+
+    return NextResponse.json({
+      success: true,
+      listingId,
+      ebay_listing_id: listingId,
+      ebay_offer_id: offerId,
+      optimized_images: ebayOptimizedImageUrls,
+      original_images: originalImageUrls,
+      message: "Item listed with properly cropped square thumbnails and description for eBay",
+    })
   } catch (err: any) {
     console.error("❌ Unexpected error:", err?.message || err)
     console.error("📛 Stack trace:", err?.stack || "No stack trace")
