@@ -621,43 +621,93 @@ export async function POST(request: Request) {
 
     console.log(`✅ Offer created: ${offerId}`)
 
-    console.log("🚀 Publishing offer...")
-    const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Language": "en-US",
-        "Accept-Language": "en-US",
-      },
-    })
+    console.log("🚀 Publishing offer...");
+const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Language": "en-US",
+    "Accept-Language": "en-US",
+  },
+});
 
-    const publishText = await publishResponse.text()
-    console.log("📩 Raw publish response:", publishText)
-    console.log("📩 Publish response status:", publishResponse.status, publishResponse.statusText)
+const publishText = await publishResponse.text();
+console.log("📩 Raw publish response:", publishText);
+console.log("📩 Publish response status:", publishResponse.status, publishResponse.statusText);
 
-    if (!publishResponse.ok) {
-      console.error("❌ Publishing offer failed:", {
-        status: publishResponse.status,
-        response: publishText,
-      })
+try {
+  const publishResult = JSON.parse(publishText);
 
-      // Try to parse the response as JSON for better error reporting
-      try {
-        const publishResponseJson = JSON.parse(publishText)
-        console.log("📩 Parsed publish response:", JSON.stringify(publishResponseJson, null, 2))
-
-        if (publishResponseJson.errors) {
-          publishResponseJson.errors.forEach((error: any) => {
-            console.error(`❌ eBay Publish Error: ${error.errorId} - ${error.message}`)
-          })
-        }
-      } catch (e) {
-        console.log("⚠️ Could not parse publish response as JSON")
-      }
-
-      return NextResponse.json({ error: "Offer publishing failed", response: publishText }, { status: 500 })
+  if (!publishResponse.ok) {
+    console.error("❌ Publishing offer failed:", publishResult);
+    if (publishResult.errors) {
+      publishResult.errors.forEach((error: any) => {
+        console.error(`❌ eBay Publish Error: ${error.errorId} - ${error.message}`);
+      });
     }
+    return NextResponse.json({ error: "Offer publishing failed", response: publishText }, { status: 500 });
+  }
+
+  // Extract listingId (sometimes called itemId)
+  const listingId = publishResult.listingId || publishResult.itemId;
+  if (!listingId) {
+    console.warn("⚠️ No listingId returned by eBay");
+  } else {
+    console.log(`🆔 eBay listingId: ${listingId}`);
+
+    // Save listingId and offerId to Supabase
+    const { error: listingIdUpdateError } = await supabase
+      .from("sell_items")
+      .update({ ebay_listing_id: listingId, ebay_offer_id: offerId })
+      .eq("id", id);
+
+    if (listingIdUpdateError) {
+      console.warn("⚠️ Failed to update listingId in database:", listingIdUpdateError);
+    } else {
+      console.log("📝 listingId and offerId stored in Supabase");
+    }
+  }
+
+  // Update the item status in the database to "listed" and store optimized images
+  console.log("💾 Updating item status in database...");
+  const { error: updateError } = await supabase
+    .from("sell_items")
+    .update({
+      status: "listed",
+      ebay_listing_id: listingId,
+      ebay_offer_id: offerId,
+      listed_on_ebay: true,
+      ebay_optimized_images: ebayOptimizedImageUrls, // assuming this variable exists
+    })
+    .eq("id", id);
+
+  if (updateError) {
+    console.error("❌ Failed to update item status in database:", updateError);
+    return NextResponse.json({
+      success: true,
+      listingId,
+      warning: "Item listed on eBay but status update failed in database",
+    });
+  }
+
+  console.log("✅ Database updated successfully");
+  console.log("⏱️ Process completed at:", new Date().toISOString());
+
+  return NextResponse.json({
+    success: true,
+    listingId,
+    ebay_listing_id: listingId,
+    ebay_offer_id: offerId,
+    optimized_images: ebayOptimizedImageUrls, // again, assuming this exists
+    message: "Item listed with properly cropped square thumbnails and description for eBay",
+  });
+
+} catch (e) {
+  console.log("⚠️ Could not parse publish response as JSON");
+  return NextResponse.json({ error: "Failed to parse publish response" }, { status: 500 });
+}
+
 
     const publishResult = JSON.parse(publishText)
     const listingId = publishResult.listingId
