@@ -72,6 +72,8 @@ export default function AdminDashboard() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [listingLoading, setListingLoading] = useState<string | null>(null)
   const [listingError, setListingError] = useState<string | null>(null)
+  const [unlistingLoading, setUnlistingLoading] = useState<string | null>(null)
+  const [unlistingError, setUnlistingError] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<ItemSubmission | null>(null)
   const [itemImages, setItemImages] = useState<string[]>([])
   const [editingDescription, setEditingDescription] = useState<string | null>(null)
@@ -317,6 +319,79 @@ export default function AdminDashboard() {
     }
   }
 
+  const unlistItemFromEbay = async (id: string) => {
+    setUnlistingLoading(id)
+    setUnlistingError(null)
+
+    try {
+      console.log(`🗑️ Starting eBay unlisting process for item ID: ${id}`)
+
+      const response = await fetch("/api/unlist-ebay-item", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      })
+
+      const result = await response.json()
+
+      console.log(`📡 Unlist API Response Status: ${response.status}`)
+      console.log(`📡 Unlist API Response Data:`, result)
+
+      if (!response.ok) {
+        const errorMessage = result.error || `HTTP ${response.status}: ${response.statusText}`
+        console.error(`❌ eBay unlisting failed for item ${id}:`, errorMessage)
+        throw new Error(errorMessage)
+      }
+
+      // Success case
+      console.log(`✅ Successfully unlisted item ${id} from eBay`)
+
+      // Update local state after successful API call
+      await updateSubmissionStatus(id, "approved")
+
+      // Also update eBay-related fields in local state
+      setSubmissions((prev) =>
+        prev.map((submission) =>
+          submission.id === id
+            ? {
+                ...submission,
+                status: "approved",
+                listed_on_ebay: false,
+              }
+            : submission,
+        ),
+      )
+
+      console.log(`🔗 Item ${id} has been unlisted and status updated to approved`)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
+      console.error(`❌ Error unlisting item ${id} from eBay:`, {
+        error: errorMessage,
+        timestamp: new Date().toISOString(),
+        itemId: id,
+      })
+
+      // Set user-friendly error message
+      let userErrorMessage = "Failed to unlist item from eBay"
+
+      if (errorMessage.includes("access token")) {
+        userErrorMessage = "eBay authentication failed. Please check your eBay connection."
+      } else if (errorMessage.includes("ebay_sku not found")) {
+        userErrorMessage = "Item SKU not found. Cannot unlist item."
+      } else if (errorMessage.includes("ebay_offer_id not found")) {
+        userErrorMessage = "Item offer ID not found. Cannot unlist item."
+      } else {
+        userErrorMessage = `eBay unlisting failed: ${errorMessage}`
+      }
+
+      setUnlistingError(userErrorMessage)
+    } finally {
+      setUnlistingLoading(null)
+    }
+  }
+
   const getStatusBadge = (status: SubmissionStatus) => {
     const statusConfig = {
       pending: { variant: "secondary" as const, label: "Pending" },
@@ -511,6 +586,28 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+            {unlistingError && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex items-start">
+                  <AlertCircle className="h-5 w-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
+                  <div className="flex-grow">
+                    <h4 className="text-sm font-medium text-red-800 mb-1">eBay Unlisting Failed</h4>
+                    <p className="text-red-700 text-sm mb-2">{unlistingError}</p>
+                    <p className="text-red-600 text-xs">
+                      Check the browser console (F12) for detailed error logs. Contact support if the issue persists.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setUnlistingError(null)}
+                    className="h-6 w-6 p-0 ml-2"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
             {fetchError ? (
               <div className="text-red-500">Error: {fetchError}</div>
             ) : loading ? (
@@ -685,12 +782,30 @@ export default function AdminDashboard() {
                               )}
 
                               {submission.status === "listed" && (
-                                <Badge variant="outline" className="border-green-500 text-green-500">
-                                  Listed on eBay
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="border-green-500 text-green-500">
+                                    Listed on eBay
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => unlistItemFromEbay(submission.id)}
+                                    disabled={unlistingLoading === submission.id}
+                                    className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                                  >
+                                    {unlistingLoading === submission.id ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        Unlisting...
+                                      </>
+                                    ) : (
+                                      "Unlist"
+                                    )}
+                                  </Button>
+                                </div>
                               )}
 
-                              {submission.status !== "rejected" ? (
+                              {submission.status !== "rejected" && submission.status !== "listed" ? (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button size="sm" variant="destructive">
@@ -716,7 +831,7 @@ export default function AdminDashboard() {
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>
-                              ) : (
+                              ) : submission.status === "rejected" ? (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -725,7 +840,7 @@ export default function AdminDashboard() {
                                 >
                                   Unreject
                                 </Button>
-                              )}
+                              ) : null}
 
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -927,9 +1042,29 @@ export default function AdminDashboard() {
                 </Button>
               )}
               {selectedItem && selectedItem.status === "listed" && (
-                <Badge variant="outline" className="border-green-500 text-green-500 py-2 px-4">
-                  Listed on eBay
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="border-green-500 text-green-500 py-2 px-4">
+                    Listed on eBay
+                  </Badge>
+                  <Button
+                    onClick={() => {
+                      unlistItemFromEbay(selectedItem.id)
+                      setSelectedItem(null)
+                    }}
+                    disabled={unlistingLoading === selectedItem?.id}
+                    variant="outline"
+                    className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                  >
+                    {unlistingLoading === selectedItem?.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Unlisting...
+                      </>
+                    ) : (
+                      "Unlist from eBay"
+                    )}
+                  </Button>
+                </div>
               )}
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
