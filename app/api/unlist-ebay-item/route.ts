@@ -51,17 +51,14 @@ export async function POST(request: NextRequest) {
 
     // Withdraw the offer
     console.log(`🗑️ Withdrawing offerId=${offerId}`)
-    const withdrawRes = await fetch(
-      `https://api.ebay.com/sell/inventory/v1/offer/${offerId}/withdraw`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-          "Accept-Language": "en-US", // ✅ required by eBay API
-        },
-      }
-    )
+    const withdrawRes = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/withdraw`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "Accept-Language": "en-US", // ✅ required by eBay API
+      },
+    })
 
     console.log(`📊 Withdraw status: ${withdrawRes.status}`)
 
@@ -77,23 +74,37 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("✅ Item successfully unlisted.")
+    console.log("✅ Item successfully unlisted from eBay.")
 
-    // Update DB status to 'unlisted'
+    // ✅ Update ALL relevant status fields consistently
+    console.log("💾 Updating all status fields in database...")
     const { error: updateError } = await supabase
       .from("sell_items")
-      .update({ ebay_status: "unlisted" })
+      .update({
+        status: "approved", // ← Main status back to approved
+        listed_on_ebay: false, // ← Clear the listing flag
+        ebay_status: "unlisted", // ← Set eBay-specific status
+        // Keep the eBay IDs for history/reference but mark as unlisted
+        // ebay_listing_id: still preserved
+        // ebay_offer_id: still preserved
+        // ebay_sku: still preserved
+      })
       .eq("id", id)
 
     if (updateError) {
       console.warn("⚠️ Failed to update item status in database:", updateError)
+      return NextResponse.json({
+        success: true,
+        warning: "Item unlisted from eBay but failed to update database status",
+        offerId: offerId,
+      })
     } else {
-      console.log("📝 Database updated with unlisted status")
+      console.log("📝 Database updated with all unlisted status fields")
     }
 
     return NextResponse.json({
       success: true,
-      message: "Item successfully unlisted.",
+      message: "Item successfully unlisted and all status fields updated.",
       offerId: offerId,
     })
   } catch (error) {
@@ -103,7 +114,7 @@ export async function POST(request: NextRequest) {
         error: "An unexpected error occurred",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

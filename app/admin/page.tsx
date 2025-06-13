@@ -58,12 +58,47 @@ export interface ItemSubmission {
   status: SubmissionStatus
   submission_date: string
   image_path: string | null
-  image_url: string[] | null // Changed from string to string[] or null
+  image_url: string[] | null
   estimated_price: number | null
   item_condition: "Like New" | "Excellent" | "Good" | "Fair" | "Poor"
   ebay_listing_id: string | null
   ebay_offer_id: string | null
+  ebay_sku: string | null
   listed_on_ebay: boolean | null
+  ebay_status: string | null
+}
+
+// ✅ Multi-field validation helper function
+const isItemListedOnEbay = (item: ItemSubmission): boolean => {
+  const hasValidStatus = item.status === "listed"
+  const hasListingFlag = item.listed_on_ebay === true
+  const hasEbayIds = !!(item.ebay_listing_id && item.ebay_offer_id)
+  const isNotUnlisted = item.ebay_status !== "unlisted"
+
+  const isListed = hasValidStatus && hasListingFlag && hasEbayIds && isNotUnlisted
+
+  // Debug logging for troubleshooting
+  console.log(`🔍 Listing status check for item ${item.id}:`, {
+    hasValidStatus,
+    hasListingFlag,
+    hasEbayIds,
+    isNotUnlisted,
+    finalResult: isListed,
+    itemData: {
+      status: item.status,
+      listed_on_ebay: item.listed_on_ebay,
+      ebay_listing_id: item.ebay_listing_id,
+      ebay_offer_id: item.ebay_offer_id,
+      ebay_status: item.ebay_status,
+    },
+  })
+
+  return isListed
+}
+
+// ✅ Helper to determine if item can be listed
+const canItemBeListed = (item: ItemSubmission): boolean => {
+  return !isItemListedOnEbay(item) && item.status !== "rejected"
 }
 
 export default function AdminDashboard() {
@@ -259,26 +294,24 @@ export default function AdminDashboard() {
         throw new Error(errorMessage)
       }
 
-      // Success case
+      // Success case - update local state with all eBay fields
       console.log(`✅ Successfully listed item ${id} on eBay:`, {
         offerId: result.ebay_offer_id,
         listingId: result.listingId,
         listingUrl: result.ebay_listing_url,
       })
 
-      // Update local state only after successful API call
-      await updateSubmissionStatus(id, "listed")
-
-      // Also update other eBay-related fields in local state
+      // ✅ Update local state with all listing-related fields
       setSubmissions((prev) =>
         prev.map((submission) =>
           submission.id === id
             ? {
                 ...submission,
                 status: "listed",
-                ebay_listing_id: result.listingId,
+                ebay_listing_id: result.listingId || result.ebay_listing_id,
                 ebay_offer_id: result.ebay_offer_id,
                 listed_on_ebay: true,
+                ebay_status: null, // Clear any previous unlisted status
               }
             : submission,
         ),
@@ -345,13 +378,10 @@ export default function AdminDashboard() {
         throw new Error(errorMessage)
       }
 
-      // Success case
+      // Success case - update local state with all unlisting fields
       console.log(`✅ Successfully unlisted item ${id} from eBay`)
 
-      // Update local state after successful API call
-      await updateSubmissionStatus(id, "approved")
-
-      // Also update eBay-related fields in local state
+      // ✅ Update local state with all unlisting-related fields
       setSubmissions((prev) =>
         prev.map((submission) =>
           submission.id === id
@@ -359,6 +389,8 @@ export default function AdminDashboard() {
                 ...submission,
                 status: "approved",
                 listed_on_ebay: false,
+                ebay_status: "unlisted",
+                // Keep eBay IDs for history
               }
             : submission,
         ),
@@ -460,12 +492,13 @@ export default function AdminDashboard() {
     setEditedDescription("")
   }
 
+  // ✅ Updated stats to use multi-field validation
   const stats = {
     total: submissions.length,
     pending: submissions.filter((s) => s.status === "pending").length,
     approved: submissions.filter((s) => s.status === "approved").length,
     rejected: submissions.filter((s) => s.status === "rejected").length,
-    listed: submissions.filter((s) => s.status === "listed").length,
+    listed: submissions.filter((s) => isItemListedOnEbay(s)).length, // ← Using helper function
   }
 
   // Password protection screen
@@ -641,6 +674,10 @@ export default function AdminDashboard() {
 
                       console.log(`Table: Item ${submission.id} has ${imageCount} images, first: ${firstImage}`)
 
+                      // ✅ Use multi-field validation
+                      const isListed = isItemListedOnEbay(submission)
+                      const canBeListed = canItemBeListed(submission)
+
                       return (
                         <TableRow key={submission.id}>
                           <TableCell>
@@ -763,7 +800,8 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {submission.status !== "listed" && (
+                              {/* ✅ Use multi-field validation for button logic */}
+                              {canBeListed && (
                                 <Button
                                   size="sm"
                                   onClick={() => listItemOnEbay(submission.id)}
@@ -781,7 +819,7 @@ export default function AdminDashboard() {
                                 </Button>
                               )}
 
-                              {submission.status === "listed" && (
+                              {isListed && (
                                 <div className="flex items-center gap-2">
                                   <Badge variant="outline" className="border-green-500 text-green-500">
                                     Listed on eBay
@@ -805,7 +843,7 @@ export default function AdminDashboard() {
                                 </div>
                               )}
 
-                              {submission.status !== "rejected" && submission.status !== "listed" ? (
+                              {submission.status !== "rejected" && !isListed ? (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button size="sm" variant="destructive">
@@ -999,6 +1037,17 @@ export default function AdminDashboard() {
                       <p>
                         <span className="font-medium">Photos:</span> {itemImages.length}
                       </p>
+                      {/* ✅ Show eBay status information */}
+                      {selectedItem.ebay_listing_id && (
+                        <p>
+                          <span className="font-medium">eBay Listing ID:</span> {selectedItem.ebay_listing_id}
+                        </p>
+                      )}
+                      {selectedItem.ebay_status && (
+                        <p>
+                          <span className="font-medium">eBay Status:</span> {selectedItem.ebay_status}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -1022,7 +1071,8 @@ export default function AdminDashboard() {
             </div>
 
             <DialogFooter>
-              {selectedItem && selectedItem.status !== "listed" && (
+              {/* ✅ Use multi-field validation in dialog footer */}
+              {selectedItem && canItemBeListed(selectedItem) && (
                 <Button
                   onClick={() => {
                     listItemOnEbay(selectedItem.id)
@@ -1041,7 +1091,7 @@ export default function AdminDashboard() {
                   )}
                 </Button>
               )}
-              {selectedItem && selectedItem.status === "listed" && (
+              {selectedItem && isItemListedOnEbay(selectedItem) && (
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="border-green-500 text-green-500 py-2 px-4">
                     Listed on eBay
