@@ -675,6 +675,7 @@ try {
     .from("sell_items")
     .update({
       status: "listed",
+      ebay_sku: sku, // ✅ This line adds the missing SKU
       ebay_listing_id: listingId,
       ebay_offer_id: offerId,
       listed_on_ebay: true,
