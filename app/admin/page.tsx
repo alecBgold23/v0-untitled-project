@@ -4,32 +4,39 @@ import type React from "react"
 import { extractImageUrls, getFirstImageUrl } from "@/lib/image-url-utils"
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { MoreHorizontal, Package, Users, DollarSign, CheckCircle, Loader2, AlertCircle, X, LogOut } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 
+// Icons
+import {
+  Package,
+  Users,
+  DollarSign,
+  CheckCircle,
+  Loader2,
+  AlertCircle,
+  X,
+  LogOut,
+  Eye,
+  Edit3,
+  MoreHorizontal,
+  ShoppingCart,
+  XCircle,
+  Search,
+  Download,
+  RefreshCw,
+  TrendingUp,
+  Activity,
+} from "lucide-react"
+
+// UI Components
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
 import {
   Dialog,
   DialogContent,
@@ -39,54 +46,86 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Input } from "@/components/ui/input"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
-type SubmissionStatus = "pending" | "approved" | "rejected" | "listed"
-
-export interface ItemSubmission {
+// Types
+interface ItemSubmission {
   id: string
   item_name: string
   item_description: string
   item_issues: string | null
   full_name: string
-  email: string | null
+  email: string
   phone: string | null
   address: string | null
   pickup_date: string | null
   photo_count: number | null
-  status: SubmissionStatus
+  status: "pending" | "approved" | "rejected" | "listed"
   submission_date: string
   image_path: string | null
   image_url: string[] | null
+  image_urls: string[] | null
   estimated_price: number | null
   item_condition: "Like New" | "Excellent" | "Good" | "Fair" | "Poor"
   ebay_listing_id: string | null
   ebay_offer_id: string | null
   ebay_sku: string | null
-  ebay_status: string | null // Primary field for eBay listing status
+  ebay_status: string | null
   listed_on_ebay: boolean | null
 }
 
-export default function AdminDashboard() {
-  const [submissions, setSubmissions] = useState<ItemSubmission[]>([])
-  const [loading, setLoading] = useState(true)
-  const [fetchError, setFetchError] = useState<string | null>(null)
-  const [listingLoading, setListingLoading] = useState<string | null>(null)
-  const [listingError, setListingError] = useState<string | null>(null)
-  const [unlistingLoading, setUnlistingLoading] = useState<string | null>(null)
-  const [unlistingError, setUnlistingError] = useState<string | null>(null)
-  const [selectedItem, setSelectedItem] = useState<ItemSubmission | null>(null)
-  const [itemImages, setItemImages] = useState<string[]>([])
-  const [editingDescription, setEditingDescription] = useState<string | null>(null)
-  const [editedDescription, setEditedDescription] = useState<string>("")
+interface AdminStats {
+  total: number
+  pending: number
+  approved: number
+  rejected: number
+  listedOnEbay: number
+  notListed: number
+  totalValue: number
+  avgValue: number
+}
 
-  // Password protection
+export default function AdminDashboard() {
+  // Authentication State
   const [password, setPassword] = useState("")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [passwordError, setPasswordError] = useState(false)
 
-  // Check if already authenticated
+  // Data State
+  const [submissions, setSubmissions] = useState<ItemSubmission[]>([])
+  const [filteredSubmissions, setFilteredSubmissions] = useState<ItemSubmission[]>([])
+  const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+
+  // Filter and Search State
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [conditionFilter, setConditionFilter] = useState<string>("all")
+  const [activeTab, setActiveTab] = useState("overview")
+
+  // Action States
+  const [listingLoading, setListingLoading] = useState<string | null>(null)
+  const [unlistingLoading, setUnlistingLoading] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null)
+
+  // UI States
+  const [selectedItem, setSelectedItem] = useState<ItemSubmission | null>(null)
+  const [itemImages, setItemImages] = useState<string[]>([])
+  const [editingDescription, setEditingDescription] = useState<string | null>(null)
+  const [editedDescription, setEditedDescription] = useState("")
+
+  // Initialize authentication
   useEffect(() => {
     const authStatus = localStorage.getItem("adminAuthenticated")
     if (authStatus === "true") {
@@ -94,6 +133,7 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  // Authentication handlers
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (password === "2923939") {
@@ -110,213 +150,181 @@ export default function AdminDashboard() {
     localStorage.removeItem("adminAuthenticated")
   }
 
-  // Simplified URL formatter - returns URL as-is if already complete
-  const ensureCorrectSupabaseUrl = (url: string): string => {
-    console.log("🔧 URL formatting input:", url)
-
-    if (!url) return url
-
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      console.log("✅ URL already complete, returning as-is:", url)
-      return url
-    }
+  // Utility Functions
+  const formatImageUrl = (url: string): string => {
+    if (!url || url.startsWith("http")) return url
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
     const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
 
-    if (!projectId) {
-      console.log("❌ No project ID found, returning original URL:", url)
-      return url
-    }
+    if (!projectId) return url
 
-    // Remove possible leading slashes and folder name
     const cleanPath = url.replace(/^\/?(item_images\/)?/, "")
-    const constructedUrl = `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
-    console.log("🔧 Constructed URL:", constructedUrl)
-
-    return constructedUrl
+    return `https://${projectId}.supabase.co/storage/v1/object/public/item_images/${cleanPath}`
   }
 
+  const isListedOnEbay = (item: ItemSubmission): boolean => {
+    return ["listed", "active", "processing"].includes(item.ebay_status?.toLowerCase() || "")
+  }
+
+  const getEbayStatusDisplay = (ebayStatus: string | null): string => {
+    if (!ebayStatus) return "Not Listed"
+    return ebayStatus.charAt(0).toUpperCase() + ebayStatus.slice(1)
+  }
+
+  const getEbayStatusVariant = (ebayStatus: string | null) => {
+    const status = ebayStatus?.toLowerCase()
+    switch (status) {
+      case "listed":
+      case "active":
+        return "default"
+      case "processing":
+        return "secondary"
+      case "unlisted":
+      case "failed":
+        return "destructive"
+      case "ended":
+        return "outline"
+      case "sold":
+        return "default"
+      default:
+        return "secondary"
+    }
+  }
+
+  const getConditionColor = (condition: string) => {
+    const colors = {
+      "Like New": "text-emerald-600 bg-emerald-50 border-emerald-200",
+      Excellent: "text-blue-600 bg-blue-50 border-blue-200",
+      Good: "text-amber-600 bg-amber-50 border-amber-200",
+      Fair: "text-orange-600 bg-orange-50 border-orange-200",
+      Poor: "text-red-600 bg-red-50 border-red-200",
+    }
+    return colors[condition as keyof typeof colors] || "text-gray-600 bg-gray-50 border-gray-200"
+  }
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      pending: "text-amber-700 bg-amber-50 border-amber-200",
+      approved: "text-emerald-700 bg-emerald-50 border-emerald-200",
+      rejected: "text-red-700 bg-red-50 border-red-200",
+      listed: "text-blue-700 bg-blue-50 border-blue-200",
+    }
+    return colors[status as keyof typeof colors] || "text-gray-700 bg-gray-50 border-gray-200"
+  }
+
+  // Data fetching
   useEffect(() => {
     if (!isAuthenticated) return
 
-    const fetchItems = async () => {
+    const fetchSubmissions = async () => {
       setLoading(true)
       setFetchError(null)
 
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-
-        if (!supabaseUrl || !supabaseAnonKey) {
-          throw new Error("Missing Supabase environment variables")
-        }
-
-        console.log("🔗 Connecting to Supabase...")
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
         const { data, error } = await supabase
           .from("sell_items")
           .select("*")
           .order("submission_date", { ascending: false })
 
-        if (error) {
-          console.error("❌ Failed to fetch submissions:", error)
-          setFetchError(error.message)
-        } else {
-          console.log(`📊 Fetched ${data?.length || 0} submissions`)
+        if (error) throw error
 
-          const processedData = data?.map((item, index) => {
-            console.log(`\n🔄 Processing submission ${index + 1}/${data.length}:`)
-            console.log("Item ID:", item.id)
-            console.log("Item name:", item.item_name)
-            console.log("Raw image_url from database:", item.image_url)
+        const processedData = data?.map((item) => {
+          const allImages = extractImageUrls(item.image_urls || item.image_url)
+          const formattedImages = allImages.map(formatImageUrl)
 
-            // Extract all images with debugging
-            const allImages = extractImageUrls(item.image_urls || item.image_url)
-            console.log("Extracted images:", allImages)
+          return {
+            ...item,
+            image_url: formattedImages.length > 0 ? formattedImages : null,
+            image_urls: formattedImages,
+          }
+        })
 
-            // Format images URLs (do not over-process fully qualified URLs)
-            const formattedImages = allImages.map((url, urlIndex) => {
-              console.log(`Formatting URL ${urlIndex + 1}:`, url)
-              const formatted = ensureCorrectSupabaseUrl(url)
-              console.log(`Formatted result ${urlIndex + 1}:`, formatted)
-              return formatted
-            })
-
-            console.log("Final formatted images:", formattedImages)
-
-            return {
-              ...item,
-              image_url: formattedImages.length > 0 ? formattedImages : null,
-              image_urls: formattedImages,
-            }
-          })
-
-          setSubmissions(processedData || [])
-        }
+        setSubmissions(processedData || [])
       } catch (error) {
-        console.error("❌ Unexpected error fetching submissions:", error)
-        setFetchError("An unexpected error occurred while fetching submissions.")
+        console.error("Failed to fetch submissions:", error)
+        setFetchError(error instanceof Error ? error.message : "Failed to fetch submissions")
       } finally {
         setLoading(false)
       }
     }
 
-    fetchItems()
+    fetchSubmissions()
   }, [isAuthenticated])
 
-  const updateSubmissionStatus = async (id: string, newStatus: SubmissionStatus) => {
-    try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-      const supabase = createClient(supabaseUrl, supabaseAnonKey)
+  // Filter submissions
+  useEffect(() => {
+    let filtered = submissions
 
-      console.log(`🔄 Updating item ${id} status to: ${newStatus}`)
-
-      // Update status in database
-      const { error, data } = await supabase.from("sell_items").update({ status: newStatus }).eq("id", id).select()
-
-      if (error) {
-        console.error("❌ Database update failed:", error)
-        throw error
-      }
-
-      console.log(`✅ Database update successful:`, data)
-
-      // Update local state
-      setSubmissions((prev) =>
-        prev.map((submission) => (submission.id === id ? { ...submission, status: newStatus } : submission)),
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (item) =>
+          item.item_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.item_description?.toLowerCase().includes(searchTerm.toLowerCase()),
       )
-
-      return true
-    } catch (error) {
-      console.error("Failed to update submission status:", error)
-      return false
     }
-  }
 
+    // Status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((item) => item.status === statusFilter)
+    }
+
+    // Condition filter
+    if (conditionFilter !== "all") {
+      filtered = filtered.filter((item) => item.item_condition === conditionFilter)
+    }
+
+    setFilteredSubmissions(filtered)
+  }, [submissions, searchTerm, statusFilter, conditionFilter])
+
+  // Action handlers
   const listItemOnEbay = async (id: string) => {
     setListingLoading(id)
-    setListingError(null)
+    setActionError(null)
+    setActionSuccess(null)
 
     try {
-      console.log(`🚀 Starting eBay listing process for item ID: ${id}`)
-
       const response = await fetch("/api/list-item-on-ebay", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       })
 
       const result = await response.json()
 
-      console.log(`📡 API Response Status: ${response.status}`)
-      console.log(`📡 API Response Data:`, result)
-
       if (!response.ok) {
-        const errorMessage = result.error || `HTTP ${response.status}: ${response.statusText}`
-        console.error(`❌ eBay listing failed for item ${id}:`, errorMessage)
-        throw new Error(errorMessage)
+        throw new Error(result.error || `HTTP ${response.status}`)
       }
 
-      // Success case
-      console.log(`✅ Successfully listed item ${id} on eBay:`, {
-        offerId: result.ebay_offer_id,
-        listingId: result.listingId,
-        listingUrl: result.ebay_listing_url,
-      })
-
-      // Update local state only after successful API call
-      await updateSubmissionStatus(id, "listed")
-
-      // Also update other eBay-related fields in local state
+      // Update local state
       setSubmissions((prev) =>
-        prev.map((submission) =>
-          submission.id === id
+        prev.map((item) =>
+          item.id === id
             ? {
-                ...submission,
+                ...item,
                 status: "listed",
-                ebay_status: "listed", // Update ebay_status
+                ebay_status: "listed",
                 ebay_listing_id: result.listingId,
                 ebay_offer_id: result.ebay_offer_id,
                 listed_on_ebay: true,
               }
-            : submission,
+            : item,
         ),
       )
 
-      // Show success message (optional)
-      if (result.ebay_listing_url) {
-        console.log(`🔗 eBay listing URL: ${result.ebay_listing_url}`)
-      }
+      setActionSuccess("Item successfully listed on eBay!")
+      console.log(`✅ Successfully listed item ${id} on eBay`)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
-      console.error(`❌ Error listing item ${id} on eBay:`, {
-        error: errorMessage,
-        timestamp: new Date().toISOString(),
-        itemId: id,
-      })
-
-      // Set user-friendly error message
-      let userErrorMessage = "Failed to list item on eBay"
-
-      if (errorMessage.includes("access token")) {
-        userErrorMessage = "eBay authentication failed. Please check your eBay connection."
-      } else if (errorMessage.includes("inventory item")) {
-        userErrorMessage = "Failed to create item inventory on eBay. Check item details."
-      } else if (errorMessage.includes("offer")) {
-        userErrorMessage = "Failed to create eBay offer. Check pricing and policies."
-      } else if (errorMessage.includes("publish")) {
-        userErrorMessage = "Failed to publish listing on eBay. Item created but not live."
-      } else if (errorMessage.includes("database")) {
-        userErrorMessage = "Item listed on eBay but failed to update our records."
-      } else {
-        userErrorMessage = `eBay listing failed: ${errorMessage}`
-      }
-
-      setListingError(userErrorMessage)
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      console.error(`❌ Failed to list item ${id}:`, errorMessage)
+      setActionError(`Failed to list item: ${errorMessage}`)
     } finally {
       setListingLoading(null)
     }
@@ -324,161 +332,96 @@ export default function AdminDashboard() {
 
   const unlistItemFromEbay = async (id: string) => {
     setUnlistingLoading(id)
-    setUnlistingError(null)
+    setActionError(null)
+    setActionSuccess(null)
 
     try {
-      console.log(`🗑️ Starting eBay unlisting process for item ID: ${id}`)
-
       const response = await fetch("/api/unlist-ebay-item", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       })
 
       const result = await response.json()
 
-      console.log(`📡 Unlist API Response Status: ${response.status}`)
-      console.log(`📡 Unlist API Response Data:`, result)
-
       if (!response.ok) {
-        const errorMessage = result.error || `HTTP ${response.status}: ${response.statusText}`
-        console.error(`❌ eBay unlisting failed for item ${id}:`, errorMessage)
-        throw new Error(errorMessage)
+        throw new Error(result.error || `HTTP ${response.status}`)
       }
 
-      // Success case
-      console.log(`✅ Successfully unlisted item ${id} from eBay`)
-
-      // Update local state after successful API call
-      await updateSubmissionStatus(id, "approved")
-
-      // Also update eBay-related fields in local state
+      // Update local state
       setSubmissions((prev) =>
-        prev.map((submission) =>
-          submission.id === id
+        prev.map((item) =>
+          item.id === id
             ? {
-                ...submission,
-                status: "approved", // Reset to approved
-                ebay_status: "unlisted", // Update ebay_status
+                ...item,
+                status: "approved",
+                ebay_status: "unlisted",
                 listed_on_ebay: false,
               }
-            : submission,
+            : item,
         ),
       )
 
-      console.log(`🔗 Item ${id} has been unlisted and status updated to approved`)
+      setActionSuccess("Item successfully unlisted from eBay!")
+      console.log(`✅ Successfully unlisted item ${id} from eBay`)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
-      console.error(`❌ Error unlisting item ${id} from eBay:`, {
-        error: errorMessage,
-        timestamp: new Date().toISOString(),
-        itemId: id,
-      })
-
-      // Set user-friendly error message
-      let userErrorMessage = "Failed to unlist item from eBay"
-
-      if (errorMessage.includes("access token")) {
-        userErrorMessage = "eBay authentication failed. Please check your eBay connection."
-      } else if (errorMessage.includes("ebay_sku not found")) {
-        userErrorMessage = "Item SKU not found. Cannot unlist item."
-      } else if (errorMessage.includes("ebay_offer_id not found")) {
-        userErrorMessage = "Item offer ID not found. Cannot unlist item."
-      } else {
-        userErrorMessage = `eBay unlisting failed: ${errorMessage}`
-      }
-
-      setUnlistingError(userErrorMessage)
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      console.error(`❌ Failed to unlist item ${id}:`, errorMessage)
+      setActionError(`Failed to unlist item: ${errorMessage}`)
     } finally {
       setUnlistingLoading(null)
     }
   }
 
-  // Helper function to check if item is listed on eBay based on ebay_status
-  const isListedOnEbay = (item: ItemSubmission): boolean => {
-    return item.ebay_status === "listed" || item.ebay_status === "active" || item.ebay_status === "processing"
-  }
+  const updateSubmissionStatus = async (id: string, newStatus: "pending" | "approved" | "rejected" | "listed") => {
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-  // Helper function to get eBay status display
-  const getEbayStatusDisplay = (item: ItemSubmission): string => {
-    if (!item.ebay_status) return "Not Listed"
-    return item.ebay_status.charAt(0).toUpperCase() + item.ebay_status.slice(1)
-  }
+      const { error } = await supabase.from("sell_items").update({ status: newStatus }).eq("id", id)
 
-  // Helper function to get eBay status badge style
-  const getEbayStatusStyle = (ebayStatus: string | null) => {
-    if (!ebayStatus) return "bg-gray-100 text-gray-800 border-gray-300"
+      if (error) throw error
 
-    const styles = {
-      listed: "bg-green-100 text-green-800 border-green-300",
-      active: "bg-green-100 text-green-800 border-green-300",
-      processing: "bg-orange-100 text-orange-800 border-orange-300",
-      unlisted: "bg-red-100 text-red-800 border-red-300",
-      ended: "bg-yellow-100 text-yellow-800 border-yellow-300",
-      sold: "bg-blue-100 text-blue-800 border-blue-300",
-      failed: "bg-red-100 text-red-800 border-red-300",
+      setSubmissions((prev) => prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item)))
+      setActionSuccess(`Item status updated to ${newStatus}!`)
+    } catch (error) {
+      console.error("Failed to update status:", error)
+      setActionError("Failed to update item status")
     }
-    return styles[ebayStatus.toLowerCase() as keyof typeof styles] || "bg-gray-100 text-gray-800 border-gray-300"
-  }
-
-  const getStatusBadge = (status: SubmissionStatus) => {
-    const statusConfig = {
-      pending: { variant: "secondary" as const, label: "Pending" },
-      approved: { variant: "default" as const, label: "Approved" },
-      rejected: { variant: "destructive" as const, label: "Rejected" },
-      listed: { variant: "outline" as const, label: "Listed on eBay" },
-    }
-
-    const config = statusConfig[status]
-    return <Badge variant={config.variant}>{config.label}</Badge>
-  }
-
-  const getConditionColor = (condition: string) => {
-    const colors = {
-      "Like New": "text-green-600",
-      Excellent: "text-blue-600",
-      Good: "text-yellow-600",
-      Fair: "text-orange-600",
-      Poor: "text-red-600",
-    }
-    return colors[condition as keyof typeof colors] || "text-gray-600"
-  }
-
-  const viewItemDetails = (item: ItemSubmission) => {
-    console.log(`🖼️ === OPENING DETAILS FOR ITEM ${item.id} ===`)
-    setSelectedItem(item)
-
-    const allImages = extractImageUrls(item.image_urls || item.image_url)
-    console.log(`Found ${allImages.length} images:`, allImages)
-
-    const finalImages = allImages.length > 0 ? allImages : ["/placeholder.svg?height=400&width=400&text=No+Image"]
-
-    console.log(`Setting ${finalImages.length} images for dialog:`, finalImages)
-    setItemImages(finalImages)
   }
 
   const updateItemDescription = async (id: string, newDescription: string) => {
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
       const { error } = await supabase.from("sell_items").update({ item_description: newDescription }).eq("id", id)
 
       if (error) throw error
 
-      // Update local state
       setSubmissions((prev) =>
         prev.map((item) => (item.id === id ? { ...item, item_description: newDescription } : item)),
       )
 
       setEditingDescription(null)
       setEditedDescription("")
+      setActionSuccess("Description updated successfully!")
     } catch (error) {
       console.error("Failed to update description:", error)
+      setActionError("Failed to update description")
     }
+  }
+
+  // UI handlers
+  const viewItemDetails = (item: ItemSubmission) => {
+    setSelectedItem(item)
+    const allImages = extractImageUrls(item.image_urls || item.image_url)
+    const formattedImages = allImages.map(formatImageUrl)
+    setItemImages(
+      formattedImages.length > 0 ? formattedImages : ["/placeholder.svg?height=400&width=400&text=No+Image"],
+    )
   }
 
   const startEditingDescription = (id: string, currentDescription: string) => {
@@ -491,26 +434,38 @@ export default function AdminDashboard() {
     setEditedDescription("")
   }
 
-  const stats = {
+  // Calculate stats
+  const stats: AdminStats = {
     total: submissions.length,
     pending: submissions.filter((s) => s.status === "pending").length,
     approved: submissions.filter((s) => s.status === "approved").length,
     rejected: submissions.filter((s) => s.status === "rejected").length,
-    listed: submissions.filter((s) => s.status === "listed").length,
     listedOnEbay: submissions.filter((s) => isListedOnEbay(s)).length,
     notListed: submissions.filter((s) => !isListedOnEbay(s)).length,
+    totalValue: submissions.reduce((sum, item) => sum + (item.estimated_price || 0), 0),
+    avgValue:
+      submissions.length > 0
+        ? submissions.reduce((sum, item) => sum + (item.estimated_price || 0), 0) / submissions.length
+        : 0,
   }
 
   // Password protection screen
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Admin Access</CardTitle>
-            <CardDescription className="text-center">Enter password to access the admin dashboard</CardDescription>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-xl border-0">
+          <CardHeader className="text-center space-y-4 pb-8">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center">
+              <Package className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl font-bold text-gray-900">Admin Access</CardTitle>
+              <CardDescription className="text-gray-600 mt-2">
+                Enter your password to access the admin dashboard
+              </CardDescription>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Input
@@ -518,11 +473,19 @@ export default function AdminDashboard() {
                   placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={passwordError ? "border-red-500" : ""}
+                  className={`h-12 ${passwordError ? "border-red-500 focus:border-red-500" : ""}`}
                 />
-                {passwordError && <p className="text-sm text-red-500">Incorrect password. Please try again.</p>}
+                {passwordError && (
+                  <p className="text-sm text-red-600 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    Incorrect password. Please try again.
+                  </p>
+                )}
               </div>
-              <Button type="submit" className="w-full">
+              <Button
+                type="submit"
+                className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
                 Access Dashboard
               </Button>
             </form>
@@ -533,555 +496,706 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-900">
-      <header className="bg-gray-800 border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-400">Item Submissions Management</div>
-            <Button variant="outline" size="sm" onClick={handleLogout} className="flex items-center gap-1">
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 shadow-sm">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                <Package className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+                <p className="text-sm text-gray-600">Item Submissions Management</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="sm" className="gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 p-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6 mb-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.approved}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rejected</CardTitle>
-              <X className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.rejected}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Listed on eBay</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.listedOnEbay}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Not Listed</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.notListed}</div>
-            </CardContent>
-          </Card>
-        </div>
+      <main className="p-6">
+        {/* Action Messages */}
+        {actionError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-grow">
+                <h4 className="text-sm font-semibold text-red-800 mb-1">Action Failed</h4>
+                <p className="text-red-700 text-sm">{actionError}</p>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => setActionError(null)} className="h-6 w-6 p-0">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Item Submissions</CardTitle>
-            <CardDescription>Manage customer item submissions and their approval status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {listingError && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-                <div className="flex items-start">
-                  <AlertCircle className="h-5 w-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
+        {actionSuccess && (
+          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-grow">
+                <h4 className="text-sm font-semibold text-emerald-800 mb-1">Success</h4>
+                <p className="text-emerald-700 text-sm">{actionSuccess}</p>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => setActionSuccess(null)} className="h-6 w-6 p-0">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-3">
+            <TabsTrigger value="overview" className="gap-2">
+              <Activity className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="submissions" className="gap-2">
+              <Package className="h-4 w-4" />
+              Submissions
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-blue-100">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-blue-900">Total Items</CardTitle>
+                  <Package className="h-5 w-5 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-blue-900">{stats.total}</div>
+                  <p className="text-xs text-blue-700 mt-1">All submissions</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-md bg-gradient-to-br from-amber-50 to-amber-100">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-amber-900">Pending Review</CardTitle>
+                  <Users className="h-5 w-5 text-amber-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-amber-900">{stats.pending}</div>
+                  <p className="text-xs text-amber-700 mt-1">Awaiting approval</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-md bg-gradient-to-br from-emerald-50 to-emerald-100">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-emerald-900">Listed on eBay</CardTitle>
+                  <ShoppingCart className="h-5 w-5 text-emerald-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-emerald-900">{stats.listedOnEbay}</div>
+                  <p className="text-xs text-emerald-700 mt-1">Active listings</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-md bg-gradient-to-br from-purple-50 to-purple-100">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-purple-900">Total Value</CardTitle>
+                  <DollarSign className="h-5 w-5 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-purple-900">${stats.totalValue.toLocaleString()}</div>
+                  <p className="text-xs text-purple-700 mt-1">Estimated worth</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Activity */}
+            <Card className="border-0 shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Recent Submissions
+                </CardTitle>
+                <CardDescription>Latest item submissions requiring attention</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {submissions.slice(0, 5).map((item) => {
+                    const allImages = extractImageUrls(item.image_urls || item.image_url)
+                    const firstImage = getFirstImageUrl(allImages.map(formatImageUrl))
+
+                    return (
+                      <div key={item.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
+                        <Image
+                          src={firstImage || "/placeholder.svg?height=48&width=48&text=No+Image"}
+                          alt={item.item_name}
+                          width={48}
+                          height={48}
+                          className="rounded-lg object-cover"
+                        />
+                        <div className="flex-grow">
+                          <h4 className="font-semibold text-gray-900">{item.item_name}</h4>
+                          <p className="text-sm text-gray-600">{item.full_name}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge className={`${getStatusColor(item.status)} border`}>
+                            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                          </Badge>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(item.submission_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="submissions" className="space-y-6">
+            {/* Filters */}
+            <Card className="border-0 shadow-md">
+              <CardHeader>
+                <CardTitle>Filters & Search</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col lg:flex-row gap-4">
                   <div className="flex-grow">
-                    <h4 className="text-sm font-medium text-red-800 mb-1">eBay Listing Failed</h4>
-                    <p className="text-red-700 text-sm mb-2">{listingError}</p>
-                    <p className="text-red-600 text-xs">
-                      Check the browser console (F12) for detailed error logs. Contact support if the issue persists.
-                    </p>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search items, customers, or descriptions..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => setListingError(null)} className="h-6 w-6 p-0 ml-2">
-                    <X className="h-4 w-4" />
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full lg:w-48">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="listed">Listed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={conditionFilter} onValueChange={setConditionFilter}>
+                    <SelectTrigger className="w-full lg:w-48">
+                      <SelectValue placeholder="Filter by condition" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Conditions</SelectItem>
+                      <SelectItem value="Like New">Like New</SelectItem>
+                      <SelectItem value="Excellent">Excellent</SelectItem>
+                      <SelectItem value="Good">Good</SelectItem>
+                      <SelectItem value="Fair">Fair</SelectItem>
+                      <SelectItem value="Poor">Poor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Main Table */}
+            <Card className="border-0 shadow-md">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Item Submissions</CardTitle>
+                    <CardDescription>
+                      Showing {filteredSubmissions.length} of {submissions.length} submissions
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Export
                   </Button>
                 </div>
-              </div>
-            )}
-            {unlistingError && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-                <div className="flex items-start">
-                  <AlertCircle className="h-5 w-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
-                  <div className="flex-grow">
-                    <h4 className="text-sm font-medium text-red-800 mb-1">eBay Unlisting Failed</h4>
-                    <p className="text-red-700 text-sm mb-2">{unlistingError}</p>
-                    <p className="text-red-600 text-xs">
-                      Check the browser console (F12) for detailed error logs. Contact support if the issue persists.
-                    </p>
+              </CardHeader>
+              <CardContent>
+                {fetchError ? (
+                  <div className="text-center py-12">
+                    <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <p className="text-red-600 font-medium">Error loading submissions</p>
+                    <p className="text-sm text-gray-500 mt-1">{fetchError}</p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setUnlistingError(null)}
-                    className="h-6 w-6 p-0 ml-2"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-            {fetchError ? (
-              <div className="text-red-500">Error: {fetchError}</div>
-            ) : loading ? (
-              <div className="flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                Loading submissions...
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[100px]">Image</TableHead>
-                      <TableHead className="w-[150px] text-white">Item Name</TableHead>
-                      <TableHead className="text-white">Description</TableHead>
-                      <TableHead className="text-white">Customer</TableHead>
-                      <TableHead className="text-white">Condition</TableHead>
-                      <TableHead className="text-white">Price</TableHead>
-                      <TableHead className="text-white">Review Status</TableHead>
-                      <TableHead className="text-white">eBay Status</TableHead>
-                      <TableHead className="text-white">Submitted</TableHead>
-                      <TableHead className="text-right text-white">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {submissions.map((submission) => {
-                      // Get all images for this submission with debugging
-                      console.log(`🖼️ Table row for item ${submission.id}`)
-                      const allImages = extractImageUrls(submission.image_urls || submission.image_url)
-                      const firstImage = getFirstImageUrl(allImages)
-                      const imageCount = allImages.length
-
-                      console.log(`Table: Item ${submission.id} has ${imageCount} images, first: ${firstImage}`)
-
-                      return (
-                        <TableRow key={submission.id}>
-                          <TableCell>
-                            <div className="relative">
-                              <Image
-                                src={firstImage || "/placeholder.svg?height=80&width=80&text=No Image"}
-                                alt={submission.item_name}
-                                width={80}
-                                height={80}
-                                className="rounded-lg object-cover"
-                                onError={(e) => {
-                                  console.error(`❌ Failed to load table image for item ${submission.id}:`, firstImage)
-                                  e.currentTarget.src = "/placeholder.svg?height=80&width=80&text=No Image"
-                                }}
-                                onLoad={() => {
-                                  console.log(`✅ Successfully loaded table image for item ${submission.id}`)
-                                }}
-                              />
-                              {imageCount > 1 && (
-                                <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                                  {imageCount}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="max-w-[150px]">
-                            <div className="space-y-1">
-                              <div className="font-semibold text-white text-sm line-clamp-2">
-                                {submission.item_name}
-                              </div>
-                              {submission.item_issues && (
-                                <div className="text-xs text-red-400 font-medium max-w-[140px] truncate">
-                                  Issues: {submission.item_issues}
-                                </div>
-                              )}
-                              <Button
-                                variant="link"
-                                className="text-xs p-0 h-auto text-blue-400 hover:text-blue-300"
-                                onClick={() => viewItemDetails(submission)}
-                              >
-                                View Details ({imageCount} photos)
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell className="max-w-[300px]">
-                            {editingDescription === submission.id ? (
-                              <div className="space-y-2">
-                                <textarea
-                                  value={editedDescription}
-                                  onChange={(e) => setEditedDescription(e.target.value)}
-                                  className="w-full p-2 border rounded-md text-sm resize-none"
-                                  rows={3}
-                                  placeholder="Enter item description..."
-                                />
-                                <div className="flex gap-1">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => updateItemDescription(submission.id, editedDescription)}
-                                    className="h-6 px-2 text-xs"
-                                  >
-                                    Save
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={cancelEditingDescription}
-                                    className="h-6 px-2 text-xs"
-                                  >
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="space-y-1">
-                                <div className="text-sm text-white line-clamp-3">
-                                  {submission.item_description || "No description"}
-                                </div>
-                                <Button
-                                  variant="link"
-                                  className="text-xs p-0 h-auto text-blue-400"
-                                  onClick={() => startEditingDescription(submission.id, submission.item_description)}
-                                >
-                                  Edit Description
-                                </Button>
-                                {submission.item_issues && (
-                                  <div className="text-xs text-red-400 max-w-[200px] truncate">
-                                    Issues: {submission.item_issues}
-                                  </div>
-                                )}
-                                <Button
-                                  variant="link"
-                                  className="text-xs p-0 h-auto"
-                                  onClick={() => viewItemDetails(submission)}
-                                >
-                                  View Details
-                                </Button>
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="font-medium text-white">{submission.full_name}</div>
-                              <div className="text-sm text-gray-400">{submission.email}</div>
-                              {submission.phone && <div className="text-xs text-gray-400">{submission.phone}</div>}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className={`font-medium ${getConditionColor(submission.item_condition)}`}>
-                              {submission.item_condition}
-                            </span>
-                          </TableCell>
-                          <TableCell className="font-medium text-white">
-                            {submission.estimated_price !== null
-                              ? `$${submission.estimated_price.toLocaleString()}`
-                              : "—"}
-                          </TableCell>
-                          <TableCell>{getStatusBadge(submission.status)}</TableCell>
-                          <TableCell>
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getEbayStatusStyle(submission.ebay_status)}`}
-                            >
-                              {getEbayStatusDisplay(submission)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-sm text-gray-400">
-                            {new Date(submission.submission_date).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              {!isListedOnEbay(submission) && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => listItemOnEbay(submission.id)}
-                                  disabled={listingLoading === submission.id}
-                                  className="bg-blue-600 hover:bg-blue-700"
-                                >
-                                  {listingLoading === submission.id ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                      Listing...
-                                    </>
-                                  ) : (
-                                    "List on eBay"
-                                  )}
-                                </Button>
-                              )}
-
-                              {isListedOnEbay(submission) && (
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="border-green-500 text-green-500">
-                                    {getEbayStatusDisplay(submission)}
-                                  </Badge>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => unlistItemFromEbay(submission.id)}
-                                    disabled={unlistingLoading === submission.id}
-                                    className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                                  >
-                                    {unlistingLoading === submission.id ? (
-                                      <>
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        Unlisting...
-                                      </>
-                                    ) : (
-                                      "Unlist"
-                                    )}
-                                  </Button>
-                                </div>
-                              )}
-
-                              {submission.status !== "rejected" && submission.status !== "listed" ? (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="destructive">
-                                      Reject
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Reject Submission</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Are you sure you want to reject this item submission? You can unreject it later
-                                        if needed.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => updateSubmissionStatus(submission.id, "rejected")}
-                                        className="bg-red-600 hover:bg-red-700"
-                                      >
-                                        Reject
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              ) : submission.status === "rejected" ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => updateSubmissionStatus(submission.id, "pending")}
-                                  className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
-                                >
-                                  Unreject
-                                </Button>
-                              ) : null}
-
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                  <DropdownMenuItem onClick={() => viewItemDetails(submission)}>
-                                    View details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>Contact customer</DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem>Edit submission</DropdownMenuItem>
-                                  <DropdownMenuItem className="text-red-600">Delete submission</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </TableCell>
+                ) : loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin mr-3" />
+                    <span>Loading submissions...</span>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-slate-200">
+                          <TableHead className="w-[80px]">Image</TableHead>
+                          <TableHead className="min-w-[200px]">Item Details</TableHead>
+                          <TableHead className="min-w-[180px]">Customer</TableHead>
+                          <TableHead>Condition</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>eBay Status</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredSubmissions.map((item) => {
+                          const allImages = extractImageUrls(item.image_urls || item.image_url)
+                          const firstImage = getFirstImageUrl(allImages.map(formatImageUrl))
+                          const imageCount = allImages.length
+
+                          return (
+                            <TableRow key={item.id} className="border-slate-100 hover:bg-slate-50">
+                              <TableCell>
+                                <div className="relative">
+                                  <Image
+                                    src={firstImage || "/placeholder.svg?height=60&width=60&text=No+Image"}
+                                    alt={item.item_name}
+                                    width={60}
+                                    height={60}
+                                    className="rounded-lg object-cover border border-slate-200"
+                                    onError={(e) => {
+                                      e.currentTarget.src = "/placeholder.svg?height=60&width=60&text=No+Image"
+                                    }}
+                                  />
+                                  {imageCount > 1 && (
+                                    <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                                      {imageCount}
+                                    </div>
+                                  )}
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                <div className="space-y-2">
+                                  <div className="font-semibold text-gray-900 text-sm line-clamp-2">
+                                    {item.item_name}
+                                  </div>
+                                  {editingDescription === item.id ? (
+                                    <div className="space-y-2">
+                                      <Textarea
+                                        value={editedDescription}
+                                        onChange={(e) => setEditedDescription(e.target.value)}
+                                        className="text-xs resize-none"
+                                        rows={2}
+                                      />
+                                      <div className="flex gap-1">
+                                        <Button
+                                          size="sm"
+                                          onClick={() => updateItemDescription(item.id, editedDescription)}
+                                          className="h-6 px-2 text-xs"
+                                        >
+                                          Save
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={cancelEditingDescription}
+                                          className="h-6 px-2 text-xs"
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-1">
+                                      <div className="text-xs text-gray-600 line-clamp-2">
+                                        {item.item_description || "No description"}
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          variant="link"
+                                          size="sm"
+                                          onClick={() => startEditingDescription(item.id, item.item_description)}
+                                          className="h-4 p-0 text-xs text-blue-600 hover:text-blue-800"
+                                        >
+                                          <Edit3 className="h-3 w-3 mr-1" />
+                                          Edit
+                                        </Button>
+                                        <Button
+                                          variant="link"
+                                          size="sm"
+                                          onClick={() => viewItemDetails(item)}
+                                          className="h-4 p-0 text-xs text-blue-600 hover:text-blue-800"
+                                        >
+                                          <Eye className="h-3 w-3 mr-1" />
+                                          View ({imageCount})
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {item.item_issues && (
+                                    <div className="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded">
+                                      Issues: {item.item_issues}
+                                    </div>
+                                  )}
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarFallback className="text-xs bg-slate-100">
+                                        {item.full_name
+                                          .split(" ")
+                                          .map((n) => n[0])
+                                          .join("")
+                                          .toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <div className="font-medium text-sm text-gray-900">{item.full_name}</div>
+                                      <div className="text-xs text-gray-600">{item.email}</div>
+                                    </div>
+                                  </div>
+                                  {item.phone && <div className="text-xs text-gray-500 ml-10">{item.phone}</div>}
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                <Badge className={`${getConditionColor(item.item_condition)} border font-medium`}>
+                                  {item.item_condition}
+                                </Badge>
+                              </TableCell>
+
+                              <TableCell>
+                                <div className="font-semibold text-gray-900">
+                                  {item.estimated_price ? `$${item.estimated_price.toLocaleString()}` : "—"}
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                <Badge className={`${getStatusColor(item.status)} border font-medium`}>
+                                  {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                                </Badge>
+                              </TableCell>
+
+                              <TableCell>
+                                <Badge variant={getEbayStatusVariant(item.ebay_status)} className="font-medium">
+                                  {getEbayStatusDisplay(item.ebay_status)}
+                                </Badge>
+                              </TableCell>
+
+                              <TableCell>
+                                <div className="text-sm text-gray-600">
+                                  {new Date(item.submission_date).toLocaleDateString()}
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {!isListedOnEbay(item) && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => listItemOnEbay(item.id)}
+                                      disabled={listingLoading === item.id}
+                                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                                    >
+                                      {listingLoading === item.id ? (
+                                        <>
+                                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                          Listing...
+                                        </>
+                                      ) : (
+                                        "List on eBay"
+                                      )}
+                                    </Button>
+                                  )}
+
+                                  {isListedOnEbay(item) && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => unlistItemFromEbay(item.id)}
+                                      disabled={unlistingLoading === item.id}
+                                      className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white"
+                                    >
+                                      {unlistingLoading === item.id ? (
+                                        <>
+                                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                          Unlisting...
+                                        </>
+                                      ) : (
+                                        "Unlist"
+                                      )}
+                                    </Button>
+                                  )}
+
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                      <DropdownMenuItem onClick={() => viewItemDetails(item)}>
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        View details
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      {item.status !== "approved" && (
+                                        <DropdownMenuItem onClick={() => updateSubmissionStatus(item.id, "approved")}>
+                                          <CheckCircle className="h-4 w-4 mr-2" />
+                                          Approve
+                                        </DropdownMenuItem>
+                                      )}
+                                      {item.status !== "rejected" && (
+                                        <DropdownMenuItem
+                                          onClick={() => updateSubmissionStatus(item.id, "rejected")}
+                                          className="text-red-600"
+                                        >
+                                          <XCircle className="h-4 w-4 mr-2" />
+                                          Reject
+                                        </DropdownMenuItem>
+                                      )}
+                                      {item.status === "rejected" && (
+                                        <DropdownMenuItem onClick={() => updateSubmissionStatus(item.id, "pending")}>
+                                          <RefreshCw className="h-4 w-4 mr-2" />
+                                          Unreject
+                                        </DropdownMenuItem>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="border-0 shadow-md">
+                <CardHeader>
+                  <CardTitle>Status Distribution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Pending</span>
+                      <span className="font-semibold">{stats.pending}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Approved</span>
+                      <span className="font-semibold">{stats.approved}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Rejected</span>
+                      <span className="font-semibold">{stats.rejected}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Listed on eBay</span>
+                      <span className="font-semibold">{stats.listedOnEbay}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-md">
+                <CardHeader>
+                  <CardTitle>Value Metrics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Total Value</span>
+                      <span className="font-semibold">${stats.totalValue.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Average Value</span>
+                      <span className="font-semibold">${Math.round(stats.avgValue).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Listed Value</span>
+                      <span className="font-semibold">
+                        $
+                        {submissions
+                          .filter((s) => isListedOnEbay(s))
+                          .reduce((sum, item) => sum + (item.estimated_price || 0), 0)
+                          .toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Item Details Dialog */}
       {selectedItem && (
         <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
-              <DialogTitle>{selectedItem.item_name}</DialogTitle>
+              <DialogTitle className="flex items-center gap-3">
+                {selectedItem.item_name}
+                <Badge variant={getEbayStatusVariant(selectedItem.ebay_status)} className="font-medium">
+                  {getEbayStatusDisplay(selectedItem.ebay_status)}
+                </Badge>
+              </DialogTitle>
               <DialogDescription>
                 Submitted by {selectedItem.full_name} on {new Date(selectedItem.submission_date).toLocaleDateString()} •{" "}
                 {itemImages.length} photos
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 flex-grow overflow-hidden">
-              <div className="space-y-4 overflow-y-auto">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-3">Images ({itemImages.length})</h3>
-                  {itemImages.length <= 3 ? (
-                    // For 3 or fewer images, show them in a single row
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {itemImages.map((url, index) => (
-                        <div
-                          key={index}
-                          className="relative aspect-square rounded-md overflow-hidden border bg-gray-100"
-                        >
-                          <Image
-                            src={url || "/placeholder.svg?height=300&width=300&text=No Image"}
-                            alt={`${selectedItem.item_name} - Image ${index + 1}`}
-                            fill
-                            className="object-cover hover:scale-105 transition-transform duration-200"
-                            onError={(e) => {
-                              console.error(
-                                `❌ Failed to load dialog image ${index + 1} for item ${selectedItem.id}:`,
-                                url,
-                              )
-                              e.currentTarget.src = "/placeholder.svg?height=300&width=300&text=No Image"
-                            }}
-                            onLoad={() => {
-                              console.log(
-                                `✅ Successfully loaded dialog image ${index + 1} for item ${selectedItem.id}`,
-                              )
-                            }}
-                          />
-                          <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                            {index + 1} of {itemImages.length}
-                          </div>
-                        </div>
-                      ))}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4 flex-grow overflow-hidden">
+              {/* Images Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-gray-700">Images ({itemImages.length})</h3>
+                <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+                  {itemImages.map((url, index) => (
+                    <div
+                      key={index}
+                      className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50"
+                    >
+                      <Image
+                        src={url || "/placeholder.svg"}
+                        alt={`${selectedItem.item_name} - Image ${index + 1}`}
+                        fill
+                        className="object-cover hover:scale-105 transition-transform duration-200"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg?height=200&width=200&text=No+Image"
+                        }}
+                      />
+                      <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                        {index + 1} of {itemImages.length}
+                      </div>
                     </div>
-                  ) : (
-                    // For more than 3 images, show them in a scrollable grid
-                    <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-                      {itemImages.map((url, index) => (
-                        <div
-                          key={index}
-                          className="relative aspect-square rounded-md overflow-hidden border bg-gray-100"
-                        >
-                          <Image
-                            src={url || "/placeholder.svg?height=200&width=200&text=No Image"}
-                            alt={`${selectedItem.item_name} - Image ${index + 1}`}
-                            fill
-                            className="object-cover hover:scale-105 transition-transform duration-200"
-                            onError={(e) => {
-                              console.error(
-                                `❌ Failed to load dialog image ${index + 1} for item ${selectedItem.id}:`,
-                                url,
-                              )
-                              e.currentTarget.src = "/placeholder.svg?height=200&width=200&text=No Image"
-                            }}
-                            onLoad={() => {
-                              console.log(
-                                `✅ Successfully loaded dialog image ${index + 1} for item ${selectedItem.id}`,
-                              )
-                            }}
-                          />
-                          <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                            {index + 1} of {itemImages.length}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Customer Information</h3>
-                  <div className="mt-1 text-sm">
-                    <p>
-                      <span className="font-medium">Name:</span> {selectedItem.full_name}
-                    </p>
-                    <p>
-                      <span className="font-medium">Email:</span> {selectedItem.email}
-                    </p>
-                    {selectedItem.phone && (
-                      <p>
-                        <span className="font-medium">Phone:</span> {selectedItem.phone}
-                      </p>
-                    )}
-                    {selectedItem.address && (
-                      <p>
-                        <span className="font-medium">Address:</span> {selectedItem.address}
-                      </p>
-                    )}
-                  </div>
+                  ))}
                 </div>
               </div>
 
+              {/* Details Section */}
               <ScrollArea className="h-[400px] pr-4">
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Item Details</h3>
-                    <div className="mt-1">
-                      <p>
-                        <span className="font-medium">Condition:</span> {selectedItem.item_condition}
-                      </p>
-                      <p>
-                        <span className="font-medium">Estimated Price:</span>{" "}
-                        {selectedItem.estimated_price
-                          ? `$${selectedItem.estimated_price.toLocaleString()}`
-                          : "Not estimated"}
-                      </p>
-                      <p>
-                        <span className="font-medium">Status:</span> {selectedItem.status}
-                      </p>
-                      <p>
-                        <span className="font-medium">Photos:</span> {itemImages.length}
-                      </p>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Item Details</h3>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Condition:</span>
+                        <Badge className={`${getConditionColor(selectedItem.item_condition)} border`}>
+                          {selectedItem.item_condition}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Estimated Price:</span>
+                        <span className="font-semibold">
+                          {selectedItem.estimated_price
+                            ? `$${selectedItem.estimated_price.toLocaleString()}`
+                            : "Not estimated"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Status:</span>
+                        <Badge className={`${getStatusColor(selectedItem.status)} border`}>
+                          {selectedItem.status.charAt(0).toUpperCase() + selectedItem.status.slice(1)}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">eBay Status:</span>
+                        <Badge variant={getEbayStatusVariant(selectedItem.ebay_status)}>
+                          {getEbayStatusDisplay(selectedItem.ebay_status)}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
 
+                  <Separator />
+
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Description</h3>
-                    <div className="mt-1 text-sm whitespace-pre-wrap bg-gray-50 p-3 rounded-md border">
-                      {selectedItem.item_description}
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Customer Information</h3>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback className="bg-slate-100">
+                            {selectedItem.full_name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{selectedItem.full_name}</div>
+                          <div className="text-gray-600">{selectedItem.email}</div>
+                        </div>
+                      </div>
+                      {selectedItem.phone && (
+                        <div className="text-gray-600">
+                          <span className="font-medium">Phone:</span> {selectedItem.phone}
+                        </div>
+                      )}
+                      {selectedItem.address && (
+                        <div className="text-gray-600">
+                          <span className="font-medium">Address:</span> {selectedItem.address}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Description</h3>
+                    <div className="text-sm whitespace-pre-wrap bg-slate-50 p-4 rounded-lg border">
+                      {selectedItem.item_description || "No description provided"}
                     </div>
                   </div>
 
                   {selectedItem.item_issues && (
-                    <div>
-                      <h3 className="text-sm font-medium text-red-500">Known Issues</h3>
-                      <div className="mt-1 text-sm whitespace-pre-wrap bg-red-50 p-3 rounded-md border border-red-100 text-red-800">
-                        {selectedItem.item_issues}
+                    <>
+                      <Separator />
+                      <div>
+                        <h3 className="text-sm font-semibold text-red-600 mb-3">Known Issues</h3>
+                        <div className="text-sm whitespace-pre-wrap bg-red-50 p-4 rounded-lg border border-red-200 text-red-800">
+                          {selectedItem.item_issues}
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
               </ScrollArea>
             </div>
 
-            <DialogFooter>
-              {selectedItem && !isListedOnEbay(selectedItem) && (
+            <DialogFooter className="gap-3">
+              {!isListedOnEbay(selectedItem) && (
                 <Button
                   onClick={() => {
                     listItemOnEbay(selectedItem.id)
                     setSelectedItem(null)
                   }}
-                  disabled={listingLoading === selectedItem?.id}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={listingLoading === selectedItem.id}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                 >
-                  {listingLoading === selectedItem?.id ? (
+                  {listingLoading === selectedItem.id ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       Listing on eBay...
@@ -1091,31 +1205,28 @@ export default function AdminDashboard() {
                   )}
                 </Button>
               )}
-              {selectedItem && isListedOnEbay(selectedItem) && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="border-green-500 text-green-500 py-2 px-4">
-                    {getEbayStatusDisplay(selectedItem)}
-                  </Badge>
-                  <Button
-                    onClick={() => {
-                      unlistItemFromEbay(selectedItem.id)
-                      setSelectedItem(null)
-                    }}
-                    disabled={unlistingLoading === selectedItem?.id}
-                    variant="outline"
-                    className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                  >
-                    {unlistingLoading === selectedItem?.id ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Unlisting...
-                      </>
-                    ) : (
-                      "Unlist from eBay"
-                    )}
-                  </Button>
-                </div>
+
+              {isListedOnEbay(selectedItem) && (
+                <Button
+                  onClick={() => {
+                    unlistItemFromEbay(selectedItem.id)
+                    setSelectedItem(null)
+                  }}
+                  disabled={unlistingLoading === selectedItem.id}
+                  variant="outline"
+                  className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white"
+                >
+                  {unlistingLoading === selectedItem.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Unlisting...
+                    </>
+                  ) : (
+                    "Unlist from eBay"
+                  )}
+                </Button>
               )}
+
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
               </DialogClose>
