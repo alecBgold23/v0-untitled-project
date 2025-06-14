@@ -173,6 +173,46 @@ export default function AdminDashboard() {
     }
   }
 
+  // Unlist item from eBay
+  const unlistFromEbay = async (id: string) => {
+    try {
+      setActionLoading(id)
+
+      const response = await fetch("/api/unlist-ebay-item", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to unlist from eBay")
+      }
+
+      // Update local state
+      setSubmissions((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                status: "approved",
+                listed_on_ebay: false,
+                ebay_listing_id: null,
+              }
+            : item,
+        ),
+      )
+
+      alert("Successfully unlisted from eBay!")
+    } catch (err) {
+      console.error("Error unlisting from eBay:", err)
+      alert("Failed to unlist from eBay: " + (err instanceof Error ? err.message : "Unknown error"))
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   // Get first image URL
   const getFirstImageUrl = (imageData: string | string[] | null): string => {
     if (!imageData) return "/placeholder.svg?height=80&width=80&text=No+Image"
@@ -382,7 +422,20 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
-                          {item.status !== "listed" && (
+                          {item.status === "listed" ? (
+                            <div className="flex gap-2">
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border border-green-300">
+                                Listed on eBay
+                              </span>
+                              <button
+                                onClick={() => unlistFromEbay(item.id)}
+                                disabled={actionLoading === item.id}
+                                className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
+                              >
+                                {actionLoading === item.id ? "Unlisting..." : "Unlist"}
+                              </button>
+                            </div>
+                          ) : (
                             <button
                               onClick={() => listOnEbay(item.id)}
                               disabled={actionLoading === item.id}
@@ -498,7 +551,23 @@ export default function AdminDashboard() {
             </div>
 
             <div className="p-6 border-t border-gray-200 flex justify-end gap-2">
-              {selectedItem.status !== "listed" && (
+              {selectedItem.status === "listed" ? (
+                <div className="flex gap-2">
+                  <span className="inline-flex px-3 py-2 text-sm font-semibold rounded bg-green-100 text-green-800 border border-green-300">
+                    Listed on eBay
+                  </span>
+                  <button
+                    onClick={() => {
+                      unlistFromEbay(selectedItem.id)
+                      setSelectedItem(null)
+                    }}
+                    disabled={actionLoading === selectedItem.id}
+                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {actionLoading === selectedItem.id ? "Unlisting..." : "Unlist from eBay"}
+                  </button>
+                </div>
+              ) : (
                 <button
                   onClick={() => {
                     listOnEbay(selectedItem.id)
