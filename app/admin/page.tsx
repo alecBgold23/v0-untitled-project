@@ -16,6 +16,7 @@ interface ItemSubmission {
   phone: string | null
   address: string | null
   status: "pending" | "approved" | "rejected" | "listed"
+  ebay_status: string | null // Primary field for eBay listing status
   submission_date: string
   image_url: string | string[] | null
   estimated_price: number | null
@@ -64,6 +65,17 @@ export default function AdminDashboard() {
     if (typeof window !== "undefined") {
       localStorage.removeItem("adminAuthenticated")
     }
+  }
+
+  // Helper function to check if item is listed on eBay
+  const isListedOnEbay = (item: ItemSubmission): boolean => {
+    return item.ebay_status === "listed" || item.ebay_status === "active"
+  }
+
+  // Helper function to get eBay status display
+  const getEbayStatusDisplay = (item: ItemSubmission): string => {
+    if (!item.ebay_status) return "Not Listed"
+    return item.ebay_status.charAt(0).toUpperCase() + item.ebay_status.slice(1)
   }
 
   // Fetch submissions
@@ -150,13 +162,13 @@ export default function AdminDashboard() {
         throw new Error(result.error || "Failed to list on eBay")
       }
 
-      // Update local state
+      // Update local state - now using ebay_status as primary indicator
       setSubmissions((prev) =>
         prev.map((item) =>
           item.id === id
             ? {
                 ...item,
-                status: "listed",
+                ebay_status: "listed", // Primary status field
                 listed_on_ebay: true,
                 ebay_listing_id: result.listingId,
               }
@@ -190,13 +202,13 @@ export default function AdminDashboard() {
         throw new Error(result.error || "Failed to unlist from eBay")
       }
 
-      // Update local state
+      // Update local state - now using ebay_status as primary indicator
       setSubmissions((prev) =>
         prev.map((item) =>
           item.id === id
             ? {
                 ...item,
-                status: "approved",
+                ebay_status: "unlisted", // Primary status field
                 listed_on_ebay: false,
                 ebay_listing_id: null,
               }
@@ -243,6 +255,20 @@ export default function AdminDashboard() {
       listed: "bg-blue-100 text-blue-800 border-blue-300",
     }
     return styles[status as keyof typeof styles] || "bg-gray-100 text-gray-800 border-gray-300"
+  }
+
+  // Get eBay status badge style
+  const getEbayStatusStyle = (ebayStatus: string | null) => {
+    if (!ebayStatus) return "bg-gray-100 text-gray-800 border-gray-300"
+
+    const styles = {
+      listed: "bg-green-100 text-green-800 border-green-300",
+      active: "bg-green-100 text-green-800 border-green-300",
+      unlisted: "bg-red-100 text-red-800 border-red-300",
+      ended: "bg-yellow-100 text-yellow-800 border-yellow-300",
+      sold: "bg-blue-100 text-blue-800 border-blue-300",
+    }
+    return styles[ebayStatus.toLowerCase() as keyof typeof styles] || "bg-gray-100 text-gray-800 border-gray-300"
   }
 
   // Password protection screen
@@ -296,12 +322,12 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <main className="p-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        {/* Stats Cards - Updated to use ebay_status for eBay-related stats */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           {[
             { label: "Total", count: submissions.length, color: "bg-blue-600" },
             {
-              label: "Pending",
+              label: "Pending Review",
               count: submissions.filter((s) => s.status === "pending").length,
               color: "bg-yellow-600",
             },
@@ -310,7 +336,16 @@ export default function AdminDashboard() {
               count: submissions.filter((s) => s.status === "approved").length,
               color: "bg-green-600",
             },
-            { label: "Listed", count: submissions.filter((s) => s.status === "listed").length, color: "bg-purple-600" },
+            {
+              label: "Listed on eBay",
+              count: submissions.filter((s) => isListedOnEbay(s)).length,
+              color: "bg-purple-600",
+            },
+            {
+              label: "Not Listed",
+              count: submissions.filter((s) => !isListedOnEbay(s)).length,
+              color: "bg-gray-600",
+            },
           ].map((stat) => (
             <div key={stat.label} className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
@@ -364,7 +399,10 @@ export default function AdminDashboard() {
                       Customer
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                      Review Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      eBay Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Price
@@ -414,6 +452,13 @@ export default function AdminDashboard() {
                           {item.status}
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getEbayStatusStyle(item.ebay_status)}`}
+                        >
+                          {getEbayStatusDisplay(item)}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {item.estimated_price ? `$${item.estimated_price.toLocaleString()}` : "—"}
                       </td>
@@ -422,7 +467,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
-                          {item.status === "listed" ? (
+                          {isListedOnEbay(item) ? (
                             <div className="flex gap-2">
                               <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border border-green-300">
                                 Listed on eBay
@@ -528,7 +573,8 @@ export default function AdminDashboard() {
                         ? `$${selectedItem.estimated_price.toLocaleString()}`
                         : "Not estimated"}
                     </p>
-                    <p className="text-sm text-gray-600">Status: {selectedItem.status}</p>
+                    <p className="text-sm text-gray-600">Review Status: {selectedItem.status}</p>
+                    <p className="text-sm text-gray-600">eBay Status: {getEbayStatusDisplay(selectedItem)}</p>
                   </div>
                 </div>
               </div>
@@ -551,7 +597,7 @@ export default function AdminDashboard() {
             </div>
 
             <div className="p-6 border-t border-gray-200 flex justify-end gap-2">
-              {selectedItem.status === "listed" ? (
+              {isListedOnEbay(selectedItem) ? (
                 <div className="flex gap-2">
                   <span className="inline-flex px-3 py-2 text-sm font-semibold rounded bg-green-100 text-green-800 border border-green-300">
                     Listed on eBay
