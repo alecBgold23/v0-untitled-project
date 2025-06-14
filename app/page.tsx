@@ -990,68 +990,68 @@ export default function Home() {
       </section>
 
       <style jsx global>{`
-       @keyframes shimmer {
-         0% {
-           transform: translateX(-100%);
-           opacity: 0;
-         }
-         10% {
-           opacity: 0.5;
-         }
-         50% {
-           opacity: 0.8;
-         }
-         90% {
-           opacity: 0.5;
-         }
-         100% {
-           transform: translateX(100%);
-           opacity: 0;
-         }
-       }
-       
-       .shimmer {
-         animation: shimmer 2.5s infinite;
-       }
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          10% {
+            opacity: 0.5;
+          }
+          50% {
+            opacity: 0.8;
+          }
+          90% {
+            opacity: 0.5;
+          }
+          100% {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+        }
+        
+        .shimmer {
+          animation: shimmer 2.5s infinite;
+        }
 
-       @keyframes lineWipe {
-         0% {
-           transform: scaleX(0);
-           transform-origin: left;
-           opacity: 0.7;
-         }
-         100% {
-           transform: scaleX(1);
-           transform-origin: left;
-           opacity: 1;
-         }
-       }
-       
-       .animate-line-wipe {
-         animation: lineWipe 800ms cubic-bezier(0.25, 0.1, 0.25, 1.0) forwards;
-       }
+        @keyframes lineWipe {
+          0% {
+            transform: scaleX(0);
+            transform-origin: left;
+            opacity: 0.7;
+          }
+          100% {
+            transform: scaleX(1);
+            transform-origin: left;
+            opacity: 1;
+          }
+        }
+        
+        .animate-line-wipe {
+          animation: lineWipe 800ms cubic-bezier(0.25, 0.1, 0.25, 1.0) forwards;
+        }
 
-       .content-animation-wrapper {
-         will-change: transform, opacity;
-       }
-       
-       .shadow-section {
-         box-shadow: 
-           0 -20px 25px -5px rgba(0, 0, 0, 0.1),
-           0 -10px 10px -5px rgba(0, 0, 0, 0.05);
-         transition: box-shadow 0.5s ease-out;
-       }
+        .content-animation-wrapper {
+          will-change: transform, opacity;
+        }
+        
+        .shadow-section {
+          box-shadow: 
+            0 -20px 25px -5px rgba(0, 0, 0, 0.1),
+            0 -10px 10px -5px rgba(0, 0, 0, 0.05);
+          transition: box-shadow 0.5s ease-out;
+        }
 
-       /* Add smooth transitions for all interactive elements */
-       a, button, .cursor-pointer {
-         transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1.0) !important;
-       }
+        /* Add smooth transitions for all interactive elements */
+        a, button, .cursor-pointer {
+          transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1.0) !important;
+        }
 
-       /* Smooth page transitions */
-       .page-transition-wrapper {
-         transition: opacity 0.3s ease-out;
-       }
-     `}</style>
+        /* Smooth page transitions */
+        .page-transition-wrapper {
+          transition: opacity 0.3s ease-out;
+        }
+      `}</style>
     </div>
   )
 }
