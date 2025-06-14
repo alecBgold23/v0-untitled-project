@@ -385,13 +385,35 @@ export async function POST(request: Request) {
 
     console.log(`🎯 Using ${ebayOptimizedImageUrls.length} eBay-optimized square images for listing`)
 
-    // Prepare aspects for inventory item product
-    const aspects: Record<string, string[]> = {
-      Condition: [submission.item_condition || "Used"],
-      Brand: [brand],
-      Model: [submission.item_name],
-      Type: ["ExampleType"],
-    }
+    /// Prepare aspects for inventory item product
+const aspects: Record<string, string[]> = {}
+
+for (const aspect of requiredAspects) {
+  const name = aspect.aspectName
+  const localizedValues = aspect.aspectValues.map((v: any) => v.localizedValue.toLowerCase())
+
+  let matchedValue = null
+
+  if (name.toLowerCase() === "brand") {
+    matchedValue = brand
+  } else if (name.toLowerCase() === "condition") {
+    matchedValue = submission.item_condition || "Used"
+  } else if (name.toLowerCase() === "model") {
+    matchedValue = submission.item_name
+  } else {
+    // Try to auto-match from item name or description
+    const combinedText = `${submission.item_name} ${submission.item_description}`.toLowerCase()
+    matchedValue = localizedValues.find((val: string) => combinedText.includes(val))
+  }
+
+  if (matchedValue) {
+    aspects[name] = [matchedValue]
+    console.log(`🧩 Matched aspect "${name}": ${matchedValue}`)
+  } else {
+    console.warn(`⚠️ No match for required aspect: ${name}, defaulting to "Not Specified"`)
+    aspects[name] = ["Not Specified"]
+  }
+}
 
     // DESCRIPTION PROCESSING - Enhanced with detailed logging
     console.log("📝 DESCRIPTION PROCESSING:")
