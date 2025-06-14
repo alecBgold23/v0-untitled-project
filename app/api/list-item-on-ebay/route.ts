@@ -390,7 +390,10 @@ const aspects: Record<string, string[]> = {}
 
 for (const aspect of requiredAspects) {
   const name = aspect.aspectName
-  const localizedValues = aspect.aspectValues.map((v: any) => v.localizedValue.toLowerCase())
+  const localizedValues = (aspect.aspectValues || [])
+  .map((v: any) => v?.localizedValue?.toLowerCase?.())
+  .filter((v: string | undefined): v is string => typeof v === "string")
+
 
   let matchedValue = null
 
