@@ -3,7 +3,6 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { createClient } from "@supabase/supabase-js"
 
 // Simple types
 interface ItemSubmission {
@@ -25,6 +24,102 @@ interface ItemSubmission {
   listed_on_ebay: boolean | null
 }
 
+// Demo data for preview
+const DEMO_SUBMISSIONS: ItemSubmission[] = [
+  {
+    id: "1",
+    item_name: "iPhone 14 Pro Max",
+    item_description:
+      "Excellent condition iPhone 14 Pro Max, 256GB, Space Black. Minor scratches on the back but screen is perfect.",
+    item_issues: "Small scratch on back camera",
+    full_name: "John Smith",
+    email: "john.smith@email.com",
+    phone: "+1 (555) 123-4567",
+    address: "123 Main St, New York, NY 10001",
+    status: "approved",
+    ebay_status: "listed",
+    submission_date: "2024-01-15T10:30:00Z",
+    image_url: "/placeholder.svg?height=300&width=300&text=iPhone+14+Pro",
+    estimated_price: 899,
+    item_condition: "Excellent",
+    ebay_listing_id: "123456789",
+    listed_on_ebay: true,
+  },
+  {
+    id: "2",
+    item_name: "MacBook Air M2",
+    item_description: "2022 MacBook Air with M2 chip, 8GB RAM, 256GB SSD. Used for light work, excellent performance.",
+    item_issues: null,
+    full_name: "Sarah Johnson",
+    email: "sarah.j@email.com",
+    phone: "+1 (555) 987-6543",
+    address: "456 Oak Ave, Los Angeles, CA 90210",
+    status: "pending",
+    ebay_status: null,
+    submission_date: "2024-01-14T14:20:00Z",
+    image_url: "/placeholder.svg?height=300&width=300&text=MacBook+Air",
+    estimated_price: 1099,
+    item_condition: "Like New",
+    ebay_listing_id: null,
+    listed_on_ebay: false,
+  },
+  {
+    id: "3",
+    item_name: "iPad Pro 12.9 inch",
+    item_description: "iPad Pro with Apple Pencil and Magic Keyboard. Perfect for creative work and productivity.",
+    item_issues: "Minor wear on corners",
+    full_name: "Mike Davis",
+    email: "mike.davis@email.com",
+    phone: "+1 (555) 456-7890",
+    address: "789 Pine St, Chicago, IL 60601",
+    status: "approved",
+    ebay_status: "processing",
+    submission_date: "2024-01-13T09:15:00Z",
+    image_url: "/placeholder.svg?height=300&width=300&text=iPad+Pro",
+    estimated_price: 799,
+    item_condition: "Good",
+    ebay_listing_id: null,
+    listed_on_ebay: false,
+  },
+  {
+    id: "4",
+    item_name: "Sony WH-1000XM4 Headphones",
+    item_description: "Premium noise-canceling headphones in excellent condition. Includes original case and cables.",
+    item_issues: null,
+    full_name: "Emily Chen",
+    email: "emily.chen@email.com",
+    phone: "+1 (555) 321-0987",
+    address: "321 Elm St, Seattle, WA 98101",
+    status: "rejected",
+    ebay_status: null,
+    submission_date: "2024-01-12T16:45:00Z",
+    image_url: "/placeholder.svg?height=300&width=300&text=Sony+Headphones",
+    estimated_price: 249,
+    item_condition: "Excellent",
+    ebay_listing_id: null,
+    listed_on_ebay: false,
+  },
+  {
+    id: "5",
+    item_name: "Nintendo Switch OLED",
+    item_description:
+      "Nintendo Switch OLED model with Joy-Con controllers. Includes dock and all original accessories.",
+    item_issues: "Joy-Con drift on left controller",
+    full_name: "Alex Rodriguez",
+    email: "alex.r@email.com",
+    phone: "+1 (555) 654-3210",
+    address: "654 Maple Dr, Austin, TX 73301",
+    status: "approved",
+    ebay_status: "unlisted",
+    submission_date: "2024-01-11T11:30:00Z",
+    image_url: "/placeholder.svg?height=300&width=300&text=Nintendo+Switch",
+    estimated_price: 299,
+    item_condition: "Good",
+    ebay_listing_id: "987654321",
+    listed_on_ebay: false,
+  },
+]
+
 export default function AdminDashboard() {
   const [submissions, setSubmissions] = useState<ItemSubmission[]>([])
   const [loading, setLoading] = useState(true)
@@ -34,16 +129,34 @@ export default function AdminDashboard() {
   const [passwordError, setPasswordError] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<ItemSubmission | null>(null)
+  const [isPreviewMode, setIsPreviewMode] = useState(false)
 
-  // Check authentication on mount
+  // Check if we're in preview mode (no environment variables)
   useEffect(() => {
+    const hasSupabaseConfig =
+      typeof process !== "undefined" &&
+      process.env?.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!hasSupabaseConfig) {
+      setIsPreviewMode(true)
+      setIsAuthenticated(true) // Auto-authenticate in preview
+      setSubmissions(DEMO_SUBMISSIONS)
+      setLoading(false)
+    }
+  }, [])
+
+  // Check authentication on mount (only in production)
+  useEffect(() => {
+    if (isPreviewMode) return
+
     if (typeof window !== "undefined") {
       const authStatus = localStorage.getItem("adminAuthenticated")
       if (authStatus === "true") {
         setIsAuthenticated(true)
       }
     }
-  }, [])
+  }, [isPreviewMode])
 
   // Handle password authentication
   const handlePasswordSubmit = (e: React.FormEvent) => {
@@ -78,14 +191,17 @@ export default function AdminDashboard() {
     return item.ebay_status.charAt(0).toUpperCase() + item.ebay_status.slice(1)
   }
 
-  // Fetch submissions
+  // Fetch submissions (only in production)
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated || isPreviewMode) return
 
     const fetchSubmissions = async () => {
       try {
         setLoading(true)
         setError(null)
+
+        // Dynamic import to avoid build errors in preview
+        const { createClient } = await import("@supabase/supabase-js")
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -114,13 +230,20 @@ export default function AdminDashboard() {
     }
 
     fetchSubmissions()
-  }, [isAuthenticated])
+  }, [isAuthenticated, isPreviewMode])
 
   // Update submission status
   const updateStatus = async (id: string, newStatus: "pending" | "approved" | "rejected" | "listed") => {
+    if (isPreviewMode) {
+      // Demo mode - just update local state
+      setSubmissions((prev) => prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item)))
+      return
+    }
+
     try {
       setActionLoading(id)
 
+      const { createClient } = await import("@supabase/supabase-js")
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -147,6 +270,28 @@ export default function AdminDashboard() {
 
   // List item on eBay
   const listOnEbay = async (id: string) => {
+    if (isPreviewMode) {
+      // Demo mode - simulate listing
+      setActionLoading(id)
+      setTimeout(() => {
+        setSubmissions((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  ebay_status: "listed",
+                  listed_on_ebay: true,
+                  ebay_listing_id: "demo-" + Date.now(),
+                }
+              : item,
+          ),
+        )
+        setActionLoading(null)
+        alert("Successfully listed on eBay! (Demo Mode)")
+      }, 2000)
+      return
+    }
+
     try {
       setActionLoading(id)
 
@@ -162,13 +307,13 @@ export default function AdminDashboard() {
         throw new Error(result.error || "Failed to list on eBay")
       }
 
-      // Update local state - now using ebay_status as primary indicator
+      // Update local state
       setSubmissions((prev) =>
         prev.map((item) =>
           item.id === id
             ? {
                 ...item,
-                ebay_status: "listed", // Primary status field
+                ebay_status: "listed",
                 listed_on_ebay: true,
                 ebay_listing_id: result.listingId,
               }
@@ -187,6 +332,28 @@ export default function AdminDashboard() {
 
   // Unlist item from eBay
   const unlistFromEbay = async (id: string) => {
+    if (isPreviewMode) {
+      // Demo mode - simulate unlisting
+      setActionLoading(id)
+      setTimeout(() => {
+        setSubmissions((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  ebay_status: "unlisted",
+                  listed_on_ebay: false,
+                  ebay_listing_id: null,
+                }
+              : item,
+          ),
+        )
+        setActionLoading(null)
+        alert("Successfully unlisted from eBay! (Demo Mode)")
+      }, 2000)
+      return
+    }
+
     try {
       setActionLoading(id)
 
@@ -202,13 +369,13 @@ export default function AdminDashboard() {
         throw new Error(result.error || "Failed to unlist from eBay")
       }
 
-      // Update local state - now using ebay_status as primary indicator
+      // Update local state
       setSubmissions((prev) =>
         prev.map((item) =>
           item.id === id
             ? {
                 ...item,
-                ebay_status: "unlisted", // Primary status field
+                ebay_status: "unlisted",
                 listed_on_ebay: false,
                 ebay_listing_id: null,
               }
@@ -272,8 +439,8 @@ export default function AdminDashboard() {
     return styles[ebayStatus.toLowerCase() as keyof typeof styles] || "bg-gray-100 text-gray-800 border-gray-300"
   }
 
-  // Password protection screen
-  if (!isAuthenticated) {
+  // Password protection screen (skip in preview mode)
+  if (!isAuthenticated && !isPreviewMode) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
@@ -308,22 +475,54 @@ export default function AdminDashboard() {
       {/* Header */}
       <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
+            {isPreviewMode && (
+              <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">Preview Mode</span>
+            )}
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-gray-300 text-sm">{submissions.length} total submissions</span>
-            <button
-              onClick={handleLogout}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Logout
-            </button>
+            {!isPreviewMode && (
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Logout
+              </button>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="p-6">
-        {/* Stats Cards - Updated to use ebay_status for eBay-related stats */}
+        {/* Preview Mode Notice */}
+        {isPreviewMode && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800">Preview Mode Active</h3>
+                <div className="mt-2 text-sm text-blue-700">
+                  <p>
+                    You're viewing demo data. In production, this would connect to your Supabase database and eBay API.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           {[
             { label: "Total", count: submissions.length, color: "bg-blue-600" },
