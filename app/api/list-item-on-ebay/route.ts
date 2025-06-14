@@ -388,14 +388,24 @@ export async function POST(request: Request) {
     // Dynamically build aspects object with required aspects
     const aspects: Record<string, string[]> = {}
 
+    // Always start with basic required aspects
+    aspects.Condition = [submission.item_condition || "Used"]
+    aspects.Brand = [brand]
+    aspects.Model = [submission.item_name]
+
+    // Add additional required aspects from eBay category
     for (const aspect of requiredAspects) {
       const aspectName = aspect.aspectName
       const possibleValues = aspect.aspectValues?.map((v: any) => v.valueName) || []
 
+      // Skip if we already have this aspect
+      if (aspects[aspectName]) {
+        continue
+      }
+
       // Fill in based on aspect name:
       switch (aspectName.toLowerCase()) {
         case "condition":
-          // Use normalized condition or default
           aspects[aspectName] = [submission.item_condition || "Used"]
           break
         case "brand":
@@ -404,12 +414,22 @@ export async function POST(request: Request) {
         case "model":
           aspects[aspectName] = [submission.item_name]
           break
-        // For other aspects, try to select a sensible value or fallback to "Not Specified"
-        default:
+        case "type":
+          // Try to infer type from item name or use "Not Specified"
           if (possibleValues.includes("Not Specified")) {
             aspects[aspectName] = ["Not Specified"]
           } else if (possibleValues.length > 0) {
-            aspects[aspectName] = [possibleValues[0]] // pick first available as fallback
+            aspects[aspectName] = [possibleValues[0]]
+          } else {
+            aspects[aspectName] = ["Not Specified"]
+          }
+          break
+        default:
+          // For other aspects, try to select a sensible value
+          if (possibleValues.includes("Not Specified")) {
+            aspects[aspectName] = ["Not Specified"]
+          } else if (possibleValues.length > 0) {
+            aspects[aspectName] = [possibleValues[0]]
           } else {
             aspects[aspectName] = ["Not Specified"]
           }
@@ -417,13 +437,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // If for some reason no required aspects returned, fallback to minimal static aspects
-    if (Object.keys(aspects).length === 0) {
-      aspects.Condition = [submission.item_condition || "Used"]
-      aspects.Brand = [brand]
-      aspects.Model = [submission.item_name]
-      aspects.Type = ["Not Specified"]
-    }
+    console.log("📋 Final aspects for eBay listing:", JSON.stringify(aspects, null, 2))
 
     // DESCRIPTION PROCESSING - Enhanced with detailed logging
     console.log("📝 DESCRIPTION PROCESSING:")
@@ -472,84 +486,36 @@ export async function POST(request: Request) {
           value: 2.0,
           unit: "POUND",
         },
+        dimensions: {
+          length: 12.0,
+          width: 12.0,
+          height: 8.0,
+          unit: "INCH",
+        },
       },
     }
 
     // Validate env vars for policies and location
-    const {
-      EBAY_FULFILLMENT_POLICY_ID,
-      EBAY_RETURN_POLICY_ID,
-      EBAY_PAYMENT_POLICY_ID,
-      EBAY_LOCATION_COUNTRY,
-      EBAY_LOCATION_POSTAL_CODE,
-    } = process.env
-
-    if (!EBAY_FULFILLMENT_POLICY_ID || !EBAY_RETURN_POLICY_ID || !EBAY_PAYMENT_POLICY_ID || !EBAY_LOCATION_COUNTRY || !EBAY_LOCATION_POSTAL_CODE) {
-      console.error("❌ Missing required eBay environment variables for policies or location")
-      return NextResponse.json({ error: "Missing required eBay policy or location environment variables" }, { status: 500 })
-    }
-
-    // Step 1: Create or replace inventory item
-    console.log(`📦 Creating or replacing inventory item for SKU: ${sku}`)
-
-    const createItemRes = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(inventoryItem),
-    })
-
-    const putText = await putResponse.text()
-    console.log("📩 Raw PUT inventory response:", putText)
-    console.log("📩 PUT inventory response status:", putResponse.status, putResponse.statusText)
-
-    if (!putResponse.ok) {
-      console.error("❌ PUT inventory item creation failed:", {
-        status: putResponse.status,
-        statusText: putResponse.statusText,
-        response: putText,
-      })
-
-      // Update status to failed if listing process fails
-      const { error: failedUpdateError } = await supabase
-        .from("sell_items")
-        .update({
-          status: "approved", // Reset to approved so it can be retried
-          ebay_status: "failed",
-          listing_error: putText || "Unknown error",
-        })
-        .eq("id", id)
-
-      if (failedUpdateError) {
-        console.warn("⚠️ Failed to update failed listing status:", failedUpdateError)
-      }
-
-      return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
-    }
-
-    console.log("✅ Inventory item created with optimized square images")
-
     const requiredEnvVars = {
-      fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
-      paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID,
-      returnPolicyId: process.env.EBAY_RETURN_POLICY_ID,
-      locationKey: process.env.EBAY_LOCATION_KEY,
+      EBAY_FULFILLMENT_POLICY_ID: process.env.EBAY_FULFILLMENT_POLICY_ID,
+      EBAY_RETURN_POLICY_ID: process.env.EBAY_RETURN_POLICY_ID,
+      EBAY_PAYMENT_POLICY_ID: process.env.EBAY_PAYMENT_POLICY_ID,
+      EBAY_LOCATION_COUNTRY: process.env.EBAY_LOCATION_COUNTRY,
+      EBAY_LOCATION_POSTAL_CODE: process.env.EBAY_LOCATION_POSTAL_CODE,
+      EBAY_LOCATION_KEY: process.env.EBAY_LOCATION_KEY,
     }
 
-    console.log("🔑 Checking required eBay environment variables:")
+    console.log("🔑 Validating required eBay environment variables:")
     for (const [key, value] of Object.entries(requiredEnvVars)) {
       if (!value) {
-        console.error(`❌ Missing environment variable: EBAY_${key.toUpperCase()}`)
+        console.error(`❌ Missing environment variable: ${key}`)
 
-        // Update status to failed if listing process fails
         const { error: failedUpdateError } = await supabase
           .from("sell_items")
           .update({
-            status: "approved", // Reset to approved so it can be retried
+            status: "approved",
             ebay_status: "failed",
-            listing_error: `Missing required eBay configuration: ${key}` || "Unknown error",
+            listing_error: `Missing required eBay configuration: ${key}`,
           })
           .eq("id", id)
 
@@ -559,7 +525,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ error: `Missing required eBay configuration: ${key}` }, { status: 500 })
       }
-      console.log(`✅ Found EBAY_${key.toUpperCase()}: ${value.substring(0, 5)}...`)
+      console.log(`✅ Found ${key}: ${value.substring(0, 5)}...`)
     }
 
     const rawPrice = submission.estimated_price
@@ -619,9 +585,9 @@ export async function POST(request: Request) {
       conditionDescription: conditionNote, // ✅ This appears right under the condition section
       listingDescription: listingDescription, // ✅ ADDED BACK: Required by eBay
       listingPolicies: {
-        fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
-        paymentPolicyId: requiredEnvVars.paymentPolicyId,
-        returnPolicyId: requiredEnvVars.returnPolicyId,
+        fulfillmentPolicyId: requiredEnvVars.EBAY_FULFILLMENT_POLICY_ID,
+        paymentPolicyId: requiredEnvVars.EBAY_PAYMENT_POLICY_ID,
+        returnPolicyId: requiredEnvVars.EBAY_RETURN_POLICY_ID,
       },
       pricingSummary: {
         price: {
@@ -629,7 +595,7 @@ export async function POST(request: Request) {
           currency: "USD",
         },
       },
-      merchantLocationKey: requiredEnvVars.locationKey,
+      merchantLocationKey: requiredEnvVars.EBAY_LOCATION_KEY,
       itemSpecifics,
     }
 
