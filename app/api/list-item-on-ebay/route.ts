@@ -385,12 +385,44 @@ export async function POST(request: Request) {
 
     console.log(`🎯 Using ${ebayOptimizedImageUrls.length} eBay-optimized square images for listing`)
 
-    // Prepare aspects for inventory item product
-    const aspects: Record<string, string[]> = {
-      Condition: [submission.item_condition || "Used"],
-      Brand: [brand],
-      Model: [submission.item_name],
-      Type: ["ExampleType"],
+    // Dynamically build aspects object with required aspects
+    const aspects: Record<string, string[]> = {}
+
+    for (const aspect of requiredAspects) {
+      const aspectName = aspect.aspectName
+      const possibleValues = aspect.aspectValues?.map((v: any) => v.valueName) || []
+
+      // Fill in based on aspect name:
+      switch (aspectName.toLowerCase()) {
+        case "condition":
+          // Use normalized condition or default
+          aspects[aspectName] = [submission.item_condition || "Used"]
+          break
+        case "brand":
+          aspects[aspectName] = [brand]
+          break
+        case "model":
+          aspects[aspectName] = [submission.item_name]
+          break
+        // For other aspects, try to select a sensible value or fallback to "Not Specified"
+        default:
+          if (possibleValues.includes("Not Specified")) {
+            aspects[aspectName] = ["Not Specified"]
+          } else if (possibleValues.length > 0) {
+            aspects[aspectName] = [possibleValues[0]] // pick first available as fallback
+          } else {
+            aspects[aspectName] = ["Not Specified"]
+          }
+          break
+      }
+    }
+
+    // If for some reason no required aspects returned, fallback to minimal static aspects
+    if (Object.keys(aspects).length === 0) {
+      aspects.Condition = [submission.item_condition || "Used"]
+      aspects.Brand = [brand]
+      aspects.Model = [submission.item_name]
+      aspects.Type = ["Not Specified"]
     }
 
     // DESCRIPTION PROCESSING - Enhanced with detailed logging
@@ -440,25 +472,31 @@ export async function POST(request: Request) {
           value: 2.0,
           unit: "POUND",
         },
-        dimensions: {
-          length: 10,
-          width: 7,
-          height: 3,
-          unit: "INCH",
-        },
       },
     }
 
-    console.log("📦 Creating inventory item with eBay-optimized square images...")
-    console.log("📦 Inventory item payload:", JSON.stringify(inventoryItem, null, 2))
+    // Validate env vars for policies and location
+    const {
+      EBAY_FULFILLMENT_POLICY_ID,
+      EBAY_RETURN_POLICY_ID,
+      EBAY_PAYMENT_POLICY_ID,
+      EBAY_LOCATION_COUNTRY,
+      EBAY_LOCATION_POSTAL_CODE,
+    } = process.env
 
-    const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
+    if (!EBAY_FULFILLMENT_POLICY_ID || !EBAY_RETURN_POLICY_ID || !EBAY_PAYMENT_POLICY_ID || !EBAY_LOCATION_COUNTRY || !EBAY_LOCATION_POSTAL_CODE) {
+      console.error("❌ Missing required eBay environment variables for policies or location")
+      return NextResponse.json({ error: "Missing required eBay policy or location environment variables" }, { status: 500 })
+    }
+
+    // Step 1: Create or replace inventory item
+    console.log(`📦 Creating or replacing inventory item for SKU: ${sku}`)
+
+    const createItemRes = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
       method: "PUT",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        "Content-Language": "en-US",
-        "Accept-Language": "en-US",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(inventoryItem),
     })
