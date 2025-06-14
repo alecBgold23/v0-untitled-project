@@ -50,7 +50,7 @@ export interface ItemSubmission {
   item_description: string
   item_issues: string | null
   full_name: string
-  email: string
+  email: string | null
   phone: string | null
   address: string | null
   pickup_date: string | null
@@ -58,11 +58,13 @@ export interface ItemSubmission {
   status: SubmissionStatus
   submission_date: string
   image_path: string | null
-  image_url: string[] | null // Changed from string to string[] or null
+  image_url: string[] | null
   estimated_price: number | null
   item_condition: "Like New" | "Excellent" | "Good" | "Fair" | "Poor"
   ebay_listing_id: string | null
   ebay_offer_id: string | null
+  ebay_sku: string | null
+  ebay_status: string | null // Primary field for eBay listing status
   listed_on_ebay: boolean | null
 }
 
@@ -276,6 +278,7 @@ export default function AdminDashboard() {
             ? {
                 ...submission,
                 status: "listed",
+                ebay_status: "listed", // Update ebay_status
                 ebay_listing_id: result.listingId,
                 ebay_offer_id: result.ebay_offer_id,
                 listed_on_ebay: true,
@@ -357,7 +360,8 @@ export default function AdminDashboard() {
           submission.id === id
             ? {
                 ...submission,
-                status: "approved",
+                status: "approved", // Reset to approved
+                ebay_status: "unlisted", // Update ebay_status
                 listed_on_ebay: false,
               }
             : submission,
@@ -390,6 +394,33 @@ export default function AdminDashboard() {
     } finally {
       setUnlistingLoading(null)
     }
+  }
+
+  // Helper function to check if item is listed on eBay based on ebay_status
+  const isListedOnEbay = (item: ItemSubmission): boolean => {
+    return item.ebay_status === "listed" || item.ebay_status === "active" || item.ebay_status === "processing"
+  }
+
+  // Helper function to get eBay status display
+  const getEbayStatusDisplay = (item: ItemSubmission): string => {
+    if (!item.ebay_status) return "Not Listed"
+    return item.ebay_status.charAt(0).toUpperCase() + item.ebay_status.slice(1)
+  }
+
+  // Helper function to get eBay status badge style
+  const getEbayStatusStyle = (ebayStatus: string | null) => {
+    if (!ebayStatus) return "bg-gray-100 text-gray-800 border-gray-300"
+
+    const styles = {
+      listed: "bg-green-100 text-green-800 border-green-300",
+      active: "bg-green-100 text-green-800 border-green-300",
+      processing: "bg-orange-100 text-orange-800 border-orange-300",
+      unlisted: "bg-red-100 text-red-800 border-red-300",
+      ended: "bg-yellow-100 text-yellow-800 border-yellow-300",
+      sold: "bg-blue-100 text-blue-800 border-blue-300",
+      failed: "bg-red-100 text-red-800 border-red-300",
+    }
+    return styles[ebayStatus.toLowerCase() as keyof typeof styles] || "bg-gray-100 text-gray-800 border-gray-300"
   }
 
   const getStatusBadge = (status: SubmissionStatus) => {
@@ -466,6 +497,8 @@ export default function AdminDashboard() {
     approved: submissions.filter((s) => s.status === "approved").length,
     rejected: submissions.filter((s) => s.status === "rejected").length,
     listed: submissions.filter((s) => s.status === "listed").length,
+    listedOnEbay: submissions.filter((s) => isListedOnEbay(s)).length,
+    notListed: submissions.filter((s) => !isListedOnEbay(s)).length,
   }
 
   // Password protection screen
@@ -515,7 +548,7 @@ export default function AdminDashboard() {
       </header>
 
       <main className="flex-1 p-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
@@ -558,7 +591,16 @@ export default function AdminDashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.listed}</div>
+              <div className="text-2xl font-bold">{stats.listedOnEbay}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Not Listed</CardTitle>
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.notListed}</div>
             </CardContent>
           </Card>
         </div>
@@ -626,7 +668,8 @@ export default function AdminDashboard() {
                       <TableHead className="text-white">Customer</TableHead>
                       <TableHead className="text-white">Condition</TableHead>
                       <TableHead className="text-white">Price</TableHead>
-                      <TableHead className="text-white">Status</TableHead>
+                      <TableHead className="text-white">Review Status</TableHead>
+                      <TableHead className="text-white">eBay Status</TableHead>
                       <TableHead className="text-white">Submitted</TableHead>
                       <TableHead className="text-right text-white">Actions</TableHead>
                     </TableRow>
@@ -758,12 +801,19 @@ export default function AdminDashboard() {
                               : "—"}
                           </TableCell>
                           <TableCell>{getStatusBadge(submission.status)}</TableCell>
+                          <TableCell>
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getEbayStatusStyle(submission.ebay_status)}`}
+                            >
+                              {getEbayStatusDisplay(submission)}
+                            </span>
+                          </TableCell>
                           <TableCell className="text-sm text-gray-400">
                             {new Date(submission.submission_date).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {submission.status !== "listed" && (
+                              {!isListedOnEbay(submission) && (
                                 <Button
                                   size="sm"
                                   onClick={() => listItemOnEbay(submission.id)}
@@ -781,10 +831,10 @@ export default function AdminDashboard() {
                                 </Button>
                               )}
 
-                              {submission.status === "listed" && (
+                              {isListedOnEbay(submission) && (
                                 <div className="flex items-center gap-2">
                                   <Badge variant="outline" className="border-green-500 text-green-500">
-                                    Listed on eBay
+                                    {getEbayStatusDisplay(submission)}
                                   </Badge>
                                   <Button
                                     size="sm"
@@ -1022,7 +1072,7 @@ export default function AdminDashboard() {
             </div>
 
             <DialogFooter>
-              {selectedItem && selectedItem.status !== "listed" && (
+              {selectedItem && !isListedOnEbay(selectedItem) && (
                 <Button
                   onClick={() => {
                     listItemOnEbay(selectedItem.id)
@@ -1041,10 +1091,10 @@ export default function AdminDashboard() {
                   )}
                 </Button>
               )}
-              {selectedItem && selectedItem.status === "listed" && (
+              {selectedItem && isListedOnEbay(selectedItem) && (
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="border-green-500 text-green-500 py-2 px-4">
-                    Listed on eBay
+                    {getEbayStatusDisplay(selectedItem)}
                   </Badge>
                   <Button
                     onClick={() => {
