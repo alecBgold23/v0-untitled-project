@@ -264,6 +264,80 @@ function createEbayDescription(itemName: string, condition: string, brand: strin
   return htmlDescription
 }
 
+// Helper function to infer item type from name
+function inferItemType(itemName: string): string {
+  const name = itemName.toLowerCase()
+
+  if (name.includes("phone") || name.includes("iphone") || name.includes("android")) {
+    return "Cell Phone"
+  } else if (name.includes("laptop") || name.includes("computer")) {
+    return "Laptop"
+  } else if (name.includes("tablet") || name.includes("ipad")) {
+    return "Tablet"
+  } else if (name.includes("watch") || name.includes("smartwatch")) {
+    return "Smart Watch"
+  } else if (name.includes("headphone") || name.includes("earphone") || name.includes("airpods")) {
+    return "Headphones"
+  } else if (name.includes("camera")) {
+    return "Digital Camera"
+  } else if (name.includes("game") || name.includes("console")) {
+    return "Video Game Console"
+  }
+
+  return "Electronics"
+}
+
+// Helper function to extract color from text
+function extractColor(itemName: string, description: string): string | null {
+  const text = `${itemName} ${description || ""}`.toLowerCase()
+  const colors = [
+    "black",
+    "white",
+    "silver",
+    "gold",
+    "rose gold",
+    "blue",
+    "red",
+    "green",
+    "pink",
+    "purple",
+    "gray",
+    "grey",
+    "yellow",
+    "orange",
+  ]
+
+  for (const color of colors) {
+    if (text.includes(color)) {
+      return color.charAt(0).toUpperCase() + color.slice(1)
+    }
+  }
+
+  return null
+}
+
+// Helper function to extract MPN (Manufacturer Part Number)
+function extractMPN(itemName: string, description: string): string | null {
+  const text = `${itemName} ${description || ""}`
+
+  // Look for common MPN patterns (alphanumeric codes)
+  const mpnPatterns = [
+    /\b[A-Z]{1,3}\d{3,6}\b/g, // Pattern like A1234, MX123456
+    /\b\d{3,6}[A-Z]{1,3}\b/g, // Pattern like 1234A, 123456MX
+    /\bModel[:\s]+([A-Z0-9-]+)/gi, // "Model: ABC123"
+    /\bMPN[:\s]+([A-Z0-9-]+)/gi, // "MPN: ABC123"
+  ]
+
+  for (const pattern of mpnPatterns) {
+    const matches = text.match(pattern)
+    if (matches && matches.length > 0) {
+      return matches[0].trim()
+    }
+  }
+
+  return null
+}
+
 export async function POST(request: Request) {
   try {
     console.log("🚀 Starting eBay listing process with optimized square image resizing...")
@@ -322,7 +396,7 @@ export async function POST(request: Request) {
     console.log("🔍 DESCRIPTION VALIDATION:")
     console.log(`📄 Raw description from database: "${submission.item_description}"`)
     console.log(`📏 Description length: ${submission.item_description?.length || 0} characters`)
-    console.log(`🔤 Description type: ${typeof submission.item_description}`)
+    console.log(`CALLTYPE Description type: ${typeof submission.item_description}`)
 
     if (!submission.item_description) {
       console.warn("⚠️ Item description is empty or null")
@@ -385,13 +459,76 @@ export async function POST(request: Request) {
 
     console.log(`🎯 Using ${ebayOptimizedImageUrls.length} eBay-optimized square images for listing`)
 
-    // Prepare aspects for inventory item product
-    const aspects: Record<string, string[]> = {
-      Condition: [submission.item_condition || "Used"],
-      Brand: [brand],
-      Model: [submission.item_name],
-      Type: ["ExampleType"],
+    // Build aspects dynamically based on eBay's requirements
+    const aspects: Record<string, string[]> = {}
+
+    // Always include condition
+    aspects.Condition = [submission.item_condition || "Used"]
+
+    // Add brand if we can extract it
+    const extractedBrand = extractBrand(submission.item_name)
+    if (extractedBrand !== "Unbranded") {
+      aspects.Brand = [extractedBrand]
     }
+
+    // Process required aspects from eBay
+    console.log(`📋 Processing ${requiredAspects.length} required aspects from eBay...`)
+    for (const aspect of requiredAspects) {
+      const aspectName = aspect.aspectName
+      console.log(`🔍 Processing required aspect: ${aspectName}`)
+
+      // Skip if we already have this aspect
+      if (aspects[aspectName]) {
+        console.log(`✅ Aspect ${aspectName} already set`)
+        continue
+      }
+
+      // Map common aspects to item data
+      switch (aspectName.toLowerCase()) {
+        case "brand":
+          if (extractedBrand !== "Unbranded") {
+            aspects[aspectName] = [extractedBrand]
+          }
+          break
+        case "model":
+          // Use a cleaned version of item name, limited to reasonable length
+          const modelName = submission.item_name.substring(0, 50).trim()
+          aspects[aspectName] = [modelName]
+          break
+        case "type":
+          // Try to infer type from item name or use generic fallback
+          const itemType = inferItemType(submission.item_name)
+          aspects[aspectName] = [itemType]
+          break
+        case "color":
+          // Try to extract color from description or name
+          const color = extractColor(submission.item_name, submission.item_description)
+          if (color) {
+            aspects[aspectName] = [color]
+          }
+          break
+        case "mpn":
+        case "manufacturer part number":
+          // Try to extract MPN from item name or description
+          const mpn = extractMPN(submission.item_name, submission.item_description)
+          if (mpn) {
+            aspects[aspectName] = [mpn]
+          }
+          break
+        default:
+          // For other required aspects, check if we have possible values
+          if (aspect.aspectValues && aspect.aspectValues.length > 0) {
+            // Use the first possible value as fallback
+            aspects[aspectName] = [aspect.aspectValues[0].value]
+            console.log(`⚠️ Using fallback value for ${aspectName}: ${aspect.aspectValues[0].value}`)
+          } else {
+            console.log(`⚠️ No fallback available for required aspect: ${aspectName}`)
+          }
+          break
+      }
+    }
+
+    console.log(`✅ Final aspects for eBay listing:`, JSON.stringify(aspects, null, 2))
 
     // DESCRIPTION PROCESSING - Enhanced with detailed logging
     console.log("📝 DESCRIPTION PROCESSING:")
