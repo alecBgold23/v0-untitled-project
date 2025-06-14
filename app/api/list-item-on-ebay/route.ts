@@ -2,8 +2,6 @@ import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
-import { normalizeToEbayCondition, validateEbayConditionForCategory } from "@/lib/ebay/condition-utils"
-import { getSuggestedCategoryId } from "@/lib/ebay/getSuggestedCategoryId"
 import sharp from "sharp"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -359,19 +357,12 @@ export async function POST(request: Request) {
     const timestamp = Date.now()
     const sku = `ITEM-${submission.id}-${timestamp}`
     const title = submission.item_name.substring(0, 80)
-  
-
+    const ebayCondition = mapConditionToEbay(submission.item_condition)
     const brand = extractBrand(submission.item_name)
 
     const searchQuery = `${submission.item_name} ${submission.item_description}`.trim()
     const { categoryId, treeId } = await getSuggestedCategoryId(searchQuery, accessToken)
     const requiredAspects = await getRequiredAspectsForCategory(treeId, categoryId, accessToken)
-    // Normalize and validate condition for eBay
-const normalizedCondition = normalizeToEbayCondition(submission.item_condition)
-const validatedCondition = validateEbayConditionForCategory(normalizedCondition, categoryId)
-const ebayCondition = validatedCondition || mapConditionToEbay(submission.item_condition)
-console.log(`✅ Normalized condition: ${normalizedCondition}, validated condition for category ${categoryId}: ${validatedCondition}`)
-
 
     console.log(`🧠 Suggested eBay category ID: ${categoryId}`)
 
