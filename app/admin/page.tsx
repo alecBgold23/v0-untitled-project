@@ -631,7 +631,7 @@ export default function AdminDashboard() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Images
+                      All Images
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Item
@@ -662,22 +662,41 @@ export default function AdminDashboard() {
                     return (
                       <tr key={item.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="relative">
-                            <Image
-                              src={getFirstImageUrl(item.image_url) || "/placeholder.svg"}
-                              alt={item.item_name}
-                              width={60}
-                              height={60}
-                              className="rounded-lg object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = "/placeholder.svg?height=60&width=60&text=No+Image"
-                              }}
-                            />
-                            {imageCount > 1 && (
-                              <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
-                                {imageCount}
-                              </div>
-                            )}
+                          <div className="flex gap-2 overflow-x-auto max-w-xs">
+                            {(() => {
+                              const images = parseImageUrls(item.image_url)
+                              if (images.length === 0) {
+                                return (
+                                  <Image
+                                    src="/placeholder.svg?height=60&width=60&text=No+Image"
+                                    alt="No image"
+                                    width={60}
+                                    height={60}
+                                    className="rounded-lg object-cover flex-shrink-0"
+                                  />
+                                )
+                              }
+
+                              return images.map((imageUrl, index) => (
+                                <div key={index} className="relative flex-shrink-0">
+                                  <Image
+                                    src={imageUrl || "/placeholder.svg"}
+                                    alt={`${item.item_name} - Image ${index + 1}`}
+                                    width={60}
+                                    height={60}
+                                    className="rounded-lg object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.src = "/placeholder.svg?height=60&width=60&text=Error"
+                                    }}
+                                  />
+                                  {index === 0 && images.length > 1 && (
+                                    <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                                      {images.length}
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            })()}
                           </div>
                         </td>
                         <td className="px-6 py-4">
