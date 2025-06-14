@@ -69,7 +69,7 @@ export default function AdminDashboard() {
 
   // Helper function to check if item is listed on eBay
   const isListedOnEbay = (item: ItemSubmission): boolean => {
-    return item.ebay_status === "listed" || item.ebay_status === "active"
+    return item.ebay_status === "listed" || item.ebay_status === "active" || item.ebay_status === "processing"
   }
 
   // Helper function to get eBay status display
@@ -264,6 +264,7 @@ export default function AdminDashboard() {
     const styles = {
       listed: "bg-green-100 text-green-800 border-green-300",
       active: "bg-green-100 text-green-800 border-green-300",
+      processing: "bg-orange-100 text-orange-800 border-orange-300",
       unlisted: "bg-red-100 text-red-800 border-red-300",
       ended: "bg-yellow-100 text-yellow-800 border-yellow-300",
       sold: "bg-blue-100 text-blue-800 border-blue-300",
