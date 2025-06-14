@@ -24,7 +24,7 @@ interface ItemSubmission {
   listed_on_ebay: boolean | null
 }
 
-// Demo data for preview
+// Demo data for preview with multiple images
 const DEMO_SUBMISSIONS: ItemSubmission[] = [
   {
     id: "1",
@@ -39,7 +39,11 @@ const DEMO_SUBMISSIONS: ItemSubmission[] = [
     status: "approved",
     ebay_status: "listed",
     submission_date: "2024-01-15T10:30:00Z",
-    image_url: "/placeholder.svg?height=300&width=300&text=iPhone+14+Pro",
+    image_url: [
+      "/placeholder.svg?height=300&width=300&text=iPhone+Front",
+      "/placeholder.svg?height=300&width=300&text=iPhone+Back",
+      "/placeholder.svg?height=300&width=300&text=iPhone+Side",
+    ],
     estimated_price: 899,
     item_condition: "Excellent",
     ebay_listing_id: "123456789",
@@ -57,7 +61,12 @@ const DEMO_SUBMISSIONS: ItemSubmission[] = [
     status: "pending",
     ebay_status: null,
     submission_date: "2024-01-14T14:20:00Z",
-    image_url: "/placeholder.svg?height=300&width=300&text=MacBook+Air",
+    image_url: [
+      "/placeholder.svg?height=300&width=300&text=MacBook+Closed",
+      "/placeholder.svg?height=300&width=300&text=MacBook+Open",
+      "/placeholder.svg?height=300&width=300&text=MacBook+Keyboard",
+      "/placeholder.svg?height=300&width=300&text=MacBook+Ports",
+    ],
     estimated_price: 1099,
     item_condition: "Like New",
     ebay_listing_id: null,
@@ -75,7 +84,10 @@ const DEMO_SUBMISSIONS: ItemSubmission[] = [
     status: "approved",
     ebay_status: "processing",
     submission_date: "2024-01-13T09:15:00Z",
-    image_url: "/placeholder.svg?height=300&width=300&text=iPad+Pro",
+    image_url: [
+      "/placeholder.svg?height=300&width=300&text=iPad+Front",
+      "/placeholder.svg?height=300&width=300&text=iPad+Accessories",
+    ],
     estimated_price: 799,
     item_condition: "Good",
     ebay_listing_id: null,
@@ -93,7 +105,7 @@ const DEMO_SUBMISSIONS: ItemSubmission[] = [
     status: "rejected",
     ebay_status: null,
     submission_date: "2024-01-12T16:45:00Z",
-    image_url: "/placeholder.svg?height=300&width=300&text=Sony+Headphones",
+    image_url: "/placeholder.svg?height=300&width=300&text=Sony+Headphones", // Single image
     estimated_price: 249,
     item_condition: "Excellent",
     ebay_listing_id: null,
@@ -112,7 +124,13 @@ const DEMO_SUBMISSIONS: ItemSubmission[] = [
     status: "approved",
     ebay_status: "unlisted",
     submission_date: "2024-01-11T11:30:00Z",
-    image_url: "/placeholder.svg?height=300&width=300&text=Nintendo+Switch",
+    image_url: [
+      "/placeholder.svg?height=300&width=300&text=Switch+Console",
+      "/placeholder.svg?height=300&width=300&text=Switch+Dock",
+      "/placeholder.svg?height=300&width=300&text=Joy+Cons",
+      "/placeholder.svg?height=300&width=300&text=Switch+Screen",
+      "/placeholder.svg?height=300&width=300&text=Accessories",
+    ],
     estimated_price: 299,
     item_condition: "Good",
     ebay_listing_id: "987654321",
@@ -130,6 +148,7 @@ export default function AdminDashboard() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<ItemSubmission | null>(null)
   const [isPreviewMode, setIsPreviewMode] = useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
   // Check if we're in preview mode (no environment variables)
   useEffect(() => {
@@ -392,25 +411,46 @@ export default function AdminDashboard() {
     }
   }
 
-  // Get first image URL
-  const getFirstImageUrl = (imageData: string | string[] | null): string => {
-    if (!imageData) return "/placeholder.svg?height=80&width=80&text=No+Image"
-
-    let urls: string[] = []
+  // Parse image URLs from various formats
+  const parseImageUrls = (imageData: string | string[] | null): string[] => {
+    if (!imageData) return []
 
     if (Array.isArray(imageData)) {
-      urls = imageData
-    } else if (typeof imageData === "string") {
+      return imageData.filter((url) => url && url.trim())
+    }
+
+    if (typeof imageData === "string") {
       try {
+        // Try to parse as JSON first
         const parsed = JSON.parse(imageData)
-        urls = Array.isArray(parsed) ? parsed : [imageData]
+        if (Array.isArray(parsed)) {
+          return parsed.filter((url) => url && url.trim())
+        }
+        return [imageData].filter((url) => url && url.trim())
       } catch {
-        urls = imageData.includes(",") ? imageData.split(",") : [imageData]
+        // If not JSON, check if it's comma-separated
+        if (imageData.includes(",")) {
+          return imageData
+            .split(",")
+            .map((url) => url.trim())
+            .filter((url) => url)
+        }
+        return [imageData].filter((url) => url && url.trim())
       }
     }
 
-    const validUrls = urls.filter((url) => url && url.trim())
-    return validUrls.length > 0 ? validUrls[0].trim() : "/placeholder.svg?height=80&width=80&text=No+Image"
+    return []
+  }
+
+  // Get first image URL for table display
+  const getFirstImageUrl = (imageData: string | string[] | null): string => {
+    const urls = parseImageUrls(imageData)
+    return urls.length > 0 ? urls[0] : "/placeholder.svg?height=80&width=80&text=No+Image"
+  }
+
+  // Get image count for display
+  const getImageCount = (imageData: string | string[] | null): number => {
+    return parseImageUrls(imageData).length
   }
 
   // Get status badge style
@@ -514,7 +554,8 @@ export default function AdminDashboard() {
                 <h3 className="text-sm font-medium text-blue-800">Preview Mode Active</h3>
                 <div className="mt-2 text-sm text-blue-700">
                   <p>
-                    You're viewing demo data. In production, this would connect to your Supabase database and eBay API.
+                    You're viewing demo data with multiple images per listing. In production, this would connect to your
+                    Supabase database and display all uploaded photos.
                   </p>
                 </div>
               </div>
@@ -590,7 +631,7 @@ export default function AdminDashboard() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Image
+                      Images
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Item
@@ -616,109 +657,119 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {submissions.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Image
-                          src={getFirstImageUrl(item.image_url) || "/placeholder.svg"}
-                          alt={item.item_name}
-                          width={60}
-                          height={60}
-                          className="rounded-lg object-cover"
-                          onError={(e) => {
-                            e.currentTarget.src = "/placeholder.svg?height=60&width=60&text=No+Image"
-                          }}
-                        />
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="max-w-xs">
-                          <p className="font-medium text-gray-900 truncate">{item.item_name}</p>
-                          <p className="text-sm text-gray-500 truncate">{item.item_condition}</p>
-                          {item.item_issues && (
-                            <p className="text-xs text-red-600 truncate">Issues: {item.item_issues}</p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="font-medium text-gray-900">{item.full_name}</p>
-                          <p className="text-sm text-gray-500">{item.email}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusStyle(item.status)}`}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getEbayStatusStyle(item.ebay_status)}`}
-                        >
-                          {getEbayStatusDisplay(item)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.estimated_price ? `$${item.estimated_price.toLocaleString()}` : "—"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(item.submission_date).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex gap-2">
-                          {isListedOnEbay(item) ? (
-                            <div className="flex gap-2">
-                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border border-green-300">
-                                Listed on eBay
-                              </span>
-                              <button
-                                onClick={() => unlistFromEbay(item.id)}
-                                disabled={actionLoading === item.id}
-                                className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
-                              >
-                                {actionLoading === item.id ? "Unlisting..." : "Unlist"}
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => listOnEbay(item.id)}
-                              disabled={actionLoading === item.id}
-                              className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 disabled:opacity-50"
-                            >
-                              {actionLoading === item.id ? "Listing..." : "List on eBay"}
-                            </button>
-                          )}
-
-                          {item.status === "pending" && (
-                            <>
-                              <button
-                                onClick={() => updateStatus(item.id, "approved")}
-                                disabled={actionLoading === item.id}
-                                className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 disabled:opacity-50"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => updateStatus(item.id, "rejected")}
-                                disabled={actionLoading === item.id}
-                                className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-
-                          <button
-                            onClick={() => setSelectedItem(item)}
-                            className="bg-gray-600 text-white px-3 py-1 rounded text-xs hover:bg-gray-700"
+                  {submissions.map((item) => {
+                    const imageCount = getImageCount(item.image_url)
+                    return (
+                      <tr key={item.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="relative">
+                            <Image
+                              src={getFirstImageUrl(item.image_url) || "/placeholder.svg"}
+                              alt={item.item_name}
+                              width={60}
+                              height={60}
+                              className="rounded-lg object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = "/placeholder.svg?height=60&width=60&text=No+Image"
+                              }}
+                            />
+                            {imageCount > 1 && (
+                              <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+                                {imageCount}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="max-w-xs">
+                            <p className="font-medium text-gray-900 truncate">{item.item_name}</p>
+                            <p className="text-sm text-gray-500 truncate">{item.item_condition}</p>
+                            {item.item_issues && (
+                              <p className="text-xs text-red-600 truncate">Issues: {item.item_issues}</p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="font-medium text-gray-900">{item.full_name}</p>
+                            <p className="text-sm text-gray-500">{item.email}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusStyle(item.status)}`}
                           >
-                            View
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {item.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getEbayStatusStyle(item.ebay_status)}`}
+                          >
+                            {getEbayStatusDisplay(item)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {item.estimated_price ? `$${item.estimated_price.toLocaleString()}` : "—"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(item.submission_date).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-2">
+                            {isListedOnEbay(item) ? (
+                              <div className="flex gap-2">
+                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border border-green-300">
+                                  Listed on eBay
+                                </span>
+                                <button
+                                  onClick={() => unlistFromEbay(item.id)}
+                                  disabled={actionLoading === item.id}
+                                  className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
+                                >
+                                  {actionLoading === item.id ? "Unlisting..." : "Unlist"}
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => listOnEbay(item.id)}
+                                disabled={actionLoading === item.id}
+                                className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                {actionLoading === item.id ? "Listing..." : "List on eBay"}
+                              </button>
+                            )}
+
+                            {item.status === "pending" && (
+                              <>
+                                <button
+                                  onClick={() => updateStatus(item.id, "approved")}
+                                  disabled={actionLoading === item.id}
+                                  className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 disabled:opacity-50"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => updateStatus(item.id, "rejected")}
+                                  disabled={actionLoading === item.id}
+                                  className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+
+                            <button
+                              onClick={() => setSelectedItem(item)}
+                              className="bg-gray-600 text-white px-3 py-1 rounded text-xs hover:bg-gray-700"
+                            >
+                              View
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -726,10 +777,10 @@ export default function AdminDashboard() {
         </div>
       </main>
 
-      {/* Item Details Modal */}
+      {/* Item Details Modal with Image Gallery */}
       {selectedItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-start">
                 <h3 className="text-lg font-semibold">{selectedItem.item_name}</h3>
@@ -741,65 +792,166 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Image
-                    src={getFirstImageUrl(selectedItem.image_url) || "/placeholder.svg"}
-                    alt={selectedItem.item_name}
-                    width={300}
-                    height={300}
-                    className="rounded-lg object-cover w-full"
-                    onError={(e) => {
-                      e.currentTarget.src = "/placeholder.svg?height=300&width=300&text=No+Image"
-                    }}
-                  />
+            <div className="p-6 space-y-6">
+              {/* Image Gallery */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  {(() => {
+                    const images = parseImageUrls(selectedItem.image_url)
+                    if (images.length === 0) {
+                      return (
+                        <Image
+                          src="/placeholder.svg?height=400&width=400&text=No+Image"
+                          alt={selectedItem.item_name}
+                          width={400}
+                          height={400}
+                          className="rounded-lg object-cover w-full"
+                        />
+                      )
+                    }
+
+                    return (
+                      <>
+                        {/* Main Image */}
+                        <div className="relative">
+                          <Image
+                            src={images[selectedImageIndex] || "/placeholder.svg"}
+                            alt={`${selectedItem.item_name} - Image ${selectedImageIndex + 1}`}
+                            width={400}
+                            height={400}
+                            className="rounded-lg object-cover w-full h-80"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder.svg?height=400&width=400&text=Image+Error"
+                            }}
+                          />
+                          {images.length > 1 && (
+                            <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                              {selectedImageIndex + 1} / {images.length}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Image Thumbnails */}
+                        {images.length > 1 && (
+                          <div className="flex gap-2 overflow-x-auto pb-2">
+                            {images.map((image, index) => (
+                              <button
+                                key={index}
+                                onClick={() => setSelectedImageIndex(index)}
+                                className={`flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+                                  selectedImageIndex === index
+                                    ? "border-blue-500 ring-2 ring-blue-200"
+                                    : "border-gray-200 hover:border-gray-300"
+                                }`}
+                              >
+                                <Image
+                                  src={image || "/placeholder.svg"}
+                                  alt={`${selectedItem.item_name} - Thumbnail ${index + 1}`}
+                                  width={80}
+                                  height={80}
+                                  className="object-cover w-20 h-20"
+                                  onError={(e) => {
+                                    e.currentTarget.src = "/placeholder.svg?height=80&width=80&text=Error"
+                                  }}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
                 </div>
 
-                <div className="space-y-3">
+                {/* Item Details */}
+                <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium text-gray-900">Customer Information</h4>
-                    <p className="text-sm text-gray-600">{selectedItem.full_name}</p>
-                    <p className="text-sm text-gray-600">{selectedItem.email}</p>
-                    {selectedItem.phone && <p className="text-sm text-gray-600">{selectedItem.phone}</p>}
+                    <h4 className="font-medium text-gray-900 mb-2">Customer Information</h4>
+                    <div className="bg-gray-50 p-3 rounded-lg space-y-1">
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Name:</span> {selectedItem.full_name}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Email:</span> {selectedItem.email}
+                      </p>
+                      {selectedItem.phone && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Phone:</span> {selectedItem.phone}
+                        </p>
+                      )}
+                      {selectedItem.address && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Address:</span> {selectedItem.address}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div>
-                    <h4 className="font-medium text-gray-900">Item Details</h4>
-                    <p className="text-sm text-gray-600">Condition: {selectedItem.item_condition}</p>
-                    <p className="text-sm text-gray-600">
-                      Price:{" "}
-                      {selectedItem.estimated_price
-                        ? `$${selectedItem.estimated_price.toLocaleString()}`
-                        : "Not estimated"}
-                    </p>
-                    <p className="text-sm text-gray-600">Review Status: {selectedItem.status}</p>
-                    <p className="text-sm text-gray-600">eBay Status: {getEbayStatusDisplay(selectedItem)}</p>
+                    <h4 className="font-medium text-gray-900 mb-2">Item Details</h4>
+                    <div className="bg-gray-50 p-3 rounded-lg space-y-1">
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Condition:</span> {selectedItem.item_condition}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Price:</span>{" "}
+                        {selectedItem.estimated_price
+                          ? `$${selectedItem.estimated_price.toLocaleString()}`
+                          : "Not estimated"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Review Status:</span> {selectedItem.status}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">eBay Status:</span> {getEbayStatusDisplay(selectedItem)}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Images:</span> {getImageCount(selectedItem.image_url)} photo(s)
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Submitted:</span>{" "}
+                        {new Date(selectedItem.submission_date).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
+
+                  {selectedItem.ebay_listing_id && (
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">eBay Information</h4>
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          <span className="font-medium">Listing ID:</span> {selectedItem.ebay_listing_id}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* Description */}
               <div>
                 <h4 className="font-medium text-gray-900 mb-2">Description</h4>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap bg-gray-50 p-3 rounded">
+                <p className="text-sm text-gray-600 whitespace-pre-wrap bg-gray-50 p-4 rounded-lg">
                   {selectedItem.item_description}
                 </p>
               </div>
 
+              {/* Issues */}
               {selectedItem.item_issues && (
                 <div>
                   <h4 className="font-medium text-red-900 mb-2">Known Issues</h4>
-                  <p className="text-sm text-red-600 whitespace-pre-wrap bg-red-50 p-3 rounded">
+                  <p className="text-sm text-red-600 whitespace-pre-wrap bg-red-50 p-4 rounded-lg border border-red-200">
                     {selectedItem.item_issues}
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-2">
+            {/* Modal Actions */}
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
               {isListedOnEbay(selectedItem) ? (
-                <div className="flex gap-2">
-                  <span className="inline-flex px-3 py-2 text-sm font-semibold rounded bg-green-100 text-green-800 border border-green-300">
+                <div className="flex gap-3">
+                  <span className="inline-flex px-4 py-2 text-sm font-semibold rounded-lg bg-green-100 text-green-800 border border-green-300">
                     Listed on eBay
                   </span>
                   <button
@@ -808,7 +960,7 @@ export default function AdminDashboard() {
                       setSelectedItem(null)
                     }}
                     disabled={actionLoading === selectedItem.id}
-                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
                   >
                     {actionLoading === selectedItem.id ? "Unlisting..." : "Unlist from eBay"}
                   </button>
@@ -820,14 +972,14 @@ export default function AdminDashboard() {
                     setSelectedItem(null)
                   }}
                   disabled={actionLoading === selectedItem.id}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
                 >
                   {actionLoading === selectedItem.id ? "Listing..." : "List on eBay"}
                 </button>
               )}
               <button
                 onClick={() => setSelectedItem(null)}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
               >
                 Close
               </button>
