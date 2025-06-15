@@ -15,33 +15,18 @@ function mapConditionToEbay(condition: string): string {
   console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
 
   const conditionMap: { [key: string]: string } = {
-   
-    "like new": "NEW_OTHER",
-    
-    "manufacturer refurbished": "MANUFACTURER_REFURBISHED",
-    "seller refurbished": "SELLER_REFURBISHED",
-    "refurbished": "SELLER_REFURBISHED",
-    "remanufactured": "REMANUFACTURED",
-
-    "used": "USED",
-    "very good": "USED_VERY_GOOD",
-    "excellent": "USED_EXCELLENT",
-    "good": "USED_GOOD",
-    "acceptable": "USED_ACCEPTABLE",
-    "fair": "USED_ACCEPTABLE",
-
-    "for parts or not working": "FOR_PARTS_OR_NOT_WORKING",
-    "parts": "FOR_PARTS_OR_NOT_WORKING",
-    "broken": "FOR_PARTS_OR_NOT_WORKING",
-    "damaged": "FOR_PARTS_OR_NOT_WORKING",
-    "not working": "FOR_PARTS_OR_NOT_WORKING",
-    "does not work": "FOR_PARTS_OR_NOT_WORKING",
+    "like new": "1500",   // Open box
+    "excellent": "3000",  // Used
+    "good": "3000",       // Used
+    "fair": "3000",       // Used
+    "poor": "7000",       // For parts or not working
   }
 
-  const mapped = conditionMap[normalized] || "USED"
+  const mapped = conditionMap[normalized] || "3000" // Default to "Used"
   console.log(`✅ Mapped condition to eBay: "${mapped}"`)
   return mapped
 }
+
 
 
 function extractBrand(itemName: string): string {
