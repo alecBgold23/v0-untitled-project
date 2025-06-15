@@ -15,11 +15,9 @@ function mapConditionToEbay(condition: string): string {
   console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
 
   const conditionMap: { [key: string]: string } = {
-    "like new": "NEW",
+   
     "like new": "NEW_OTHER",
-    "like new": "EXCELLENT_REFURBISHED",
-    "like new": "NEW_WITH_DEFECTS",
-
+    
     "manufacturer refurbished": "MANUFACTURER_REFURBISHED",
     "seller refurbished": "SELLER_REFURBISHED",
     "refurbished": "SELLER_REFURBISHED",
