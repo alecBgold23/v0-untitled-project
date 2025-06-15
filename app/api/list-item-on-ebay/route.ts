@@ -6,7 +6,7 @@ import sharp from "sharp"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-function mapConditionToEbay(condition: string): string {
+function mapConditionToEbay(condition: string): string[] {
   const normalized = String(condition || "")
     .trim()
     .toLowerCase()
@@ -14,16 +14,35 @@ function mapConditionToEbay(condition: string): string {
 
   console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
 
-  const conditionMap: { [key: string]: string } = {
-    "like new": "NEW_OTHER",
-    excellent: "USED_EXCELLENT",
-    good: "USED_GOOD",
-    fair: "USED_ACCEPTABLE",
-    poor: "FOR_PARTS_OR_NOT_WORKING",
+  const conditionMap: { [key: string]: string[] } = {
+    "like new": ["NEW", "NEW_OTHER", "NEW_WITH_DEFECTS"],
+
+    "excellent": [
+      "USED_EXCELLENT",
+      "VERY_GOOD_REFURBISHED",
+      "EXCELLENT_REFURBISHED",
+      "MANUFACTURER_REFURBISHED",
+      "SELLER_REFURBISHED",
+    ],
+
+    "good": [
+      "USED_GOOD",
+      "REFURBISHED",
+      "REMANUFACTURED",
+    ],
+
+    "fair": [
+      "USED_ACCEPTABLE",
+      "FOR_PARTS_OR_NOT_WORKING",
+    ],
+
+    "poor": [
+      "FOR_PARTS_OR_NOT_WORKING",
+    ],
   }
 
-  const mapped = conditionMap[normalized] || "FOR_PARTS_OR_NOT_WORKING"
-  console.log(`✅ Mapped condition to eBay: "${mapped}"`)
+  const mapped = conditionMap[normalized] || ["USED"]
+  console.log(`✅ Mapped condition(s) to eBay: ${JSON.stringify(mapped)}`)
   return mapped
 }
 
