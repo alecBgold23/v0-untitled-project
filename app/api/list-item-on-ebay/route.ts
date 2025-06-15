@@ -15,20 +15,17 @@ function mapConditionToEbay(condition: string): string {
   console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
 
   const conditionMap: { [key: string]: string } = {
-    "like new": "EXCELLENT_REFURBISHED",
-
+    "like new": "NEW_OTHER",
     "manufacturer refurbished": "MANUFACTURER_REFURBISHED",
     "seller refurbished": "SELLER_REFURBISHED",
     refurbished: "SELLER_REFURBISHED",
     remanufactured: "REMANUFACTURED",
-
     used: "USED",
     "very good": "USED_VERY_GOOD",
     excellent: "USED_EXCELLENT",
     good: "USED_GOOD",
     acceptable: "USED_ACCEPTABLE",
     fair: "USED_ACCEPTABLE",
-
     "for parts or not working": "FOR_PARTS_OR_NOT_WORKING",
     parts: "FOR_PARTS_OR_NOT_WORKING",
     broken: "FOR_PARTS_OR_NOT_WORKING",
@@ -343,7 +340,7 @@ export async function POST(request: Request) {
 
   // Check for problematic characters
   if (submission.item_description) {
-    const problematicChars = submission.item_description.match(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g)
+    const problematicChars = submission.item_description.match(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g)
     if (problematicChars) {
       console.error(`Description contains ${problematicChars.length} control characters that may cause issues`)
     }
