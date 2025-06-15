@@ -689,9 +689,6 @@ export default function AdminDashboard() {
                       Customer
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Review Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       eBay Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -762,13 +759,6 @@ export default function AdminDashboard() {
                             <p className="font-medium text-gray-900">{item.full_name}</p>
                             <p className="text-sm text-gray-500">{item.email}</p>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusStyle(item.status)}`}
-                          >
-                            {item.status}
-                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
@@ -966,9 +956,6 @@ export default function AdminDashboard() {
                         {selectedItem.estimated_price
                           ? `$${selectedItem.estimated_price.toLocaleString()}`
                           : "Not estimated"}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Review Status:</span> {selectedItem.status}
                       </p>
                       <p className="text-sm text-gray-600">
                         <span className="font-medium">eBay Status:</span> {getEbayStatusDisplay(selectedItem)}
