@@ -11,19 +11,24 @@ function mapConditionToEbay(condition: string): string {
     .trim()
     .toLowerCase()
     .replace(/[-_]/g, " ")
-  console.log(`Mapping condition: "${condition}" → "${normalized}"`)
+
+  console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
+
   const conditionMap: { [key: string]: string } = {
-    "like new": "NEW_OTHER",
+    "like new": "EXCELLENT_REFURBISHED",
+
     "manufacturer refurbished": "MANUFACTURER_REFURBISHED",
     "seller refurbished": "SELLER_REFURBISHED",
     refurbished: "SELLER_REFURBISHED",
     remanufactured: "REMANUFACTURED",
+
     used: "USED",
     "very good": "USED_VERY_GOOD",
     excellent: "USED_EXCELLENT",
     good: "USED_GOOD",
     acceptable: "USED_ACCEPTABLE",
     fair: "USED_ACCEPTABLE",
+
     "for parts or not working": "FOR_PARTS_OR_NOT_WORKING",
     parts: "FOR_PARTS_OR_NOT_WORKING",
     broken: "FOR_PARTS_OR_NOT_WORKING",
@@ -31,8 +36,9 @@ function mapConditionToEbay(condition: string): string {
     "not working": "FOR_PARTS_OR_NOT_WORKING",
     "does not work": "FOR_PARTS_OR_NOT_WORKING",
   }
+
   const mapped = conditionMap[normalized] || "USED"
-  console.log(`Mapped condition to eBay: "${mapped}"`)
+  console.log(`✅ Mapped condition to eBay: "${mapped}"`)
   return mapped
 }
 
@@ -158,7 +164,7 @@ async function getSuggestedCategoryId(
     )
 
     const json = await res.json()
-    console.log("Raw category suggestions:", JSON.stringify(json, null, 2))
+    console.log(`Raw category suggestions: ${JSON.stringify(json, null, 2)}`)
 
     const suggestions = json?.categorySuggestions || []
     if (suggestions.length === 0) {
@@ -275,7 +281,7 @@ function createEbayDescription(itemName: string, condition: string, brand: strin
 
 export async function POST(request: Request) {
   const requestBody = await request.json()
-  console.log("Received request body:", JSON.stringify(requestBody, null, 2))
+  console.log(`Received request body: ${JSON.stringify(requestBody, null, 2)}`)
 
   const { id } = requestBody
   if (!id) {
@@ -337,7 +343,7 @@ export async function POST(request: Request) {
 
   // Check for problematic characters
   if (submission.item_description) {
-    const problematicChars = submission.item_description.match(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g)
+    const problematicChars = submission.item_description.match(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g)
     if (problematicChars) {
       console.error(`Description contains ${problematicChars.length} control characters that may cause issues`)
     }
@@ -367,7 +373,7 @@ export async function POST(request: Request) {
   const searchQuery = `${submission.item_name} ${submission.item_description}`.trim()
   const { categoryId, treeId } = await getSuggestedCategoryId(searchQuery, accessToken)
   const requiredAspects = await getRequiredAspectsForCategory(treeId, categoryId, accessToken)
-  console.log(`ASPECTS DEBUGGING - Required aspects from eBay:`, JSON.stringify(requiredAspects, null, 2))
+  console.log(`ASPECTS DEBUGGING - Required aspects from eBay: ${JSON.stringify(requiredAspects, null, 2)}`)
   console.log(`ASPECTS DEBUGGING - Number of required aspects: ${requiredAspects.length}`)
 
   console.log(`Suggested eBay category ID: ${categoryId}`)
@@ -404,7 +410,7 @@ export async function POST(request: Request) {
     Type: ["ExampleType"],
   }
 
-  console.log(`ASPECTS DEBUGGING - Final aspects object:`, JSON.stringify(aspects, null, 2))
+  console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`)
   console.log(`ASPECTS DEBUGGING - Aspects object keys: [${Object.keys(aspects).join(", ")}]`)
   console.log(`ASPECTS DEBUGGING - Aspects object values:`)
   Object.entries(aspects).forEach(([key, values]) => {
@@ -467,10 +473,10 @@ export async function POST(request: Request) {
     },
   }
 
-  console.log(`INVENTORY ASPECTS DEBUG - Aspects being sent to inventory item:`, JSON.stringify(aspects, null, 2))
+  console.log(`INVENTORY ASPECTS DEBUG - Aspects being sent to inventory item: ${JSON.stringify(aspects, null, 2)}`)
 
   console.log("Creating inventory item with eBay-optimized square images...")
-  console.log("Inventory item payload:", JSON.stringify(inventoryItem, null, 2))
+  console.log(`Inventory item payload: ${JSON.stringify(inventoryItem, null, 2)}`)
 
   const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
     method: "PUT",
@@ -484,7 +490,7 @@ export async function POST(request: Request) {
   })
 
   const putText = await putResponse.text()
-  console.log("Raw PUT inventory response:", putText)
+  console.log(`Raw PUT inventory response: ${putText}`)
   console.log("PUT inventory response status:", putResponse.status, putResponse.statusText)
 
   if (!putResponse.ok) {
@@ -578,7 +584,7 @@ export async function POST(request: Request) {
     value: values,
   }))
 
-  console.log(`ASPECTS DEBUGGING - Generated itemSpecifics:`, JSON.stringify(itemSpecifics, null, 2))
+  console.log(`ASPECTS DEBUGGING - Generated itemSpecifics: ${JSON.stringify(itemSpecifics, null, 2)}`)
   console.log(`ASPECTS DEBUGGING - ItemSpecifics count: ${itemSpecifics.length}`)
   itemSpecifics.forEach((spec, index) => {
     console.log(`ItemSpecific ${index + 1}: "${spec.name}" = [${spec.value.join(", ")}]`)
@@ -623,7 +629,7 @@ export async function POST(request: Request) {
     itemSpecifics,
   }
 
-  console.log(`ASPECTS DEBUGGING - ItemSpecifics being sent to offer:`, JSON.stringify(itemSpecifics, null, 2))
+  console.log(`ASPECTS DEBUGGING - ItemSpecifics being sent to offer: ${JSON.stringify(itemSpecifics, null, 2)}`)
 
   console.log("COMPLETE OFFER PAYLOAD:")
   console.log(JSON.stringify(offerData, null, 2))
@@ -650,13 +656,13 @@ export async function POST(request: Request) {
   })
 
   const offerText = await offerResponse.text()
-  console.log("Raw offer response:", offerText)
+  console.log(`Raw offer response: ${offerText}`)
   console.log("Offer response status:", offerResponse.status, offerResponse.statusText)
 
   // Try to parse the response as JSON for better error reporting
   try {
     const offerResponseJson = JSON.parse(offerText)
-    console.log("Parsed offer response:", JSON.stringify(offerResponseJson, null, 2))
+    console.log(`Parsed offer response: ${JSON.stringify(offerResponseJson, null, 2)}`)
 
     // Check for specific error codes related to descriptions
     if (offerResponseJson.errors) {
@@ -679,7 +685,7 @@ export async function POST(request: Request) {
     })
 
     // ADDED: Log the exact data we sent when there's an error
-    console.error("Data that was sent to eBay when error occurred:", JSON.stringify(offerData, null, 2))
+    console.error(`Data that was sent to eBay when error occurred: ${JSON.stringify(offerData, null, 2)}`)
 
     // Update status to failed if listing process fails
     const { error: failedUpdateError } = await supabase
@@ -706,7 +712,7 @@ export async function POST(request: Request) {
         listingDescription: `<div><h3>${submission.item_name}</h3><p>Item for sale. Please contact with questions.</p></div>`,
       }
 
-      console.log("Simplified offer payload:", JSON.stringify(simplifiedOfferData, null, 2))
+      console.log(`Simplified offer payload: ${JSON.stringify(simplifiedOfferData, null, 2)}`)
 
       // Log this attempt but don't actually try it - just showing what could be done
       console.log("This is a simulation of a retry with simplified description - not actually sending")
@@ -752,7 +758,7 @@ export async function POST(request: Request) {
   })
 
   const publishText = await publishResponse.text()
-  console.log("Raw publish response:", publishText)
+  console.log(`Raw publish response: ${publishText}`)
   console.log("Publish response status:", publishResponse.status, publishResponse.statusText)
 
   try {
