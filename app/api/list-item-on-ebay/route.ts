@@ -3,9 +3,41 @@ import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
 import sharp from "sharp"
-import { getValidEbayConditionId, getConditionDisplayName } from "@/lib/ebay/getValidEbayConditionId"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+function mapConditionToEbay(condition: string): string {
+  const normalized = String(condition || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[-_]/g, " ")
+
+  console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
+
+  const conditionMap: { [key: string]: string } = {
+    "like new": "NEW_OTHER",
+    "manufacturer refurbished": "MANUFACTURER_REFURBISHED",
+    "seller refurbished": "SELLER_REFURBISHED",
+    refurbished: "SELLER_REFURBISHED",
+    remanufactured: "REMANUFACTURED",
+    used: "USED",
+    "very good": "USED_VERY_GOOD",
+    excellent: "USED_EXCELLENT",
+    good: "USED_GOOD",
+    acceptable: "USED_ACCEPTABLE",
+    fair: "USED_ACCEPTABLE",
+    "for parts or not working": "FOR_PARTS_OR_NOT_WORKING",
+    parts: "FOR_PARTS_OR_NOT_WORKING",
+    broken: "FOR_PARTS_OR_NOT_WORKING",
+    poor: "FOR_PARTS_OR_NOT_WORKING",
+    "not working": "FOR_PARTS_OR_NOT_WORKING",
+    "does not work": "FOR_PARTS_OR_NOT_WORKING",
+  }
+
+  const mapped = conditionMap[normalized] || "USED"
+  console.log(`✅ Mapped condition to eBay: "${mapped}"`)
+  return mapped
+}
 
 function extractBrand(itemName: string): string {
   const knownBrands = ["Apple", "Samsung", "Sony", "Dell", "HP", "Lenovo", "Google", "Microsoft"]
@@ -364,12 +396,11 @@ export async function POST(request: Request) {
   // Prepare aspects for inventory item product
   console.log(`ASPECTS DEBUGGING - Creating aspects object...`)
   console.log(`ASPECTS DEBUGGING - Item condition: "${submission.item_condition}"`)
-  console.log(`ASPECTS DEBUGGING - eBay condition display: "${submission.item_condition}"`)
   console.log(`ASPECTS DEBUGGING - Item name: "${submission.item_name}"`)
   console.log(`ASPECTS DEBUGGING - Extracted brand: "${brand}"`)
 
   const aspects: Record<string, string[]> = {
-    Condition: [submission.item_condition || "Used"], // Use the actual eBay condition name
+    Condition: [submission.item_condition || "Used"],
     Brand: [brand],
     Model: [submission.item_name],
     Type: ["ExampleType"],
@@ -408,14 +439,6 @@ export async function POST(request: Request) {
     console.error("Listing description is too short, eBay may reject it")
   }
 
-  // Get the valid eBay condition ID for this category and user's condition
-  console.log(
-    `🔍 Getting valid eBay condition for category ${categoryId}, user condition: "${submission.item_condition}"`,
-  )
-  const ebayConditionId = await getValidEbayConditionId(categoryId, submission.item_condition || "used")
-  const conditionDisplayName = await getConditionDisplayName(categoryId, ebayConditionId)
-  console.log(`✅ Using eBay condition: ${ebayConditionId} (${conditionDisplayName})`)
-
   const inventoryItem = {
     product: {
       title: submission.item_name,
@@ -425,7 +448,7 @@ export async function POST(request: Request) {
         imageUrl: ebayOptimizedImageUrls[0],
       },
     },
-    condition: ebayConditionId, // Now using dynamic category-aware condition
+    condition: mapConditionToEbay(submission.item_condition),
     availability: {
       shipToLocationAvailability: {
         quantity: 1,
