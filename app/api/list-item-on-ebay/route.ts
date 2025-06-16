@@ -6,7 +6,7 @@ import sharp from "sharp"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-function mapConditionToEbay(condition: string): string {
+function mapConditionToEbay(condition: string): number {
   const normalized = String(condition || "")
     .trim()
     .toLowerCase()
@@ -14,30 +14,40 @@ function mapConditionToEbay(condition: string): string {
 
   console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
 
-  const conditionMap: { [key: string]: string } = {
-    "like new": "NEW_OTHER",
-    "manufacturer refurbished": "MANUFACTURER_REFURBISHED",
-    "seller refurbished": "SELLER_REFURBISHED",
-    refurbished: "SELLER_REFURBISHED",
-    remanufactured: "REMANUFACTURED",
-    used: "USED",
-    "very good": "USED_VERY_GOOD",
-    excellent: "USED_EXCELLENT",
-    good: "USED_GOOD",
-    acceptable: "USED_ACCEPTABLE",
-    fair: "USED_ACCEPTABLE",
-    "for parts or not working": "FOR_PARTS_OR_NOT_WORKING",
-    parts: "FOR_PARTS_OR_NOT_WORKING",
-    broken: "FOR_PARTS_OR_NOT_WORKING",
-    poor: "FOR_PARTS_OR_NOT_WORKING",
-    "not working": "FOR_PARTS_OR_NOT_WORKING",
-    "does not work": "FOR_PARTS_OR_NOT_WORKING",
+  const conditionMap: { [key: string]: number } = {
+    // New conditions
+    "new": 1000,
+    "like new": 1500,
+    "new other": 1500,
+
+    // Refurbished
+    "manufacturer refurbished": 2000,
+    "seller refurbished": 2500,
+    "refurbished": 2500,
+    "remanufactured": 2750,
+
+    // Used tiers
+    "used": 3000,
+    "very good": 4000,
+    "excellent": 4000,
+    "good": 5000,
+    "acceptable": 6000,
+    "fair": 6000,
+
+    // For parts
+    "for parts or not working": 7000,
+    "parts": 7000,
+    "broken": 7000,
+    "poor": 7000,
+    "not working": 7000,
+    "does not work": 7000,
   }
 
-  const mapped = conditionMap[normalized] || "USED"
-  console.log(`✅ Mapped condition to eBay: "${mapped}"`)
+  const mapped = conditionMap[normalized] || 3000 // Default to "Used" (3000)
+  console.log(`✅ Mapped condition to eBay ID: ${mapped}`)
   return mapped
 }
+
 
 function extractBrand(itemName: string): string {
   const knownBrands = ["Apple", "Samsung", "Sony", "Dell", "HP", "Lenovo", "Google", "Microsoft"]
