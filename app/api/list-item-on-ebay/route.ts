@@ -365,6 +365,7 @@ export async function POST(request: Request) {
   const timestamp = Date.now()
   const sku = `ITEM-${submission.id}-${timestamp}`
   const title = submission.item_name.substring(0, 80)
+  const { categoryId, treeId } = await getSuggestedCategoryId(submission.item_name, accessToken)
   const conditionId = await getValidEbayConditionId(categoryId, submission.item_condition)
   const brand = extractBrand(submission.item_name)
   console.log(`ASPECTS DEBUGGING - Initial brand extraction: "${brand}"`)
