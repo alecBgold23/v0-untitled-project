@@ -3,6 +3,8 @@ import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
 import sharp from "sharp"
+import { getValidEbayConditionId } from "@/lib/ebay/getValidEbayConditionId"
+
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -363,7 +365,7 @@ export async function POST(request: Request) {
   const timestamp = Date.now()
   const sku = `ITEM-${submission.id}-${timestamp}`
   const title = submission.item_name.substring(0, 80)
-  const ebayCondition = mapConditionToEbay(submission.item_condition)
+  const conditionId = await getValidEbayConditionId(categoryId, submission.item_condition)
   const brand = extractBrand(submission.item_name)
   console.log(`ASPECTS DEBUGGING - Initial brand extraction: "${brand}"`)
 
