@@ -3,7 +3,6 @@ import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
 import sharp from "sharp"
-import { getValidEbayConditionId } from "@/lib/ebay/getValidEbayConditionId"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -440,9 +439,6 @@ export async function POST(request: Request) {
     console.error("Listing description is too short, eBay may reject it")
   }
 
-  const ebayConditionId = await getValidEbayConditionId(categoryId, submission.item_condition || "used")
-  console.log(`Using eBay condition ID: ${ebayConditionId} for condition: "${submission.item_condition}"`)
-
   const inventoryItem = {
     product: {
       title: submission.item_name,
@@ -452,7 +448,7 @@ export async function POST(request: Request) {
         imageUrl: ebayOptimizedImageUrls[0],
       },
     },
-    condition: ebayConditionId,
+    condition: mapConditionToEbay(submission.item_condition),
     availability: {
       shipToLocationAvailability: {
         quantity: 1,
