@@ -1,6 +1,6 @@
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 
-export async function getAllowedConditionsForCategory(categoryId: string, formCondition: string): Promise<string> {
+export async function getValidEbayConditionId(categoryId: string, formCondition: string): Promise<string> {
   const token = await getValidEbayAccessToken()
 
   const res = await fetch(
