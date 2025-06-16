@@ -3,6 +3,9 @@ import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
 import sharp from "sharp"
+import { getAllowedConditionsForCategory } from "@/lib/ebay/getAllowedConditionsForCategory"
+import { mapConditionToCategoryConditionId } from "@/lib/ebay/mapConditionToCategoryConditionId"
+
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -364,6 +367,13 @@ export async function POST(request: Request) {
   const sku = `ITEM-${submission.id}-${timestamp}`
   const title = submission.item_name.substring(0, 80)
   const { categoryId, treeId } = await getSuggestedCategoryId(submission.item_name, accessToken)
+  
+  const validConditions = await getAllowedConditionsForCategory(categoryId)
+let numericCondition = 3000 // default to 'Used'
+if (validConditions) {
+  numericCondition = mapConditionToCategoryConditionId(submission.item_condition, validConditions)
+}
+
   const brand = extractBrand(submission.item_name)
   console.log(`ASPECTS DEBUGGING - Initial brand extraction: "${brand}"`)
 
@@ -403,7 +413,7 @@ export async function POST(request: Request) {
     Condition: [submission.item_condition || "Used"],
     Brand: [brand],
     Model: [submission.item_name],
-    Type: ["ExampleType"],
+    Type: [submission.item_name],
   }
 
   console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`)
@@ -448,7 +458,7 @@ export async function POST(request: Request) {
         imageUrl: ebayOptimizedImageUrls[0],
       },
     },
-    condition: mapConditionToEbay(submission.item_condition),
+     condition: numericCondition, // ✅ dynamic, valid for this category
     availability: {
       shipToLocationAvailability: {
         quantity: 1,
@@ -832,23 +842,8 @@ export async function POST(request: Request) {
       optimized_images: ebayOptimizedImageUrls, // again, assuming this exists
       message: "Item listed with properly cropped square thumbnails and description for eBay",
     })
-  } catch (e) {
-    console.log("Could not parse publish response as JSON")
-
-    // Update status to failed if listing process fails
-    const { error: failedUpdateError } = await supabase
-      .from("sell_items")
-      .update({
-        status: "approved", // Reset to approved so it can be retried
-        ebay_status: "failed",
-        listing_error: "Failed to parse publish response" || "Unknown error",
-      })
-      .eq("id", id)
-
-    if (failedUpdateError) {
-      console.warn("Failed to update failed listing status:", failedUpdateError)
-    }
-
-    return NextResponse.json({ error: "Failed to parse publish response" }, { status: 500 })
+  } catch (error) {
+    console.error("Error parsing publish response:", error)
+    return NextResponse.json({ error: "Error parsing publish response" }, { status: 500 })
   }
 }
