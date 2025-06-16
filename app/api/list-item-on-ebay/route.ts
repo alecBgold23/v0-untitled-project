@@ -3,8 +3,6 @@ import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
 import sharp from "sharp"
-import { getValidEbayConditionId } from "@/lib/ebay/getValidEbayConditionId"
-
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -366,12 +364,10 @@ export async function POST(request: Request) {
   const sku = `ITEM-${submission.id}-${timestamp}`
   const title = submission.item_name.substring(0, 80)
   const { categoryId, treeId } = await getSuggestedCategoryId(submission.item_name, accessToken)
-  const conditionId = await getValidEbayConditionId(categoryId, submission.item_condition)
   const brand = extractBrand(submission.item_name)
   console.log(`ASPECTS DEBUGGING - Initial brand extraction: "${brand}"`)
 
   const searchQuery = `${submission.item_name} ${submission.item_description}`.trim()
-  const { categoryId, treeId } = await getSuggestedCategoryId(searchQuery, accessToken)
   const requiredAspects = await getRequiredAspectsForCategory(treeId, categoryId, accessToken)
   console.log(`ASPECTS DEBUGGING - Required aspects from eBay: ${JSON.stringify(requiredAspects, null, 2)}`)
   console.log(`ASPECTS DEBUGGING - Number of required aspects: ${requiredAspects.length}`)
@@ -452,7 +448,7 @@ export async function POST(request: Request) {
         imageUrl: ebayOptimizedImageUrls[0],
       },
     },
-    condition: ebayCondition,
+    condition: mapConditionToEbay(submission.item_condition),
     availability: {
       shipToLocationAvailability: {
         quantity: 1,
