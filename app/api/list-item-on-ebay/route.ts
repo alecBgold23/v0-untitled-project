@@ -6,6 +6,38 @@ import sharp from "sharp"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
+function mapConditionToEbay(condition: string): string {
+  const normalized = String(condition || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[-_]/g, " ")
+
+  console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
+
+  const conditionMap: { [key: string]: string } = {
+    "like new": "NEW_OTHER",
+    "manufacturer refurbished": "MANUFACTURER_REFURBISHED",
+    "seller refurbished": "SELLER_REFURBISHED",
+    refurbished: "SELLER_REFURBISHED",
+    remanufactured: "REMANUFACTURED",
+    used: "USED",
+    "very good": "USED_VERY_GOOD",
+    excellent: "USED_EXCELLENT",
+    good: "USED_GOOD",
+    acceptable: "USED_ACCEPTABLE",
+    fair: "USED_ACCEPTABLE",
+    "for parts or not working": "FOR_PARTS_OR_NOT_WORKING",
+    parts: "FOR_PARTS_OR_NOT_WORKING",
+    broken: "FOR_PARTS_OR_NOT_WORKING",
+    poor: "FOR_PARTS_OR_NOT_WORKING",
+    "not working": "FOR_PARTS_OR_NOT_WORKING",
+    "does not work": "FOR_PARTS_OR_NOT_WORKING",
+  }
+
+  const mapped = conditionMap[normalized] || "USED"
+  console.log(`✅ Mapped condition to eBay: "${mapped}" (type: ${typeof mapped})`)
+  return mapped
+}
 
 
 function extractBrand(itemName: string): string {
