@@ -336,7 +336,7 @@ export async function POST(request: Request) {
   const { categoryId, treeId } = await getSuggestedCategoryId(submission.item_name, accessToken)
 
   const allowedConditions = await getAllowedConditionsForCategory(categoryId, treeId, accessToken)
-  const numericCondition = mapConditionToCategoryConditionId(submission.item_condition, allowedConditions || [])
+  const numericCondition = mapConditionToCategoryConditionId(submission.item_condition, allowedConditions || {}) // Pass as object
   console.log(`🔍 eBay condition mapped: ${numericCondition} (type: ${typeof numericCondition})`)
 
   const brand = extractBrand(submission.item_name)
