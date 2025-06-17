@@ -3,112 +3,10 @@ import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
 import sharp from "sharp"
+import { mapConditionToCategoryConditionId } from "@/lib/ebay/mapConditionToCategoryConditionId"
+import { getAllowedConditionsForCategory } from "@/lib/ebay/getAllowedConditionsForCategory"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-
-// Example type for allowed conditions
-type AllowedCondition = {
-  id: string  // numeric ID as string, e.g. "3000"
-  name: string // human-readable name, e.g. "Used"
-}
-
-/**
- * Map a user input condition string to a category-allowed condition ID.
- * @param condition User condition string, e.g. "used", "like new"
- * @param allowedConditions Array of allowed conditions for the category
- * @returns condition ID string (numeric), e.g. "3000"
- */
-function mapConditionToCategoryConditionId(
-  condition: string,
-  allowedConditions: AllowedCondition[]
-): string {
-  const normalized = condition.trim().toLowerCase().replace(/[-_]/g, " ")
-  console.log(`🧪 Mapping condition: "${condition}" → normalized: "${normalized}"`)
-
-  // Try exact match by name (case-insensitive)
-  let matched = allowedConditions.find(c => c.name.toLowerCase() === normalized)
-
-  // If no exact match, try partial match (name includes normalized or vice versa)
-  if (!matched) {
-    matched = allowedConditions.find(c =>
-      c.name.toLowerCase().includes(normalized) || normalized.includes(c.name.toLowerCase())
-    )
-  }
-
-  // Fallback to default "Used" condition (commonly 3000)
-  const fallbackCondition = allowedConditions.find(c => c.name.toLowerCase() === "used") || { id: "3000", name: "Used" }
-
-  const result = matched ? matched.id : fallbackCondition.id
-
-  console.log(`✅ Condition mapped to allowed condition ID: "${result}" (from "${matched?.name || "fallback 'Used'"}")`)
-
-  return result
-}
-
-
-// Fetch allowed conditions for a given category and tree ID from eBay API
-async function getAllowedConditionsForCategory(
-  categoryId: string,
-  treeId: string,
-  accessToken: string
-): Promise<{ id: number; name: string }[]> {
-  const res = await fetch(
-    `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${treeId}/get_item_aspects_for_category?category_id=${categoryId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
-
-  if (!res.ok) {
-    console.warn("Failed to fetch allowed conditions:", await res.text());
-    return [];
-  }
-
-  const data = await res.json();
-
-  // Find the aspect named "Condition" (or similar) and return its values
-  const conditionAspect = data.aspects?.find(
-    (aspect: any) => aspect.aspectName.toLowerCase() === "condition"
-  );
-
-  if (!conditionAspect) {
-    console.warn("Condition aspect not found for category.");
-    return [];
-  }
-
-  // Return array of allowed conditions { id, name }
-  return conditionAspect.aspectValues.map((val: any) => ({
-    id: val.valueId,
-    name: val.displayName.toLowerCase(),
-  }));
-}
-
-// Map the submitted condition text to one of the allowed condition IDs
-function mapConditionToCategoryConditionId(
-  submittedCondition: string,
-  allowedConditions: { id: number; name: string }[]
-): number {
-  const normalized = submittedCondition.trim().toLowerCase();
-
-  const found = allowedConditions.find(
-    (cond) => cond.name === normalized
-  );
-
-  if (found) {
-    console.log(`Mapped "${submittedCondition}" to condition ID ${found.id}`);
-    return found.id;
-  }
-
-  console.warn(
-    `Condition "${submittedCondition}" not found in allowed conditions, defaulting to 3000 ("Used")`
-  );
-  return 3000; // Default eBay condition ID for "Used"
-}
-
-
 
 function extractBrand(itemName: string): string {
   const knownBrands = ["Apple", "Samsung", "Sony", "Dell", "HP", "Lenovo", "Google", "Microsoft"]
@@ -431,26 +329,31 @@ export async function POST(request: Request) {
     )
   }
 
-const timestamp = Date.now()
-const sku = `ITEM-${submission.id}-${timestamp}`
-const title = submission.item_name.substring(0, 80)
+  const timestamp = Date.now()
+  const sku = `ITEM-${submission.id}-${timestamp}`
+  const title = submission.item_name.substring(0, 80)
 
-const { categoryId, treeId } = await getSuggestedCategoryId(submission.item_name, accessToken)
+  const { categoryId, treeId } = await getSuggestedCategoryId(submission.item_name, accessToken)
 
-const allowedConditions = await getAllowedConditionsForCategory(categoryId, treeId, accessToken)
-const numericCondition = mapConditionToCategoryConditionId(submission.item_condition, allowedConditions || [])
-console.log(`🔍 eBay condition mapped: ${numericCondition} (type: ${typeof numericCondition})`)
+  const allowedConditions = await getAllowedConditionsForCategory(categoryId, treeId, accessToken)
+  const numericCondition = mapConditionToCategoryConditionId(submission.item_condition, allowedConditions || [])
+  console.log(`🔍 eBay condition mapped: ${numericCondition} (type: ${typeof numericCondition})`)
 
-const brand = extractBrand(submission.item_name)
-console.log(`ASPECTS DEBUGGING - Initial brand extraction: "${brand}"`)
+  const brand = extractBrand(submission.item_name)
+  console.log(`ASPECTS DEBUGGING - Initial brand extraction: "${brand}"`)
 
-const searchQuery = `${submission.item_name} ${submission.item_description}`.trim()
-const requiredAspects = await getRequiredAspectsForCategory(treeId, categoryId, accessToken)
-console.log(`ASPECTS DEBUGGING - Required aspects from eBay: ${JSON.stringify(requiredAspects, null, 2)}`)
-console.log(`ASPECTS DEBUGGING - Number of required aspects: ${requiredAspects.length}`)
+  const searchQuery = `${submission.item_name} ${submission.item_description}`.trim()
+  const requiredAspects = await getRequiredAspectsForCategory(treeId, categoryId, accessToken)
+  console.log(`ASPECTS DEBUGGING - Required aspects from eBay: ${JSON.stringify(requiredAspects, null, 2)}`)
+  console.log(`ASPECTS DEBUGGING - Number of required aspects: ${requiredAspects.length}`)
 
-console.log(`Suggested eBay category ID: ${categoryId}`)
+  console.log(`Suggested eBay category ID: ${categoryId}`)
 
+  // Get original image URLs
+  const originalImageUrls = extractImageUrls(submission.image_urls || submission.image_url)
+  if (originalImageUrls.length === 0) {
+    console.warn("No valid images found for item", submission.id)
+  }
 
   console.log(`Found ${originalImageUrls.length} original images`)
 
@@ -475,7 +378,7 @@ console.log(`Suggested eBay category ID: ${categoryId}`)
     Condition: [submission.item_condition || "Used"],
     Brand: [brand],
     Model: [submission.item_name],
-    Type: ["ExampleType"],
+    Type: [submission.item_name],
   }
 
   console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`)
@@ -520,7 +423,7 @@ console.log(`Suggested eBay category ID: ${categoryId}`)
         imageUrl: ebayOptimizedImageUrls[0],
       },
     },
-    condition: numericCondition,
+    condition: String(numericCondition), // Ensure condition is a string for eBay API
     availability: {
       shipToLocationAvailability: {
         quantity: 1,
