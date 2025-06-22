@@ -1,8 +1,15 @@
 type AllowedCondition = {
-  id: string
-  name: string
+  id: string // numeric ID as string, e.g. "3000"
+  name: string // human-readable name, e.g. "Used"
 }
 
+/**
+ * Fetch allowed conditions for a given category and tree ID from eBay API.
+ * @param categoryId The eBay category ID.
+ * @param treeId The eBay category tree ID.
+ * @param accessToken The eBay OAuth access token.
+ * @returns An array of allowed conditions { id, name }.
+ */
 export async function getAllowedConditionsForCategory(
   categoryId: string,
   treeId: string,
@@ -18,38 +25,37 @@ export async function getAllowedConditionsForCategory(
         },
       },
     )
-
+  
     if (!res.ok) {
-      const text = await res.text()
-      console.warn(`Failed to fetch allowed conditions: ${res.status} - ${text}`)
+      console.warn("Failed to fetch allowed conditions:", await res.text())
       return []
     }
-
+  
     const data = await res.json()
-    const aspects = data.aspects || []
-    console.log(`DEBUG: All aspects for category ${categoryId}:`, aspects.map((a: any) => a.aspectName))
-
-    // Try to find the "condition" aspect case-insensitively
-    const possibleNames = ["condition", "item condition", "condition type"]
-    const conditionAspect = aspects.find((aspect: any) =>
-      possibleNames.some((name) => aspect.aspectName.toLowerCase() === name)
-    )
-
-    if (!conditionAspect) {
-      console.warn(
-        `Condition aspect not found for category ${categoryId}. Available aspects: ${aspects
-          .map((a: any) => a.aspectName)
-          .join(", ")}`,
-      )
+    if (!data.aspects || !Array.isArray(data.aspects)) {
+      console.warn("No aspects array in response.")
       return []
     }
-
+  
+    // Safely find the "Condition" aspect (case-insensitive)
+    const conditionAspect = data.aspects.find(
+      (aspect: any) =>
+        typeof aspect.aspectName === "string" &&
+        aspect.aspectName.toLowerCase() === "condition",
+    )
+  
+    if (!conditionAspect || !Array.isArray(conditionAspect.aspectValues)) {
+      console.warn("Condition aspect not found or invalid in response.")
+      return []
+    }
+  
+    // Map the allowed conditions safely
     return conditionAspect.aspectValues.map((val: any) => ({
-      id: String(val.valueId),
-      name: String(val.displayName).toLowerCase(),
-    }))
+      id: val.valueId != null ? String(val.valueId) : "",
+      name: typeof val.displayName === "string" ? val.displayName.toLowerCase() : "",
+    })).filter(cond => cond.id && cond.name) // filter out invalid entries
   } catch (error) {
-    console.error("Error fetching allowed conditions:", error)
+    console.error("Error in getAllowedConditionsForCategory:", error)
     return []
   }
 }
