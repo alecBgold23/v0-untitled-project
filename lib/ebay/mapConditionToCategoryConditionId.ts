@@ -1,6 +1,6 @@
 type AllowedCondition = {
   id: string // e.g., "3000"
-  name: string // e.g., "Used"
+  item_condition: string // from Supabase, e.g., "Used"
 }
 
 export function mapConditionToCategoryConditionId(
@@ -16,11 +16,11 @@ export function mapConditionToCategoryConditionId(
     return "3000"
   }
 
-  // Build condition map from allowed conditions
+  // Build condition map using item_condition from Supabase
   const conditionMap: Record<string, string> = {}
   allowedConditions.forEach((cond) => {
-    if (cond?.name && typeof cond.name === "string") {
-      conditionMap[cond.name.toLowerCase()] = cond.id
+    if (cond?.item_condition && typeof cond.item_condition === "string") {
+      conditionMap[cond.item_condition.toLowerCase()] = cond.id
     }
   })
 
@@ -51,24 +51,24 @@ export function mapConditionToCategoryConditionId(
     }
   }
 
-  // 3. Partial match fallback
-  for (const allowedCond of allowedConditions) {
+  // 3. Partial string match
+  for (const cond of allowedConditions) {
     if (
-      allowedCond?.name &&
-      allowedCond.name.toLowerCase().includes(normalizedUserCondition)
+      cond?.item_condition &&
+      cond.item_condition.toLowerCase().includes(normalizedUserCondition)
     ) {
-      return allowedCond.id
+      return cond.id
     }
   }
 
-  // 4. Use 'used' if available
+  // 4. Fallback to 'used' if available
   if (conditionMap["used"]) {
     return conditionMap["used"]
   }
 
-  // 5. Fallback to first valid option
+  // 5. Final fallback to the first available condition
   console.warn(
-    `mapConditionToCategoryConditionId: Could not map "${userCondition}". Falling back to: ${allowedConditions[0]?.name} (${allowedConditions[0]?.id})`,
+    `mapConditionToCategoryConditionId: Could not map "${userCondition}". Falling back to: ${allowedConditions[0]?.item_condition} (${allowedConditions[0]?.id})`,
   )
   return allowedConditions[0]?.id || "3000"
 }
