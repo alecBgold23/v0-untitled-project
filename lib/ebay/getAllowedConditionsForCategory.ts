@@ -1,4 +1,3 @@
-// Example type for allowed conditions
 type AllowedCondition = {
   id: string // numeric ID as string, e.g. "3000"
   name: string // human-readable name, e.g. "Used"
@@ -26,29 +25,37 @@ export async function getAllowedConditionsForCategory(
         },
       },
     )
-
+  
     if (!res.ok) {
       console.warn("Failed to fetch allowed conditions:", await res.text())
       return []
     }
-
+  
     const data = await res.json()
-
-    // Find the aspect named "Condition" (or similar) and return its values
-    const conditionAspect = data.aspects?.find((aspect: any) => aspect.aspectName.toLowerCase() === "condition")
-
-    if (!conditionAspect) {
-      console.warn("Condition aspect not found for category.")
+    if (!data.aspects || !Array.isArray(data.aspects)) {
+      console.warn("No aspects array in response.")
       return []
     }
-
-    // Return array of allowed conditions { id, name }
+  
+    // Safely find the "Condition" aspect (case-insensitive)
+    const conditionAspect = data.aspects.find(
+      (aspect: any) =>
+        typeof aspect.aspectName === "string" &&
+        aspect.aspectName.toLowerCase() === "condition",
+    )
+  
+    if (!conditionAspect || !Array.isArray(conditionAspect.aspectValues)) {
+      console.warn("Condition aspect not found or invalid in response.")
+      return []
+    }
+  
+    // Map the allowed conditions safely
     return conditionAspect.aspectValues.map((val: any) => ({
-      id: String(val.valueId), // Ensure ID is a string as per AllowedCondition type
-      name: val.displayName.toLowerCase(),
-    }))
+      id: val.valueId != null ? String(val.valueId) : "",
+      name: typeof val.displayName === "string" ? val.displayName.toLowerCase() : "",
+    })).filter(cond => cond.id && cond.name) // filter out invalid entries
   } catch (error) {
-    console.error("Error fetching allowed conditions for category:", error)
+    console.error("Error in getAllowedConditionsForCategory:", error)
     return []
   }
 }
