@@ -1,16 +1,8 @@
-// ✅ UPDATED type: id is now a number
 type AllowedCondition = {
-  id: number // numeric ID as a number, e.g. 3000
-  name: string // human-readable name, e.g. "Used"
+  id: string
+  name: string
 }
 
-/**
- * Fetch allowed conditions for a given category and tree ID from eBay API.
- * @param categoryId The eBay category ID.
- * @param treeId The eBay category tree ID.
- * @param accessToken The eBay OAuth access token.
- * @returns An array of allowed conditions { id, name }.
- */
 export async function getAllowedConditionsForCategory(
   categoryId: string,
   treeId: string,
@@ -28,27 +20,36 @@ export async function getAllowedConditionsForCategory(
     )
 
     if (!res.ok) {
-      console.warn("Failed to fetch allowed conditions:", await res.text())
+      const text = await res.text()
+      console.warn(`Failed to fetch allowed conditions: ${res.status} - ${text}`)
       return []
     }
 
     const data = await res.json()
+    const aspects = data.aspects || []
+    console.log(`DEBUG: All aspects for category ${categoryId}:`, aspects.map((a: any) => a.aspectName))
 
-    // Find the aspect named "Condition" (or similar) and return its values
-    const conditionAspect = data.aspects?.find((aspect: any) => aspect.aspectName.toLowerCase() === "condition")
+    // Try to find the "condition" aspect case-insensitively
+    const possibleNames = ["condition", "item condition", "condition type"]
+    const conditionAspect = aspects.find((aspect: any) =>
+      possibleNames.some((name) => aspect.aspectName.toLowerCase() === name)
+    )
 
     if (!conditionAspect) {
-      console.warn("Condition aspect not found for category.")
+      console.warn(
+        `Condition aspect not found for category ${categoryId}. Available aspects: ${aspects
+          .map((a: any) => a.aspectName)
+          .join(", ")}`,
+      )
       return []
     }
 
-    // ✅ Ensure ID is a number to prevent serialization errors
     return conditionAspect.aspectValues.map((val: any) => ({
-      id: Number(val.valueId),
-      name: val.displayName.toLowerCase(),
+      id: String(val.valueId),
+      name: String(val.displayName).toLowerCase(),
     }))
   } catch (error) {
-    console.error("Error fetching allowed conditions for category:", error)
+    console.error("Error fetching allowed conditions:", error)
     return []
   }
 }

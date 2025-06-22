@@ -17,10 +17,10 @@ function extractBrand(itemName: string): string {
 // Function to resize images specifically for eBay listings
 async function resizeImageForEbay(imageUrl: string, itemId: string, imageIndex: number): Promise<string | null> {
   try {
-    console.log(`Resizing image ${imageIndex + 1} for eBay: ${imageUrl}`)
+    console.log(Resizing image ${imageIndex + 1} for eBay: ${imageUrl})
     const response = await fetch(imageUrl)
     if (!response.ok) {
-      console.error(`Failed to fetch image: ${response.statusText}`)
+      console.error(Failed to fetch image: ${response.statusText})
       return null
     }
     const imageBuffer = await response.arrayBuffer()
@@ -30,10 +30,10 @@ async function resizeImageForEbay(imageUrl: string, itemId: string, imageIndex: 
       .jpeg({ quality: 95, progressive: false })
       .toBuffer()
     const metadata = await sharp(resizedImage).metadata()
-    console.log(`Resized image dimensions: ${metadata.width}x${metadata.height}`)
+    console.log(Resized image dimensions: ${metadata.width}x${metadata.height})
     const timestamp = Date.now()
-    const fileName = `ebay-optimized/${itemId}/${timestamp}-${imageIndex}.jpg`
-    console.log(`Uploading eBay-optimized image: ${fileName}`)
+    const fileName = ebay-optimized/${itemId}/${timestamp}-${imageIndex}.jpg
+    console.log(Uploading eBay-optimized image: ${fileName})
     const { error: uploadError } = await supabase.storage
       .from("item_images")
       .upload(fileName, resizedImage, { cacheControl: "3600", upsert: true, contentType: "image/jpeg" })
@@ -43,20 +43,20 @@ async function resizeImageForEbay(imageUrl: string, itemId: string, imageIndex: 
     }
     const { data: publicUrlData } = supabase.storage.from("item_images").getPublicUrl(fileName)
     const optimizedUrl = publicUrlData.publicUrl
-    console.log(`eBay-optimized image uploaded: ${optimizedUrl}`)
+    console.log(eBay-optimized image uploaded: ${optimizedUrl})
     return optimizedUrl
   } catch (error) {
-    console.error(`Error resizing image for eBay:`, error)
+    console.error(Error resizing image for eBay:, error)
     return null
   }
 }
 
 async function prepareImagesForEbay(originalImageUrls: string[], itemId: string): Promise<string[]> {
-  console.log(`Preparing ${originalImageUrls.length} images for eBay listing...`)
+  console.log(Preparing ${originalImageUrls.length} images for eBay listing...)
   const resizedImagePromises = originalImageUrls.map((url, index) => resizeImageForEbay(url, itemId, index))
   const resizedImages = await Promise.all(resizedImagePromises)
   const validResizedImages = resizedImages.filter((url): url is string => url !== null)
-  console.log(`Successfully prepared ${validResizedImages.length}/${originalImageUrls.length} images for eBay`)
+  console.log(Successfully prepared ${validResizedImages.length}/${originalImageUrls.length} images for eBay)
   return validResizedImages
 }
 
@@ -66,24 +66,24 @@ async function getSuggestedCategoryId(
 ): Promise<{ categoryId: string; treeId: string }> {
   try {
     const treeIdRes = await fetch(
-      `https://api.ebay.com/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=EBAY_US`,
-      { headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" } },
+      https://api.ebay.com/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=EBAY_US,
+      { headers: { Authorization: Bearer ${accessToken}, "Content-Type": "application/json" } },
     )
-    if (!treeIdRes.ok) throw new Error(`Failed to get default category tree ID: ${treeIdRes.statusText}`)
+    if (!treeIdRes.ok) throw new Error(Failed to get default category tree ID: ${treeIdRes.statusText})
     const { categoryTreeId } = await treeIdRes.json()
 
     const res = await fetch(
-      `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_suggestions?q=${encodeURIComponent(query)}`,
+      https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_category_suggestions?q=${encodeURIComponent(query)},
       {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: Bearer ${accessToken},
           "Content-Type": "application/json",
           "Accept-Language": "en-US",
         },
       },
     )
     const json = await res.json()
-    console.log(`DEBUG: Raw category suggestions from eBay: ${JSON.stringify(json, null, 2)}`)
+    console.log(DEBUG: Raw category suggestions from eBay: ${JSON.stringify(json, null, 2)})
     const suggestions = json?.categorySuggestions || []
     if (suggestions.length === 0) {
       console.warn("DEBUG: No category suggestions returned. Using fallback category 139971.")
@@ -95,7 +95,7 @@ async function getSuggestedCategoryId(
       console.warn("DEBUG: No valid category ID in sorted suggestions. Using fallback category 139971.")
       return { categoryId: "139971", treeId: categoryTreeId || "0" }
     }
-    console.log(`DEBUG: Chosen eBay category ID: ${best}, Tree ID: ${categoryTreeId} (based on confidence score)`)
+    console.log(DEBUG: Chosen eBay category ID: ${best}, Tree ID: ${categoryTreeId} (based on confidence score))
     return { categoryId: best, treeId: categoryTreeId }
   } catch (err) {
     console.warn("DEBUG: Category suggestion failed. Using fallback category 139971.", err)
@@ -105,8 +105,8 @@ async function getSuggestedCategoryId(
 
 async function getRequiredAspectsForCategory(categoryTreeId: string, categoryId: string, accessToken: string) {
   const res = await fetch(
-    `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_item_aspects_for_category?category_id=${categoryId}`,
-    { headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" } },
+    https://api.ebay.com/commerce/taxonomy/v1/category_tree/${categoryTreeId}/get_item_aspects_for_category?category_id=${categoryId},
+    { headers: { Authorization: Bearer ${accessToken}, "Content-Type": "application/json" } },
   )
   if (!res.ok) {
     console.warn("Failed to fetch required aspects:", res.statusText)
@@ -125,14 +125,14 @@ function sanitizeDescription(text: string | null | undefined): string {
 
 function createEbayDescription(itemName: string, condition: string, brand: string, description: string): string {
   const sanitizedDescription = sanitizeDescription(description)
-  return `
+  return 
 <div>
   <h3>${itemName}</h3>
   <p><strong>Condition:</strong> ${condition || "Used"}</p>
   <p><strong>Brand:</strong> ${brand}</p>
   <div><p>${sanitizedDescription}</p></div>
   <p><em>Please contact seller with any questions before purchasing.</em></p>
-</div>`.trim()
+</div>.trim()
 }
 
 export async function POST(request: Request) {
@@ -151,47 +151,47 @@ export async function POST(request: Request) {
   } catch (tokenError) {
     console.error("Failed to get eBay access token:", tokenError)
     return NextResponse.json(
-      { error: `Token error: ${tokenError instanceof Error ? tokenError.message : "Unknown"}` },
+      { error: Token error: ${tokenError instanceof Error ? tokenError.message : "Unknown"} },
       { status: 500 },
     )
   }
 
   const timestamp = Date.now()
-  const sku = `ITEM-${submission.id}-${timestamp}`
+  const sku = ITEM-${submission.id}-${timestamp}
 
-  console.log(`DEBUG: Attempting to get suggested category for item name: "${submission.item_name}"`)
+  console.log(DEBUG: Attempting to get suggested category for item name: "${submission.item_name}")
   const { categoryId, treeId } = await getSuggestedCategoryId(submission.item_name, accessToken)
-  console.log(`DEBUG: Using Category ID: ${categoryId}, Tree ID: ${treeId}`)
+  console.log(DEBUG: Using Category ID: ${categoryId}, Tree ID: ${treeId})
 
-  console.log(`DEBUG: Fetching allowed conditions for Category ID: ${categoryId}, Tree ID: ${treeId}`)
+  console.log(DEBUG: Fetching allowed conditions for Category ID: ${categoryId}, Tree ID: ${treeId})
   const allowedConditions = await getAllowedConditionsForCategory(categoryId, treeId, accessToken)
   console.log(
-    `DEBUG: Allowed conditions fetched from eBay for category ${categoryId}: ${JSON.stringify(allowedConditions, null, 2)}`,
+    DEBUG: Allowed conditions fetched from eBay for category ${categoryId}: ${JSON.stringify(allowedConditions, null, 2)},
   )
 
   const userProvidedCondition = submission.item_condition || "Used" // Default to "Used" if not provided
-  console.log(`DEBUG: User provided condition: "${userProvidedCondition}"`)
+  console.log(DEBUG: User provided condition: "${userProvidedCondition}")
 
-  // Wrap mapped condition in String() to ensure string type for eBay API
-  const numericCondition = String(mapConditionToCategoryConditionId(userProvidedCondition, allowedConditions))
-
+  const numericCondition = mapConditionToCategoryConditionId(userProvidedCondition, allowedConditions)
   console.log(
-    `DEBUG: Mapped eBay Condition ID: ${numericCondition} (type: ${typeof numericCondition}) for user condition "${userProvidedCondition}"`,
+    DEBUG: Mapped eBay Condition ID: ${numericCondition} (type: ${typeof numericCondition}) for user condition "${userProvidedCondition}",
   )
 
   if (
     !numericCondition ||
-    (allowedConditions.length > 0 && !allowedConditions.find((c) => String(c.id) === numericCondition))
+    (allowedConditions.length > 0 && !allowedConditions.find((c) => c.id === numericCondition))
   ) {
     console.error(
-      `CRITICAL DEBUG: The mapped condition ID "${numericCondition}" is NOT in the list of allowed conditions from eBay for category ${categoryId}. This will likely fail.`,
+      CRITICAL DEBUG: The mapped condition ID "${numericCondition}" is NOT in the list of allowed conditions from eBay for category ${categoryId}. This will likely fail.,
     )
+    // Potentially, you could add logic here to pick the first allowed condition as a safer fallback if numericCondition is deemed invalid.
+    // For now, we'll let it proceed to see the eBay error, which is informative.
   }
 
   const brand = extractBrand(submission.item_name)
   const originalImageUrls = extractImageUrls(submission.image_urls || submission.image_url)
   const ebayOptimizedImageUrls = await prepareImagesForEbay(originalImageUrls, submission.id)
-  const aspects: Record<string, string[]> = { Brand: [brand] } // Condition aspect is handled by top-level `condition` field
+  const aspects: Record<string, string[]> = { Brand: [brand] } // Condition aspect is handled by top-level condition field
 
   const conditionNote = sanitizeDescription(submission.item_description)
   const listingDescription = createEbayDescription(
@@ -218,7 +218,7 @@ export async function POST(request: Request) {
             ? { imageUrl: originalImageUrls[0] }
             : undefined,
     },
-    condition: numericCondition, // This is the critical field - ensure string type
+    condition: numericCondition, // This is the critical field
     availability: { shipToLocationAvailability: { quantity: 1 } },
     packageWeightAndSize: {
       packageType: "USPS_LARGE_PACK",
@@ -227,28 +227,28 @@ export async function POST(request: Request) {
     },
   }
 
-  console.log(`DEBUG: Inventory item payload being sent to eBay: ${JSON.stringify(inventoryItem, null, 2)}`)
+  console.log(DEBUG: Inventory item payload being sent to eBay: ${JSON.stringify(inventoryItem, null, 2)})
 
-  const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
+  const putResponse = await fetch(https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: Bearer ${accessToken},
       "Content-Language": "en-US",
     },
     body: JSON.stringify(inventoryItem),
   })
   const putText = await putResponse.text()
-  console.log(`DEBUG: PUT inventory response status: ${putResponse.status}, Text: ${putText}`)
+  console.log(DEBUG: PUT inventory response status: ${putResponse.status}, Text: ${putText})
 
   if (!putResponse.ok) {
-    console.error(`DEBUG: Inventory item creation failed. Status: ${putResponse.status}, Response: ${putText}`)
+    console.error(DEBUG: Inventory item creation failed. Status: ${putResponse.status}, Response: ${putText})
     await supabase
       .from("sell_items")
       .update({
         status: "approved",
         ebay_status: "failed",
-        listing_error: `InvFail ${putResponse.status}: ${putText.substring(0, 200)}`,
+        listing_error: InvFail ${putResponse.status}: ${putText.substring(0, 200)},
       })
       .eq("id", id)
     return NextResponse.json(
@@ -267,9 +267,9 @@ export async function POST(request: Request) {
     if (!value) {
       await supabase
         .from("sell_items")
-        .update({ status: "approved", ebay_status: "failed", listing_error: `Missing env ${key}` })
+        .update({ status: "approved", ebay_status: "failed", listing_error: Missing env ${key} })
         .eq("id", id)
-      return NextResponse.json({ error: `Missing eBay config: ${key}` }, { status: 500 })
+      return NextResponse.json({ error: Missing eBay config: ${key} }, { status: 500 })
     }
   }
 
@@ -301,28 +301,28 @@ export async function POST(request: Request) {
     merchantLocationKey: requiredEnvVars.locationKey,
     // itemSpecifics: Object.entries(aspects).map(([name, values]) => ({ name, value: values })), // Aspects are now in product
   }
-  console.log(`DEBUG: Offer data payload: ${JSON.stringify(offerData, null, 2)}`)
+  console.log(DEBUG: Offer data payload: ${JSON.stringify(offerData, null, 2)})
 
   const offerResponse = await fetch("https://api.ebay.com/sell/inventory/v1/offer", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: Bearer ${accessToken},
       "Content-Language": "en-US",
     },
     body: JSON.stringify(offerData),
   })
   const offerText = await offerResponse.text()
-  console.log(`DEBUG: Offer response status: ${offerResponse.status}, Text: ${offerText}`)
+  console.log(DEBUG: Offer response status: ${offerResponse.status}, Text: ${offerText})
 
   if (!offerResponse.ok) {
-    console.error(`DEBUG: Offer creation failed. Status: ${offerResponse.status}, Response: ${offerText}`)
+    console.error(DEBUG: Offer creation failed. Status: ${offerResponse.status}, Response: ${offerText})
     await supabase
       .from("sell_items")
       .update({
         status: "approved",
         ebay_status: "failed",
-        listing_error: `OfferFail ${offerResponse.status}: ${offerText.substring(0, 200)}`,
+        listing_error: OfferFail ${offerResponse.status}: ${offerText.substring(0, 200)},
       })
       .eq("id", id)
     return NextResponse.json({ error: "Offer creation failed", details: offerText }, { status: offerResponse.status })
@@ -337,29 +337,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No offer ID from eBay" }, { status: 500 })
   }
 
-  const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
+  const publishResponse = await fetch(https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: Bearer ${accessToken},
       "Content-Language": "en-US",
     },
   })
   const publishText = await publishResponse.text()
-  console.log(`DEBUG: Publish response status: ${publishResponse.status}, Text: ${publishText}`)
+  console.log(DEBUG: Publish response status: ${publishResponse.status}, Text: ${publishText})
 
   try {
     const publishResult = JSON.parse(publishText) // Attempt to parse, even on error, for more details
     if (!publishResponse.ok) {
       console.error(
-        `DEBUG: Publishing offer failed. Status: ${publishResponse.status}, Parsed Response: ${JSON.stringify(publishResult, null, 2)}`,
+        DEBUG: Publishing offer failed. Status: ${publishResponse.status}, Parsed Response: ${JSON.stringify(publishResult, null, 2)},
       )
       await supabase
         .from("sell_items")
         .update({
           status: "approved",
           ebay_status: "failed",
-          listing_error: `PubFail ${publishResponse.status}: ${publishText.substring(0, 200)}`,
+          listing_error: PubFail ${publishResponse.status}: ${publishText.substring(0, 200)},
         })
         .eq("id", id)
       return NextResponse.json(
@@ -385,13 +385,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, listingId, ebay_offer_id: offerId, message: "Item listed successfully" })
   } catch (e) {
-    console.error(`DEBUG: Error parsing publish response or final DB update. Raw Text: ${publishText}`, e)
+    console.error(DEBUG: Error parsing publish response or final DB update. Raw Text: ${publishText}, e)
     await supabase
       .from("sell_items")
       .update({
         status: "approved",
         ebay_status: "failed",
-        listing_error: `PubParseFail: ${publishText.substring(0, 200)}`,
+        listing_error: PubParseFail: ${publishText.substring(0, 200)},
       })
       .eq("id", id)
     return NextResponse.json(
