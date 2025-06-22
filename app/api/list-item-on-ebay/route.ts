@@ -336,15 +336,8 @@ export async function POST(request: Request) {
   const { categoryId, treeId } = await getSuggestedCategoryId(submission.item_name, accessToken)
 
   const allowedConditions = await getAllowedConditionsForCategory(categoryId, treeId, accessToken)
-  const allowedConditionsMap = (allowedConditions || []).reduce(
-    (acc, condition) => {
-      acc[condition.name] = Number(condition.id) // Convert ID to number as expected by mapConditionToCategoryConditionId
-      return acc
-    },
-    {} as Record<string, number>,
-  )
-
-  const numericCondition = mapConditionToCategoryConditionId(submission.item_condition, allowedConditionsMap)
+  // Pass the array directly to the mapping function
+  const numericCondition = mapConditionToCategoryConditionId(submission.item_condition, allowedConditions || [])
   console.log(`🔍 eBay condition mapped: ${numericCondition} (type: ${typeof numericCondition})`)
 
   const brand = extractBrand(submission.item_name)
@@ -391,7 +384,6 @@ export async function POST(request: Request) {
 
   console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`)
   console.log(`ASPECTS DEBUGGING - Aspects object keys: [${Object.keys(aspects).join(", ")}]`)
-  console.log(`ASPECTS DEBUGGING - Aspects object values:`)
   Object.entries(aspects).forEach(([key, values]) => {
     console.log(`  - ${key}: [${values.join(", ")}] (${values.length} values)`)
   })
@@ -431,7 +423,7 @@ export async function POST(request: Request) {
         imageUrl: ebayOptimizedImageUrls[0],
       },
     },
-    condition: String(numericCondition), // Ensure condition is a string for eBay API
+    condition: numericCondition, // Use the string ID directly
     availability: {
       shipToLocationAvailability: {
         quantity: 1,
