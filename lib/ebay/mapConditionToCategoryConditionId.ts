@@ -1,8 +1,16 @@
+import { createClient } from "@supabase/supabase-js"
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+)
+
 type AllowedCondition = {
-  id: string // e.g., "3000"
-  item_condition: string // from Supabase, e.g., "Used"
+  id: string
+  item_condition: string
 }
 
+// Your mapping function (unchanged from your latest version)
 export function mapConditionToCategoryConditionId(
   userCondition: string,
   allowedConditions: AllowedCondition[],
@@ -16,7 +24,6 @@ export function mapConditionToCategoryConditionId(
     return "3000"
   }
 
-  // Build condition map using item_condition from Supabase
   const conditionMap: Record<string, string> = {}
   allowedConditions.forEach((cond) => {
     if (cond?.item_condition && typeof cond.item_condition === "string") {
@@ -24,16 +31,19 @@ export function mapConditionToCategoryConditionId(
     }
   })
 
-  // 1. Exact match
   if (conditionMap[normalizedUserCondition]) {
     return conditionMap[normalizedUserCondition]
   }
 
-  // 2. Fuzzy alias match
   const fuzzyMappings: Record<string, string[]> = {
     "brand new": ["new"],
     "like new": ["like new", "new other", "pre-owned excellent"],
-    excellent: ["used excellent", "excellent refurbished", "certified refurbished", "pre-owned excellent"],
+    excellent: [
+      "used excellent",
+      "excellent refurbished",
+      "certified refurbished",
+      "pre-owned excellent",
+    ],
     "very good": ["used very good", "very good refurbished"],
     good: ["used good", "good refurbished"],
     fair: ["used acceptable", "pre-owned fair"],
@@ -51,7 +61,6 @@ export function mapConditionToCategoryConditionId(
     }
   }
 
-  // 3. Partial string match
   for (const cond of allowedConditions) {
     if (
       cond?.item_condition &&
@@ -61,14 +70,62 @@ export function mapConditionToCategoryConditionId(
     }
   }
 
-  // 4. Fallback to 'used' if available
   if (conditionMap["used"]) {
     return conditionMap["used"]
   }
 
-  // 5. Final fallback to the first available condition
   console.warn(
     `mapConditionToCategoryConditionId: Could not map "${userCondition}". Falling back to: ${allowedConditions[0]?.item_condition} (${allowedConditions[0]?.id})`,
   )
   return allowedConditions[0]?.id || "3000"
+}
+
+// Example API route handler:
+export async function POST(request: Request) {
+  try {
+    // Assume JSON body contains { userCondition: string, categoryId: string }
+    const { userCondition, categoryId } = await request.json()
+
+    // Fetch allowed conditions from Supabase for this category
+    // Example table "conditions" with columns: id, item_condition, category_id
+    const { data, error } = await supabase
+      .from("conditions")
+      .select("id, item_condition")
+      .eq("category_id", categoryId)
+
+    if (error) {
+      console.error("Supabase error fetching allowed conditions:", error)
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch allowed conditions" }),
+        { status: 500 },
+      )
+    }
+
+    if (!data || data.length === 0) {
+      console.warn(`No allowed conditions found for category ${categoryId}`)
+      // You can choose a fallback here or return error
+    }
+
+    // Defensive check: filter out any invalid items that lack item_condition
+    const allowedConditions = (data || []).filter(
+      (c) => c?.item_condition && typeof c.item_condition === "string",
+    )
+
+    // Use the mapping function safely
+    const mappedConditionId = mapConditionToCategoryConditionId(
+      userCondition,
+      allowedConditions,
+    )
+
+    return new Response(
+      JSON.stringify({ conditionId: mappedConditionId }),
+      { status: 200 },
+    )
+  } catch (err) {
+    console.error("Unexpected error:", err)
+    return new Response(
+      JSON.stringify({ error: "Unexpected error" }),
+      { status: 500 },
+    )
+  }
 }
