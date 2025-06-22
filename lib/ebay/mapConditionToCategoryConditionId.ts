@@ -19,7 +19,7 @@ export function mapConditionToCategoryConditionId(
 
   if (!Array.isArray(allowedConditions) || allowedConditions.length === 0) {
     console.warn(
-      mapConditionToCategoryConditionId: No allowed conditions provided for "${userCondition}". Falling back to "Used" (3000).,
+      `mapConditionToCategoryConditionId: No allowed conditions provided for "${userCondition}". Falling back to "Used" (3000).`,
     )
     return "3000"
   }
@@ -75,7 +75,7 @@ export function mapConditionToCategoryConditionId(
   }
 
   console.warn(
-    mapConditionToCategoryConditionId: Could not map "${userCondition}". Falling back to: ${allowedConditions[0]?.item_condition} (${allowedConditions[0]?.id}),
+    `mapConditionToCategoryConditionId: Could not map "${userCondition}". Falling back to: ${allowedConditions[0]?.item_condition} (${allowedConditions[0]?.id})`,
   )
   return allowedConditions[0]?.id || "3000"
 }
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     }
 
     if (!data || data.length === 0) {
-      console.warn(No allowed conditions found for category ${categoryId})
+      console.warn(`No allowed conditions found for category ${categoryId}`)
       // You can choose a fallback here or return error
     }
 
