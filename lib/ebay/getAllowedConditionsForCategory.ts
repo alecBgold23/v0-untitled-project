@@ -18,10 +18,10 @@ export async function getAllowedConditionsForCategory(
 ): Promise<AllowedCondition[]> {
   try {
     const res = await fetch(
-      https://api.ebay.com/commerce/taxonomy/v1/category_tree/${treeId}/get_item_aspects_for_category?category_id=${categoryId},
+      `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${treeId}/get_item_aspects_for_category?category_id=${categoryId}`,
       {
         headers: {
-          Authorization: Bearer ${accessToken},
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
       },
@@ -35,7 +35,9 @@ export async function getAllowedConditionsForCategory(
     const data = await res.json()
 
     // Find the aspect named "Condition" (or similar) and return its values
-    const conditionAspect = data.aspects?.find((aspect: any) => aspect.aspectName.toLowerCase() === "condition")
+    const conditionAspect = data.aspects?.find(
+      (aspect: any) => aspect.aspectName.toLowerCase() === "condition"
+    )
 
     if (!conditionAspect) {
       console.warn("Condition aspect not found for category.")
