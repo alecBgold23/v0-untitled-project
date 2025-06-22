@@ -10,7 +10,7 @@ type AllowedCondition = {
   item_condition: string
 }
 
-// Your mapping function (with only return values cast to string)
+// Your mapping function (unchanged from your latest version)
 export function mapConditionToCategoryConditionId(
   userCondition: string,
   allowedConditions: AllowedCondition[],
@@ -19,7 +19,7 @@ export function mapConditionToCategoryConditionId(
 
   if (!Array.isArray(allowedConditions) || allowedConditions.length === 0) {
     console.warn(
-      `mapConditionToCategoryConditionId: No allowed conditions provided for "${userCondition}". Falling back to "Used" (3000).`,
+      mapConditionToCategoryConditionId: No allowed conditions provided for "${userCondition}". Falling back to "Used" (3000).,
     )
     return "3000"
   }
@@ -32,7 +32,7 @@ export function mapConditionToCategoryConditionId(
   })
 
   if (conditionMap[normalizedUserCondition]) {
-    return String(conditionMap[normalizedUserCondition])
+    return conditionMap[normalizedUserCondition]
   }
 
   const fuzzyMappings: Record<string, string[]> = {
@@ -55,7 +55,7 @@ export function mapConditionToCategoryConditionId(
     if (normalizedUserCondition.includes(alias)) {
       for (const ebayTerm of fuzzyMappings[alias]) {
         if (conditionMap[ebayTerm.toLowerCase()]) {
-          return String(conditionMap[ebayTerm.toLowerCase()])
+          return conditionMap[ebayTerm.toLowerCase()]
         }
       }
     }
@@ -66,18 +66,18 @@ export function mapConditionToCategoryConditionId(
       cond?.item_condition &&
       cond.item_condition.toLowerCase().includes(normalizedUserCondition)
     ) {
-      return String(cond.id)
+      return cond.id
     }
   }
 
   if (conditionMap["used"]) {
-    return String(conditionMap["used"])
+    return conditionMap["used"]
   }
 
   console.warn(
-    `mapConditionToCategoryConditionId: Could not map "${userCondition}". Falling back to: ${allowedConditions[0]?.item_condition} (${allowedConditions[0]?.id})`,
+    mapConditionToCategoryConditionId: Could not map "${userCondition}". Falling back to: ${allowedConditions[0]?.item_condition} (${allowedConditions[0]?.id}),
   )
-  return String(allowedConditions[0]?.id || "3000")
+  return allowedConditions[0]?.id || "3000"
 }
 
 // Example API route handler:
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     }
 
     if (!data || data.length === 0) {
-      console.warn(`No allowed conditions found for category ${categoryId}`)
+      console.warn(No allowed conditions found for category ${categoryId})
       // You can choose a fallback here or return error
     }
 
