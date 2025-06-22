@@ -35,9 +35,7 @@ export async function getAllowedConditionsForCategory(
     const data = await res.json()
 
     // Find the aspect named "Condition" (or similar) and return its values
-    const conditionAspect = data.aspects?.find(
-      (aspect: any) => aspect.aspectName.toLowerCase() === "condition"
-    )
+    const conditionAspect = data.aspects?.find((aspect: any) => aspect.aspectName.toLowerCase() === "condition")
 
     if (!conditionAspect) {
       console.warn("Condition aspect not found for category.")

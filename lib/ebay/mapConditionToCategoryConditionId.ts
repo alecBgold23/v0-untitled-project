@@ -1,131 +1,58 @@
-import { createClient } from "@supabase/supabase-js"
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-)
-
+// Example type for allowed conditions (from getAllowedConditionsForCategory)
 type AllowedCondition = {
-  id: string
-  item_condition: string
+  id: string // numeric ID as string, e.g. "3000"
+  name: string // human-readable name, e.g. "used"
 }
 
-// Your mapping function (unchanged from your latest version)
 export function mapConditionToCategoryConditionId(
   userCondition: string,
-  allowedConditions: AllowedCondition[],
+  allowedConditions: AllowedCondition[], // Expect array of objects
 ): string {
-  const normalizedUserCondition = userCondition?.trim().toLowerCase() || ""
+  const normalizedUserCondition = userCondition.trim().toLowerCase()
 
-  if (!Array.isArray(allowedConditions) || allowedConditions.length === 0) {
-    console.warn(
-      `mapConditionToCategoryConditionId: No allowed conditions provided for "${userCondition}". Falling back to "Used" (3000).`,
-    )
-    return "3000"
-  }
-
+  // Create a map for quick lookup and to normalize names
   const conditionMap: Record<string, string> = {}
   allowedConditions.forEach((cond) => {
-    if (cond?.item_condition && typeof cond.item_condition === "string") {
-      conditionMap[cond.item_condition.toLowerCase()] = cond.id
-    }
+    conditionMap[cond.name.toLowerCase()] = cond.id
   })
 
+  // 1. Try exact match first
   if (conditionMap[normalizedUserCondition]) {
     return conditionMap[normalizedUserCondition]
   }
 
+  // 2. Try common aliases/fuzzy matches with priority
   const fuzzyMappings: Record<string, string[]> = {
     "brand new": ["new"],
-    "like new": ["like new", "new other", "pre-owned excellent"],
-    excellent: [
-      "used excellent",
-      "excellent refurbished",
-      "certified refurbished",
-      "pre-owned excellent",
-    ],
-    "very good": ["used very good", "very good refurbished"],
-    good: ["used good", "good refurbished"],
-    fair: ["used acceptable", "pre-owned fair"],
-    poor: ["for parts or not working"],
-    broken: ["for parts or not working"],
+    "like new": ["new with defects", "new other", "used - like new"], // Prioritize more specific eBay terms
+    excellent: ["very good", "good"],
+    "very good": ["good"],
+    fair: ["acceptable"],
+    poor: ["for parts or not working", "parts or not working"],
+    broken: ["for parts or not working", "parts or not working"],
   }
 
   for (const alias in fuzzyMappings) {
     if (normalizedUserCondition.includes(alias)) {
       for (const ebayTerm of fuzzyMappings[alias]) {
-        if (conditionMap[ebayTerm.toLowerCase()]) {
-          return conditionMap[ebayTerm.toLowerCase()]
+        if (conditionMap[ebayTerm]) {
+          return conditionMap[ebayTerm]
         }
       }
     }
   }
 
-  for (const cond of allowedConditions) {
-    if (
-      cond?.item_condition &&
-      cond.item_condition.toLowerCase().includes(normalizedUserCondition)
-    ) {
-      return cond.id
-    }
-  }
-
+  // 3. Fallback to 'used' if available in the allowed conditions
   if (conditionMap["used"]) {
     return conditionMap["used"]
   }
 
-  console.warn(
-    `mapConditionToCategoryConditionId: Could not map "${userCondition}". Falling back to: ${allowedConditions[0]?.item_condition} (${allowedConditions[0]?.id})`,
-  )
-  return allowedConditions[0]?.id || "3000"
-}
-
-// Example API route handler:
-export async function POST(request: Request) {
-  try {
-    // Assume JSON body contains { userCondition: string, categoryId: string }
-    const { userCondition, categoryId } = await request.json()
-
-    // Fetch allowed conditions from Supabase for this category
-    // Example table "conditions" with columns: id, item_condition, category_id
-    const { data, error } = await supabase
-      .from("conditions")
-      .select("id, item_condition")
-      .eq("category_id", categoryId)
-
-    if (error) {
-      console.error("Supabase error fetching allowed conditions:", error)
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch allowed conditions" }),
-        { status: 500 },
-      )
-    }
-
-    if (!data || data.length === 0) {
-      console.warn(`No allowed conditions found for category ${categoryId}`)
-      // You can choose a fallback here or return error
-    }
-
-    // Defensive check: filter out any invalid items that lack item_condition
-    const allowedConditions = (data || []).filter(
-      (c) => c?.item_condition && typeof c.item_condition === "string",
-    )
-
-    // Use the mapping function safely
-    const mappedConditionId = mapConditionToCategoryConditionId(
-      userCondition,
-      allowedConditions,
-    )
-
-    return new Response(
-      JSON.stringify({ conditionId: mappedConditionId }),
-      { status: 200 },
-    )
-  } catch (err) {
-    console.error("Unexpected error:", err)
-    return new Response(
-      JSON.stringify({ error: "Unexpected error" }),
-      { status: 500 },
-    )
+  // 4. Fallback to the first available condition if 'used' is not an option
+  if (allowedConditions.length > 0) {
+    return allowedConditions[0].id
   }
+
+  // 5. Generic hardcoded fallback (should rarely be hit if API provides conditions)
+  console.warn(`No suitable eBay condition found for "${userCondition}". Falling back to generic "Used" (3000).`)
+  return "3000" // Default to "Used" as a last resort
 }
