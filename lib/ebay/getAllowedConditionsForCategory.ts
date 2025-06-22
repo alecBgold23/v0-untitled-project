@@ -16,39 +16,56 @@ export async function getAllowedConditionsForCategory(
   treeId: string,
   accessToken: string,
 ): Promise<AllowedCondition[]> {
+  const endpoint = `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${treeId}/get_item_aspects_for_category?category_id=${categoryId}`
+
   try {
-    const res = await fetch(
-      `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${treeId}/get_item_aspects_for_category?category_id=${categoryId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
+    console.log(`[eBay] Fetching allowed conditions from: ${endpoint}`)
+
+    const res = await fetch(endpoint, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-    )
+    })
 
     if (!res.ok) {
-      console.warn("Failed to fetch allowed conditions:", await res.text())
+      const errorText = await res.text()
+      console.warn(`[eBay] Failed to fetch condition aspects: ${res.status} - ${errorText}`)
       return []
     }
 
     const data = await res.json()
 
-    // Find the aspect named "Condition" (or similar) and return its values
-    const conditionAspect = data.aspects?.find((aspect: any) => aspect.aspectName.toLowerCase() === "condition")
+    const aspects = data?.aspects || []
+    console.log(`[eBay] Total aspects returned: ${aspects.length}`)
+
+    const conditionAspect = aspects.find(
+      (aspect: any) =>
+        typeof aspect?.aspectName === "string" &&
+        aspect.aspectName.toLowerCase() === "condition"
+    )
 
     if (!conditionAspect) {
-      console.warn("Condition aspect not found for category.")
+      const aspectNames = aspects.map((a: any) => a.aspectName).filter(Boolean).join(", ")
+      console.warn(`[eBay] "Condition" aspect not found. Aspects available: ${aspectNames}`)
       return []
     }
 
-    // Return array of allowed conditions { id, name }
-    return conditionAspect.aspectValues.map((val: any) => ({
-      id: String(val.valueId), // Ensure ID is a string as per AllowedCondition type
-      name: val.displayName.toLowerCase(),
-    }))
+    if (!Array.isArray(conditionAspect.aspectValues)) {
+      console.warn(`[eBay] "Condition" aspect found, but no values present.`)
+      return []
+    }
+
+    const allowed = conditionAspect.aspectValues.map((val: any) => ({
+      id: String(val?.valueId ?? ""), // Ensure fallback to empty string if undefined
+      name: String(val?.displayName ?? "").toLowerCase(),
+    })).filter((cond) => cond.id && cond.name)
+
+    console.log(`[eBay] Found ${allowed.length} allowed condition(s):`, allowed.map(c => c.name).join(", "))
+
+    return allowed
   } catch (error) {
-    console.error("Error fetching allowed conditions for category:", error)
+    console.error(`[eBay] Unexpected error while fetching allowed conditions:`, error)
     return []
   }
 }
