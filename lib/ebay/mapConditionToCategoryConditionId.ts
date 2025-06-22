@@ -27,18 +27,42 @@ export function mapConditionToCategoryConditionId(
   if (conditionMap[normalizedUserCondition]) {
     return conditionMap[normalizedUserCondition]
   }
+const fuzzyMappings: Record<string, string[]> = {
+  "brand new": ["new"],
 
-  // 2. Try common aliases/fuzzy matches with priority
-  const fuzzyMappings: Record<string, string[]> = {
-    "brand new": ["new"],
-    "like new": ["new with defects", "new other", "used - like new", "open box"], // Prioritize more specific eBay terms
-    excellent: ["very good", "good", "used - excellent"],
-    "very good": ["good", "used - very good"],
-    good: ["used - good"],
-    fair: ["acceptable", "used - acceptable"],
-    poor: ["for parts or not working", "parts or not working"],
-    broken: ["for parts or not working", "parts or not working"],
-  }
+  "like new": [
+    "like new",
+    "new other",
+    "pre-owned excellent",
+  ],
+
+  excellent: [
+    "used excellent",
+    "excellent refurbished",
+    "certified refurbished",
+    "pre-owned excellent",
+  ],
+
+  "very good": [
+    "used very good",
+    "very good refurbished",
+  ],
+
+  good: [
+    "used good",
+    "good refurbished",
+  ],
+
+  fair: [
+    "used acceptable",
+    "pre-owned fair",
+  ],
+
+  poor: ["for parts or not working"],
+  broken: ["for parts or not working"],
+}
+
+
 
   for (const alias in fuzzyMappings) {
     if (normalizedUserCondition.includes(alias)) {
