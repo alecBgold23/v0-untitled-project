@@ -3,41 +3,10 @@ import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
 import sharp from "sharp"
+import { mapConditionToCategoryConditionId } from "@/lib/ebay/mapConditionToCategoryConditionId"
+import { getAllowedConditionsForCategory } from "@/lib/ebay/getAllowedConditionsForCategory"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-
-function mapConditionToEbay(condition: string): string {
-  const normalized = String(condition || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[-_]/g, " ")
-
-  console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
-
-  const conditionMap: { [key: string]: string } = {
-    "like new": "NEW_OTHER",
-    "manufacturer refurbished": "MANUFACTURER_REFURBISHED",
-    "seller refurbished": "SELLER_REFURBISHED",
-    refurbished: "SELLER_REFURBISHED",
-    remanufactured: "REMANUFACTURED",
-    used: "USED",
-    "very good": "USED_VERY_GOOD",
-    excellent: "USED_EXCELLENT",
-    good: "USED_GOOD",
-    acceptable: "USED_ACCEPTABLE",
-    fair: "USED_ACCEPTABLE",
-    "for parts or not working": "FOR_PARTS_OR_NOT_WORKING",
-    parts: "FOR_PARTS_OR_NOT_WORKING",
-    broken: "FOR_PARTS_OR_NOT_WORKING",
-    poor: "FOR_PARTS_OR_NOT_WORKING",
-    "not working": "FOR_PARTS_OR_NOT_WORKING",
-    "does not work": "FOR_PARTS_OR_NOT_WORKING",
-  }
-
-  const mapped = conditionMap[normalized] || "USED"
-  console.log(`✅ Mapped condition to eBay: "${mapped}"`)
-  return mapped
-}
 
 function extractBrand(itemName: string): string {
   const knownBrands = ["Apple", "Samsung", "Sony", "Dell", "HP", "Lenovo", "Google", "Microsoft"]
@@ -363,7 +332,14 @@ export async function POST(request: Request) {
   const timestamp = Date.now()
   const sku = `ITEM-${submission.id}-${timestamp}`
   const title = submission.item_name.substring(0, 80)
+
   const { categoryId, treeId } = await getSuggestedCategoryId(submission.item_name, accessToken)
+
+  const allowedConditions = await getAllowedConditionsForCategory(categoryId, treeId, accessToken)
+  // Pass the array directly to the mapping function
+  const numericCondition = mapConditionToCategoryConditionId(submission.item_condition, allowedConditions || [])
+  console.log(`🔍 eBay condition mapped: ${numericCondition} (type: ${typeof numericCondition})`)
+
   const brand = extractBrand(submission.item_name)
   console.log(`ASPECTS DEBUGGING - Initial brand extraction: "${brand}"`)
 
@@ -403,12 +379,11 @@ export async function POST(request: Request) {
     Condition: [submission.item_condition || "Used"],
     Brand: [brand],
     Model: [submission.item_name],
-    Type: ["ExampleType"],
+    Type: [submission.item_name],
   }
 
   console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`)
   console.log(`ASPECTS DEBUGGING - Aspects object keys: [${Object.keys(aspects).join(", ")}]`)
-  console.log(`ASPECTS DEBUGGING - Aspects object values:`)
   Object.entries(aspects).forEach(([key, values]) => {
     console.log(`  - ${key}: [${values.join(", ")}] (${values.length} values)`)
   })
@@ -448,7 +423,7 @@ export async function POST(request: Request) {
         imageUrl: ebayOptimizedImageUrls[0],
       },
     },
-    condition: mapConditionToEbay(submission.item_condition),
+    condition: numericCondition, // Use the string ID directly
     availability: {
       shipToLocationAvailability: {
         quantity: 1,
