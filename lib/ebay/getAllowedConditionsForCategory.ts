@@ -1,24 +1,19 @@
-// Example type for allowed conditions
+// lib/ebay/getAllowedConditionsForCategory.ts
+
 type AllowedCondition = {
-  id: string // numeric ID as string, e.g. "3000"
-  name: string // human-readable name, e.g. "Used"
+  id: string // numeric ID, e.g. "3000"
+  name: string // e.g. "Used"
 }
 
-/**
- * Fetch allowed conditions for a given category and tree ID from eBay API.
- * @param categoryId The eBay category ID.
- * @param treeId The eBay category tree ID.
- * @param accessToken The eBay OAuth access token.
- * @returns An array of allowed conditions { id, name }.
- */
 export async function getAllowedConditionsForCategory(
   categoryId: string,
-  treeId: string,
   accessToken: string,
 ): Promise<AllowedCondition[]> {
+  console.log(`[eBay] Starting fetch of allowed conditions for categoryId: "${categoryId}"`)
+
   try {
-    const url = `https://api.ebay.com/commerce/taxonomy/v1/category_tree/${treeId}/get_item_aspects_for_category?category_id=${categoryId}`
-    console.log(`[eBay] Fetching allowed conditions from: ${url}`)
+    const url = `https://api.ebay.com/sell/metadata/v1/marketplace/EBAY_US/get_item_condition_policies?category_id=${categoryId}`
+    console.log(`[eBay] Request URL: ${url}`)
 
     const res = await fetch(url, {
       headers: {
@@ -27,50 +22,56 @@ export async function getAllowedConditionsForCategory(
       },
     })
 
+    console.log(`[eBay] Response status: ${res.status} ${res.statusText}`)
+
     if (!res.ok) {
       const errorText = await res.text()
-      console.warn(`[eBay] Failed to fetch allowed conditions: ${res.status} - ${errorText}`)
+      console.warn(`[eBay] Failed to fetch metadata condition policies for category "${categoryId}": HTTP ${res.status} - ${errorText}`)
       return []
     }
 
-    const data = await res.json()
-    const aspects = data?.aspects || []
+    const json = await res.json()
+    console.log(`[eBay] Raw JSON response received: ${JSON.stringify(json).slice(0, 500)}...`) // Limit output length for readability
 
-    console.log(`[eBay] Total aspects returned: ${aspects.length}`)
-
-    // Extract all known aspect names for debugging
-    const aspectNames = aspects.map((a: any) => a?.aspectName ?? a?.localizedAspectName ?? "(undefined)").join(", ")
-    console.log(`[eBay] Aspect names: ${aspectNames}`)
-
-    // Find the "Condition" aspect
-    const conditionAspect = aspects.find((aspect: any) => {
-      const name = aspect?.aspectName ?? aspect?.localizedAspectName
-      return typeof name === "string" && name.toLowerCase() === "condition"
-    })
-
-    if (!conditionAspect) {
-      console.warn(`[eBay] "Condition" aspect not found. Aspects available: ${aspectNames}`)
+    if (!json.conditionPolicies || !Array.isArray(json.conditionPolicies)) {
+      console.warn(`[eBay] conditionPolicies field missing or not an array in response for category "${categoryId}". Full response: ${JSON.stringify(json)}`)
       return []
     }
 
-    const values = conditionAspect.aspectValues
-
-    if (!Array.isArray(values) || values.length === 0) {
-      console.warn(`[eBay] Condition aspect found but no values were returned.`)
+    const conditionPolicies = json.conditionPolicies
+    if (conditionPolicies.length === 0) {
+      console.warn(`[eBay] conditionPolicies array is empty for category "${categoryId}"`)
       return []
     }
 
-    const results = values.map((val: any) => {
-      const id = String(val?.valueId ?? "")
-      const name = String(val?.displayName ?? "").toLowerCase()
+    const firstPolicy = conditionPolicies[0]
+    if (!firstPolicy.itemConditions || !Array.isArray(firstPolicy.itemConditions)) {
+      console.warn(`[eBay] itemConditions missing or not an array in first conditionPolicy for category "${categoryId}". Full firstPolicy: ${JSON.stringify(firstPolicy)}`)
+      return []
+    }
+
+    const conditions = firstPolicy.itemConditions
+    if (conditions.length === 0) {
+      console.warn(`[eBay] itemConditions array is empty in first conditionPolicy for category "${categoryId}"`)
+      return []
+    }
+
+    console.log(`[eBay] Found ${conditions.length} condition(s) for category "${categoryId}". Mapping results...`)
+
+    const mapped: AllowedCondition[] = conditions.map((cond: any) => {
+      const id = cond.conditionId != null ? String(cond.conditionId) : "UNKNOWN_ID"
+      const name = cond.conditionDisplayName ? cond.conditionDisplayName.toLowerCase() : "unknown"
+      if (id === "UNKNOWN_ID" || name === "unknown") {
+        console.warn(`[eBay] Found condition with missing id or name: ${JSON.stringify(cond)}`)
+      }
       return { id, name }
     })
 
-    console.log(`[eBay] Allowed condition values for category ${categoryId}:`, results)
+    console.log(`[eBay] Mapped allowed conditions for category "${categoryId}":`, mapped)
 
-    return results
+    return mapped
   } catch (error) {
-    console.error("[eBay] Error fetching allowed conditions for category:", error)
+    console.error(`[eBay] Unexpected error fetching allowed conditions for category "${categoryId}":`, error)
     return []
   }
 }
