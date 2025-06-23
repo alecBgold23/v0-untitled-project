@@ -34,30 +34,33 @@ export async function getAllowedConditionsForCategory(
     }
 
     const data = await res.json()
-
     const aspects = data?.aspects || []
+
     console.log(`[eBay] Total aspects returned: ${aspects.length}`)
 
-    // Safely extract aspect names
-    const aspectNames = aspects.map((a: any) => a?.aspectName ?? "(undefined)").join(", ")
+    // Extract all known aspect names for debugging
+    const aspectNames = aspects.map((a: any) => a?.aspectName ?? a?.localizedAspectName ?? "(undefined)").join(", ")
     console.log(`[eBay] Aspect names: ${aspectNames}`)
 
-    // Try to find the "Condition" aspect
-    const conditionAspect = aspects.find(
-      (aspect: any) => aspect?.aspectName?.toLowerCase() === "condition"
-    )
+    // Find the "Condition" aspect
+    const conditionAspect = aspects.find((aspect: any) => {
+      const name = aspect?.aspectName ?? aspect?.localizedAspectName
+      return typeof name === "string" && name.toLowerCase() === "condition"
+    })
 
     if (!conditionAspect) {
       console.warn(`[eBay] "Condition" aspect not found. Aspects available: ${aspectNames}`)
       return []
     }
 
-    if (!Array.isArray(conditionAspect.aspectValues) || conditionAspect.aspectValues.length === 0) {
-      console.warn(`[eBay] Condition aspect exists, but has no values.`)
+    const values = conditionAspect.aspectValues
+
+    if (!Array.isArray(values) || values.length === 0) {
+      console.warn(`[eBay] Condition aspect found but no values were returned.`)
       return []
     }
 
-    const results = conditionAspect.aspectValues.map((val: any) => {
+    const results = values.map((val: any) => {
       const id = String(val?.valueId ?? "")
       const name = String(val?.displayName ?? "").toLowerCase()
       return { id, name }
