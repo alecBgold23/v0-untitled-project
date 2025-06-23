@@ -1,5 +1,3 @@
-// lib/ebay/getAllowedConditionsForCategory.ts
-
 type AllowedCondition = {
   id: string // numeric ID, e.g. "3000"
   name: string // e.g. "Used"
@@ -10,6 +8,7 @@ export async function getAllowedConditionsForCategory(
   accessToken: string,
 ): Promise<AllowedCondition[]> {
   console.log(`[eBay] Starting fetch of allowed conditions for categoryId: "${categoryId}"`)
+  console.log(`[eBay] Access token received: ${accessToken}`) // <-- Log token here
 
   try {
     const url = `https://api.ebay.com/sell/metadata/v1/marketplace/EBAY_US/get_item_condition_policies?category_id=${categoryId}`
