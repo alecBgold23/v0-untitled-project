@@ -329,7 +329,7 @@ export async function POST(request: Request) {
     )
   }
 
- const timestamp = Date.now()
+const timestamp = Date.now()
 const sku = `ITEM-${submission.id}-${timestamp}`
 const title = submission.item_name.substring(0, 80)
 
@@ -387,7 +387,7 @@ Object.entries(aspects).forEach(([key, values]) => {
 const conditionNote = sanitizeDescription(submission.item_description)
 const listingDescription = createEbayDescription(
   submission.item_name,
-  submission.item_condition || "Used",
+  mappedCondition, // ✅ Use mapped enum here
   brand,
   submission.item_description,
 )
@@ -473,6 +473,7 @@ if (!putResponse.ok) {
 
   return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
 }
+
 
 
   console.log("Creating offer on eBay...")
