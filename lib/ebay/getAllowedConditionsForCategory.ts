@@ -35,26 +35,26 @@ export async function getAllowedConditionsForCategory(
     const json = await res.json()
     console.log(`[eBay] Raw JSON response received: ${JSON.stringify(json).slice(0, 500)}...`)
 
-    if (!json.conditionPolicies || !Array.isArray(json.conditionPolicies)) {
-      console.warn(`[eBay] conditionPolicies field missing or not an array in response for category "${categoryId}". Full response: ${JSON.stringify(json)}`)
+    if (!json.itemConditionPolicies || !Array.isArray(json.itemConditionPolicies)) {
+      console.warn(`[eBay] itemConditionPolicies field missing or not an array in response for category "${categoryId}". Full response: ${JSON.stringify(json)}`)
       return []
     }
 
-    const conditionPolicies = json.conditionPolicies
+    const conditionPolicies = json.itemConditionPolicies
     if (conditionPolicies.length === 0) {
-      console.warn(`[eBay] conditionPolicies array is empty for category "${categoryId}"`)
+      console.warn(`[eBay] itemConditionPolicies array is empty for category "${categoryId}"`)
       return []
     }
 
     const firstPolicy = conditionPolicies[0]
     if (!firstPolicy.itemConditions || !Array.isArray(firstPolicy.itemConditions)) {
-      console.warn(`[eBay] itemConditions missing or not an array in first conditionPolicy for category "${categoryId}". Full firstPolicy: ${JSON.stringify(firstPolicy)}`)
+      console.warn(`[eBay] itemConditions missing or not an array in first itemConditionPolicy for category "${categoryId}". Full firstPolicy: ${JSON.stringify(firstPolicy)}`)
       return []
     }
 
     const conditions = firstPolicy.itemConditions
     if (conditions.length === 0) {
-      console.warn(`[eBay] itemConditions array is empty in first conditionPolicy for category "${categoryId}"`)
+      console.warn(`[eBay] itemConditions array is empty in first itemConditionPolicy for category "${categoryId}"`)
       return []
     }
 
@@ -62,7 +62,7 @@ export async function getAllowedConditionsForCategory(
 
     const mapped: AllowedCondition[] = conditions.map((cond: any) => {
       const id = cond.conditionId != null ? String(cond.conditionId) : "UNKNOWN_ID"
-      const name = cond.conditionDisplayName ? cond.conditionDisplayName.toLowerCase() : "unknown"
+      const name = cond.conditionDescription ? cond.conditionDescription.toLowerCase() : "unknown"
       if (id === "UNKNOWN_ID" || name === "unknown") {
         console.warn(`[eBay] Found condition with missing id or name: ${JSON.stringify(cond)}`)
       }
