@@ -337,9 +337,14 @@ export async function POST(request: Request) {
 
  const allowedConditions = await getAllowedConditionsForCategory(categoryId, accessToken)
 
+// 🟨🔍 ADD THESE LOGS RIGHT HERE:
+console.log("📜 Allowed condition IDs for this category:", allowedConditions.map((c) => c.id))
+
   // Pass the array directly to the mapping function
   const numericCondition = mapConditionToCategoryConditionId(submission.item_condition, allowedConditions || [])
   console.log(`🔍 eBay condition mapped: ${numericCondition} (type: ${typeof numericCondition})`)
+
+console.log("🔢 Final numericCondition to send:", numericCondition)
 
   const brand = extractBrand(submission.item_name)
   console.log(`ASPECTS DEBUGGING - Initial brand extraction: "${brand}"`)

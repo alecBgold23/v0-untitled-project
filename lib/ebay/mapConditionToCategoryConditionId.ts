@@ -10,6 +10,10 @@ export function mapConditionToCategoryConditionId(
 ): string {
   const normalizedUserCondition = userCondition.trim().toLowerCase()
 
+  console.log("📥 Input userCondition:", userCondition)
+  console.log("🧹 Normalized condition:", normalizedUserCondition)
+  console.log("📦 Allowed eBay conditions:", allowedConditions)
+
   // Create a map for quick lookup and to normalize names
   const conditionMap: Record<string, string> = {}
   allowedConditions.forEach((cond) => {
@@ -18,13 +22,14 @@ export function mapConditionToCategoryConditionId(
 
   // 1. Try exact match first
   if (conditionMap[normalizedUserCondition]) {
+    console.log(`✅ Exact match: "${normalizedUserCondition}" → ${conditionMap[normalizedUserCondition]}`)
     return conditionMap[normalizedUserCondition]
   }
 
   // 2. Try common aliases/fuzzy matches with priority
   const fuzzyMappings: Record<string, string[]> = {
     "brand new": ["new"],
-    "like new": ["new with defects", "new other", "used - like new"], // Prioritize more specific eBay terms
+    "like new": ["new with defects", "new other", "used - like new"],
     excellent: ["very good", "good"],
     "very good": ["good"],
     fair: ["acceptable"],
@@ -35,24 +40,28 @@ export function mapConditionToCategoryConditionId(
   for (const alias in fuzzyMappings) {
     if (normalizedUserCondition.includes(alias)) {
       for (const ebayTerm of fuzzyMappings[alias]) {
-        if (conditionMap[ebayTerm]) {
-          return conditionMap[ebayTerm]
+        const ebayTermNormalized = ebayTerm.toLowerCase()
+        if (conditionMap[ebayTermNormalized]) {
+          console.log(`~ Fuzzy match: "${normalizedUserCondition}" → "${ebayTermNormalized}" → ${conditionMap[ebayTermNormalized]}`)
+          return conditionMap[ebayTermNormalized]
         }
       }
     }
   }
 
-  // 3. Fallback to 'used' if available in the allowed conditions
+  // 3. Fallback to 'used' if available
   if (conditionMap["used"]) {
+    console.warn(`⚠️ Fallback to "used": ${conditionMap["used"]}`)
     return conditionMap["used"]
   }
 
-  // 4. Fallback to the first available condition if 'used' is not an option
+  // 4. Fallback to first condition
   if (allowedConditions.length > 0) {
+    console.warn(`⚠️ Fallback to first allowed condition: ${allowedConditions[0].id} (${allowedConditions[0].name})`)
     return allowedConditions[0].id
   }
 
-  // 5. Generic hardcoded fallback (should rarely be hit if API provides conditions)
-  console.warn(`No suitable eBay condition found for "${userCondition}". Falling back to generic "Used" (3000).`)
-  return "3000" // Default to "Used" as a last resort
+  // 5. Last resort fallback
+  console.error(`❌ No valid condition match for "${userCondition}". Using hardcoded fallback: "3000"`)
+  return "3000"
 }
