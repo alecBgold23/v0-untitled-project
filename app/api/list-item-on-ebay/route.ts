@@ -1,16 +1,43 @@
-console.log("✅ [LOADED] route.ts - list-item-on-ebay")
-
 import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
 import sharp from "sharp"
-import { getAllowedConditionsForCategory } from "@/lib/ebay/getAllowedConditionsForCategory"
-import { mapConditionToCategoryConditionId } from "@/lib/ebay/mapConditionToCategoryConditionId"
-
-console.log("✅ Imports complete")
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+function mapConditionToEbay(condition: string): string {
+  const normalized = String(condition || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[-_]/g, " ")
+
+  console.log(`🧪 Mapping condition: "${condition}" → "${normalized}"`)
+
+  const conditionMap: { [key: string]: string } = {
+    "like new": "NEW_OTHER",
+    "manufacturer refurbished": "MANUFACTURER_REFURBISHED",
+    "seller refurbished": "SELLER_REFURBISHED",
+    refurbished: "SELLER_REFURBISHED",
+    remanufactured: "REMANUFACTURED",
+    used: "USED",
+    "very good": "USED_VERY_GOOD",
+    excellent: "USED_EXCELLENT",
+    good: "USED_GOOD",
+    acceptable: "USED_ACCEPTABLE",
+    fair: "USED_ACCEPTABLE",
+    "for parts or not working": "FOR_PARTS_OR_NOT_WORKING",
+    parts: "FOR_PARTS_OR_NOT_WORKING",
+    broken: "FOR_PARTS_OR_NOT_WORKING",
+    poor: "FOR_PARTS_OR_NOT_WORKING",
+    "not working": "FOR_PARTS_OR_NOT_WORKING",
+    "does not work": "FOR_PARTS_OR_NOT_WORKING",
+  }
+
+  const mapped = conditionMap[normalized] || "USED"
+  console.log(`✅ Mapped condition to eBay: "${mapped}"`)
+  return mapped
+}
 
 function extractBrand(itemName: string): string {
   const knownBrands = ["Apple", "Samsung", "Sony", "Dell", "HP", "Lenovo", "Google", "Microsoft"]
@@ -333,190 +360,217 @@ export async function POST(request: Request) {
     )
   }
 
-const timestamp = Date.now()
-const sku = `ITEM-${submission.id}-${timestamp}`
-const title = submission.item_name.substring(0, 80)
+  const timestamp = Date.now()
+  const sku = `ITEM-${submission.id}-${timestamp}`
+  const title = submission.item_name.substring(0, 80)
+  const { categoryId, treeId } = await getSuggestedCategoryId(submission.item_name, accessToken)
+  const brand = extractBrand(submission.item_name)
+  console.log(`ASPECTS DEBUGGING - Initial brand extraction: "${brand}"`)
 
-const { categoryId, treeId } = await getSuggestedCategoryId(submission.item_name, accessToken)
+  const searchQuery = `${submission.item_name} ${submission.item_description}`.trim()
+  const requiredAspects = await getRequiredAspectsForCategory(treeId, categoryId, accessToken)
+  console.log(`ASPECTS DEBUGGING - Required aspects from eBay: ${JSON.stringify(requiredAspects, null, 2)}`)
+  console.log(`ASPECTS DEBUGGING - Number of required aspects: ${requiredAspects.length}`)
 
-const allowedConditions = await getAllowedConditionsForCategory(categoryId, accessToken)
+  console.log(`Suggested eBay category ID: ${categoryId}`)
 
-// Debug logs for allowed conditions
-console.log("📜 Allowed condition IDs for this category:", allowedConditions.map((c) => c.id))
-
-// Map user condition to eBay string enum condition ID (e.g. "USED_GOOD", "NEW")
-const mappedCondition = mapConditionToCategoryConditionId(submission.item_condition, allowedConditions || [])
-console.log(`🔍 eBay condition mapped: ${mappedCondition} (type: ${typeof mappedCondition})`)
-
-console.log("🔢 Final condition string to send:", mappedCondition)
-
-const brand = extractBrand(submission.item_name)
-console.log(`ASPECTS DEBUGGING - Initial brand extraction: "${brand}"`)
-
-const searchQuery = `${submission.item_name} ${submission.item_description}`.trim()
-const requiredAspects = await getRequiredAspectsForCategory(treeId, categoryId, accessToken)
-console.log(`ASPECTS DEBUGGING - Required aspects from eBay: ${JSON.stringify(requiredAspects, null, 2)}`)
-console.log(`ASPECTS DEBUGGING - Number of required aspects: ${requiredAspects.length}`)
-
-console.log(`Suggested eBay category ID: ${categoryId}`)
-
-const originalImageUrls = extractImageUrls(submission.image_urls || submission.image_url)
-if (originalImageUrls.length === 0) {
-  console.warn("No valid images found for item", submission.id)
-}
-console.log(`Found ${originalImageUrls.length} original images`)
-
-const ebayOptimizedImageUrls = await prepareImagesForEbay(originalImageUrls, submission.id)
-if (ebayOptimizedImageUrls.length === 0) {
-  console.warn("No images could be optimized for eBay, falling back to original images")
-  ebayOptimizedImageUrls.push(...originalImageUrls)
-}
-console.log(`Using ${ebayOptimizedImageUrls.length} eBay-optimized square images for listing`)
-
-// Build aspects object using mappedCondition for Condition aspect
-const aspects: Record<string, string[]> = {
-  Condition: [mappedCondition], // Use the mapped eBay condition string here!
-  Brand: [brand],
-  Model: [submission.item_name],
-  Type: [submission.item_name],
-}
-
-console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`)
-console.log(`ASPECTS DEBUGGING - Aspects object keys: [${Object.keys(aspects).join(", ")}]`)
-Object.entries(aspects).forEach(([key, values]) => {
-  console.log(`  - ${key}: [${values.join(", ")}] (${values.length} values)`)
-})
-
-// Description processing remains unchanged
-const conditionNote = sanitizeDescription(submission.item_description)
-const listingDescription = createEbayDescription(
-  submission.item_name,
-  mappedCondition, // ✅ Use mapped enum here
-  brand,
-  submission.item_description,
-)
-// Helper function to extract storage capacity info from text
-function extractStorageCapacity(text: string | undefined | null): string | null {
-  if (!text) return null;
-  const match = text.match(/(\d+)\s?(GB|TB)/i);
-  if (match) {
-    return `${match[1]} ${match[2].toUpperCase()}`;
+  // Get original image URLs
+  const originalImageUrls = extractImageUrls(submission.image_urls || submission.image_url)
+  if (originalImageUrls.length === 0) {
+    console.warn("No valid images found for item", submission.id)
   }
-  return null;
-}
 
-// Log any aspects missing 'aspectName' to help debugging
-requiredAspects.forEach((aspect: any, index: number) => {
-  if (!aspect.aspectName) {
-    console.warn(`Warning: aspect at index ${index} is missing aspectName`, aspect);
+  console.log(`Found ${originalImageUrls.length} original images`)
+
+  // Resize images specifically for eBay with proper square cropping
+  const ebayOptimizedImageUrls = await prepareImagesForEbay(originalImageUrls, submission.id)
+
+  if (ebayOptimizedImageUrls.length === 0) {
+    console.warn("No images could be optimized for eBay")
+    // Fall back to original images if resizing fails
+    ebayOptimizedImageUrls.push(...originalImageUrls)
   }
-});
 
-// Check if 'Storage Capacity' is a required aspect safely
-const storageCapacityRequired = requiredAspects.some(
-  (aspect: any) => aspect.aspectName?.toLowerCase() === "storage capacity"
-);
+  console.log(`Using ${ebayOptimizedImageUrls.length} eBay-optimized square images for listing`)
 
-if (storageCapacityRequired) {
-  // Try to extract from item name or description or fallback
-  const storageValue =
-    extractStorageCapacity(submission.item_name) ||
-    extractStorageCapacity(submission.item_description) ||
-    "Not Specified";
+  // Prepare aspects for inventory item product
+  console.log(`ASPECTS DEBUGGING - Creating aspects object...`)
+  console.log(`ASPECTS DEBUGGING - Item condition: "${submission.item_condition}"`)
+  console.log(`ASPECTS DEBUGGING - Item name: "${submission.item_name}"`)
+  console.log(`ASPECTS DEBUGGING - Extracted brand: "${brand}"`)
 
-  aspects["Storage Capacity"] = [storageValue];
-  console.log(`Added Storage Capacity aspect: ${storageValue}`);
-}
+  const aspects: Record<string, string[]> = {
+    Condition: [submission.item_condition || "Used"],
+    Brand: [brand],
+    Model: [submission.item_name],
+    Type: ["ExampleType"],
+  }
 
-console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`);
-
-console.log("FINAL DESCRIPTION DATA:")
-console.log(`Condition note (${conditionNote.length} chars): "${conditionNote}"`)
-console.log(`Listing description (${listingDescription.length} chars): "${listingDescription}"`)
-if (!conditionNote || conditionNote.length < 5) {
-  console.error("Condition note is too short or empty, eBay may reject it")
-}
-if (!listingDescription || listingDescription.length < 20) {
-  console.error("Listing description is too short, eBay may reject it")
-}
-
-// Inventory item payload with top-level string condition
-const inventoryItem = {
-  condition: mappedCondition, // Must be string enum, top-level
-  product: {
-    title: submission.item_name,
-    aspects,
-    imageUrls: ebayOptimizedImageUrls,
-    primaryImage: {
-      imageUrl: ebayOptimizedImageUrls[0],
-    },
-  },
-  availability: {
-    shipToLocationAvailability: {
-      quantity: 1,
-    },
-  },
-  packageWeightAndSize: {
-    packageType: "USPS_LARGE_PACK",
-    weight: {
-      value: 2.0,
-      unit: "POUND",
-    },
-    dimensions: {
-      length: 10,
-      width: 7,
-      height: 3,
-      unit: "INCH",
-    },
-  },
-}
-
-console.log("📤 Sending condition as:", typeof inventoryItem.condition, inventoryItem.condition)
-console.log("✅ Final inventory item payload (with top-level condition):", JSON.stringify(inventoryItem, null, 2))
-console.log("Creating inventory item with eBay-optimized square images...")
-
-const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
-  method: "PUT",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${accessToken}`,
-    "Content-Language": "en-US",
-    "Accept-Language": "en-US",
-  },
-  body: JSON.stringify(inventoryItem),
-})
-
-const putText = await putResponse.text()
-console.log(`Raw PUT inventory response: ${putText}`)
-console.log("PUT inventory response status:", putResponse.status, putResponse.statusText)
-
-if (!putResponse.ok) {
-  console.error("PUT inventory item creation failed:", {
-    status: putResponse.status,
-    statusText: putResponse.statusText,
-    response: putText,
+  console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`)
+  console.log(`ASPECTS DEBUGGING - Aspects object keys: [${Object.keys(aspects).join(", ")}]`)
+  console.log(`ASPECTS DEBUGGING - Aspects object values:`)
+  Object.entries(aspects).forEach(([key, values]) => {
+    console.log(`  - ${key}: [${values.join(", ")}] (${values.length} values)`)
   })
 
-  const { error: failedUpdateError } = await supabase
-    .from("sell_items")
-    .update({
-      status: "approved",
-      ebay_status: "failed",
-      listing_error: putText || "Unknown error",
-    })
-    .eq("id", submission.id)
+  // DESCRIPTION PROCESSING - Enhanced with detailed logging
+  console.log("DESCRIPTION PROCESSING:")
 
-  if (failedUpdateError) {
-    console.warn("Failed to update failed listing status:", failedUpdateError)
+  // Prepare description for condition section - keep it simple and direct
+  const conditionNote = sanitizeDescription(submission.item_description)
+
+  // Create a basic listing description (required by eBay)
+  const listingDescription = createEbayDescription(
+    submission.item_name,
+    submission.item_condition || "Used",
+    brand,
+    submission.item_description,
+  )
+
+  console.log("FINAL DESCRIPTION DATA:")
+  console.log(`Condition note (${conditionNote.length} chars): "${conditionNote}"`)
+  console.log(`Listing description (${listingDescription.length} chars): "${listingDescription}"`)
+
+  // Check for empty descriptions
+  if (!conditionNote || conditionNote.length < 5) {
+    console.error("Condition note is too short or empty, eBay may reject it")
+  }
+  if (!listingDescription || listingDescription.length < 20) {
+    console.error("Listing description is too short, eBay may reject it")
   }
 
-  return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
-}
+  const inventoryItem = {
+    product: {
+      title: submission.item_name,
+      aspects,
+      imageUrls: ebayOptimizedImageUrls,
+      primaryImage: {
+        imageUrl: ebayOptimizedImageUrls[0],
+      },
+    },
+    condition: mapConditionToEbay(submission.item_condition),
+    availability: {
+      shipToLocationAvailability: {
+        quantity: 1,
+      },
+    },
+    packageWeightAndSize: {
+      packageType: "USPS_LARGE_PACK",
+      weight: {
+        value: 2.0,
+        unit: "POUND",
+      },
+      dimensions: {
+        length: 10,
+        width: 7,
+        height: 3,
+        unit: "INCH",
+      },
+    },
+  }
 
+  console.log(`INVENTORY ASPECTS DEBUG - Aspects being sent to inventory item: ${JSON.stringify(aspects, null, 2)}`)
 
+  console.log("Creating inventory item with eBay-optimized square images...")
+  console.log(`Inventory item payload: ${JSON.stringify(inventoryItem, null, 2)}`)
+
+  const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Language": "en-US",
+      "Accept-Language": "en-US",
+    },
+    body: JSON.stringify(inventoryItem),
+  })
+
+  const putText = await putResponse.text()
+  console.log(`Raw PUT inventory response: ${putText}`)
+  console.log("PUT inventory response status:", putResponse.status, putResponse.statusText)
+
+  if (!putResponse.ok) {
+    console.error("PUT inventory item creation failed:", {
+      status: putResponse.status,
+      statusText: putResponse.statusText,
+      response: putText,
+    })
+
+    // Update status to failed if listing process fails
+    const { error: failedUpdateError } = await supabase
+      .from("sell_items")
+      .update({
+        status: "approved", // Reset to approved so it can be retried
+        ebay_status: "failed",
+        listing_error: putText || "Unknown error",
+      })
+      .eq("id", id)
+
+    if (failedUpdateError) {
+      console.warn("Failed to update failed listing status:", failedUpdateError)
+    }
+
+    return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
+  }
+
+  console.log("Inventory item created with optimized square images")
+
+  const requiredEnvVars = {
+    fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
+    paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID,
+    returnPolicyId: process.env.EBAY_RETURN_POLICY_ID,
+    locationKey: process.env.EBAY_LOCATION_KEY,
+  }
+
+  console.log("Checking required eBay environment variables:")
+  for (const [key, value] of Object.entries(requiredEnvVars)) {
+    if (!value) {
+      console.error(`Missing environment variable: EBAY_${key.toUpperCase()}`)
+
+      // Update status to failed if listing process fails
+      const { error: failedUpdateError } = await supabase
+        .from("sell_items")
+        .update({
+          status: "approved", // Reset to approved so it can be retried
+          ebay_status: "failed",
+          listing_error: `Missing required eBay configuration: ${key}` || "Unknown error",
+        })
+        .eq("id", id)
+
+      if (failedUpdateError) {
+        console.warn("Failed to update failed listing status:", failedUpdateError)
+      }
+
+      return NextResponse.json({ error: `Missing required eBay configuration: ${key}` }, { status: 500 })
+    }
+    console.log(`Found EBAY_${key.toUpperCase()}: ${value.substring(0, 5)}...`)
+  }
+
+  const rawPrice = submission.estimated_price
+  const cleanedPrice = typeof rawPrice === "string" ? rawPrice.replace(/[^0-9.-]+/g, "") : rawPrice
+  const priceValue = Number(cleanedPrice)
+  if (isNaN(priceValue) || priceValue <= 0) {
+    console.error("Invalid or missing estimated price:", submission.estimated_price)
+
+    // Update status to failed if listing process fails
+    const { error: failedUpdateError } = await supabase
+      .from("sell_items")
+      .update({
+        status: "approved", // Reset to approved so it can be retried
+        ebay_status: "failed",
+        listing_error: "Invalid or missing estimated price" || "Unknown error",
+      })
+      .eq("id", id)
+
+    if (failedUpdateError) {
+      console.warn("Failed to update failed listing status:", failedUpdateError)
+    }
+
+    return NextResponse.json({ error: "Invalid or missing estimated price" }, { status: 400 })
+  }
 
   console.log("Creating offer on eBay...")
-
+  console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`)
 
   console.log(`ASPECTS DEBUGGING - Converting aspects to itemSpecifics...`)
   console.log(`ASPECTS DEBUGGING - Processing ${Object.keys(aspects).length} aspect categories`)
@@ -548,67 +602,28 @@ if (!putResponse.ok) {
   htmlEntityCheck(conditionNote)
   htmlEntityCheck(listingDescription)
 
-  // 🔹 Ensure priceValue is defined before using it
-const rawPrice = submission.estimated_price
-const priceValue = typeof rawPrice === "string"
-  ? parseFloat(rawPrice.replace(/[^0-9.]+/g, ""))
-  : rawPrice || 0.0
-const cleanedPrice = priceValue // already parsed and cleaned
-
-console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`)
-// <-- Insert the requiredEnvVars declaration here -->
-const requiredEnvVars = {
-  fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID!,
-  paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID!,
-  returnPolicyId: process.env.EBAY_RETURN_POLICY_ID!,
-  locationKey: process.env.EBAY_MERCHANT_LOCATION_KEY!,
-}
-
-// Optional: check if any env var is missing and throw error
-for (const [key, value] of Object.entries(requiredEnvVars)) {
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`)
+  const offerData = {
+    sku,
+    marketplaceId: "EBAY_US",
+    format: "FIXED_PRICE",
+    availableQuantity: 1,
+    categoryId,
+    conditionDescription: conditionNote, // This appears right under the condition section
+    listingDescription: listingDescription, // ADDED BACK: Required by eBay
+    listingPolicies: {
+      fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
+      paymentPolicyId: requiredEnvVars.paymentPolicyId,
+      returnPolicyId: requiredEnvVars.returnPolicyId,
+    },
+    pricingSummary: {
+      price: {
+        value: priceValue.toFixed(2),
+        currency: "USD",
+      },
+    },
+    merchantLocationKey: requiredEnvVars.locationKey,
+    itemSpecifics,
   }
-}
-// 🔹 Construct offerData for POST to /offer
- // Log these values BEFORE creating offerData
-    console.log("🧪 Creating offerData...")
-    console.log("Allowed conditions:", allowedConditions)
-    console.log("Mapped condition:", mappedCondition)
-    console.log("🧪 Key fields before offerData:");
-console.log("SKU:", sku);
-console.log("Category ID:", categoryId);
-console.log("Condition Note:", conditionNote);
-console.log("Listing Description length:", listingDescription.length);
-
-
-    const offerData = {
-      sku,
-      marketplaceId: "EBAY_US",
-      format: "FIXED_PRICE",
-      availableQuantity: 1,
-      categoryId,
-      condition: mappedCondition, // ✅ Required at top level
-      conditionDescription: conditionNote, // 📝 Visible in listing under condition
-      listingDescription, // ✅ Required for eBay listings
-      listingPolicies: {
-        fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
-        paymentPolicyId: requiredEnvVars.paymentPolicyId,
-        returnPolicyId: requiredEnvVars.returnPolicyId,
-      },
-      pricingSummary: {
-        price: {
-          value: priceValue.toFixed(2),
-          currency: "USD",
-        },
-      },
-      merchantLocationKey: requiredEnvVars.locationKey,
-      itemSpecifics, // ✅ Your existing item specifics object
-    }
-
-    console.log("✅ offerData object created successfully")
-    console.log("Complete offerData:", JSON.stringify(offerData, null, 2))
-
 
   console.log(`ASPECTS DEBUGGING - ItemSpecifics being sent to offer: ${JSON.stringify(itemSpecifics, null, 2)}`)
 
