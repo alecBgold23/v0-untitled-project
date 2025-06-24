@@ -421,7 +421,7 @@ console.log("🔢 Final numericCondition to send:", numericCondition)
   }
 
  const inventoryItem = {
-  condition: numericCondition, // Moved to top-level as required by eBay API
+  condition: numericCondition, // ✅ Must be top-level
 
   product: {
     title: submission.item_name,
@@ -453,10 +453,9 @@ console.log("🔢 Final numericCondition to send:", numericCondition)
   },
 }
 
-console.log(`INVENTORY ASPECTS DEBUG - Aspects being sent to inventory item: ${JSON.stringify(aspects, null, 2)}`)
+console.log("✅ Final inventory item payload (with top-level condition):", JSON.stringify(inventoryItem, null, 2))
 
 console.log("Creating inventory item with eBay-optimized square images...")
-console.log(`Inventory item payload: ${JSON.stringify(inventoryItem, null, 2)}`)
 
 const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
   method: "PUT",
@@ -480,11 +479,11 @@ if (!putResponse.ok) {
     response: putText,
   })
 
-  // Update status to failed if listing process fails
+  // Update status to failed so it can be retried
   const { error: failedUpdateError } = await supabase
     .from("sell_items")
     .update({
-      status: "approved", // Reset to approved so it can be retried
+      status: "approved",
       ebay_status: "failed",
       listing_error: putText || "Unknown error",
     })
@@ -496,7 +495,6 @@ if (!putResponse.ok) {
 
   return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
 }
-
 
   console.log("Creating offer on eBay...")
   console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`)
