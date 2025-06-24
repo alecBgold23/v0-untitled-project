@@ -481,7 +481,7 @@ if (!putResponse.ok) {
 
 
   console.log("Creating offer on eBay...")
-  console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`)
+
 
   console.log(`ASPECTS DEBUGGING - Converting aspects to itemSpecifics...`)
   console.log(`ASPECTS DEBUGGING - Processing ${Object.keys(aspects).length} aspect categories`)
