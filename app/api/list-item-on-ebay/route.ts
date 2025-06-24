@@ -395,6 +395,33 @@ const listingDescription = createEbayDescription(
   brand,
   submission.item_description,
 )
+// Helper function to extract storage capacity info from text
+function extractStorageCapacity(text: string | undefined | null): string | null {
+  if (!text) return null;
+  const match = text.match(/(\d+)\s?(GB|TB)/i);
+  if (match) {
+    return `${match[1]} ${match[2].toUpperCase()}`;
+  }
+  return null;
+}
+
+// Check if 'Storage Capacity' is a required aspect
+const storageCapacityRequired = requiredAspects.some(
+  (aspect: any) => aspect.aspectName.toLowerCase() === "storage capacity"
+);
+
+if (storageCapacityRequired) {
+  // Try to extract from item name or description or fallback
+  const storageValue =
+    extractStorageCapacity(submission.item_name) ||
+    extractStorageCapacity(submission.item_description) ||
+    "Not Specified";
+
+  aspects["Storage Capacity"] = [storageValue];
+  console.log(`Added Storage Capacity aspect: ${storageValue}`);
+}
+
+console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`);
 console.log("FINAL DESCRIPTION DATA:")
 console.log(`Condition note (${conditionNote.length} chars): "${conditionNote}"`)
 console.log(`Listing description (${listingDescription.length} chars): "${listingDescription}"`)
