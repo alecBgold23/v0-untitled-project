@@ -521,6 +521,20 @@ const priceValue = typeof rawPrice === "string"
 const cleanedPrice = priceValue // already parsed and cleaned
 
 console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`)
+// <-- Insert the requiredEnvVars declaration here -->
+const requiredEnvVars = {
+  fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID!,
+  paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID!,
+  returnPolicyId: process.env.EBAY_RETURN_POLICY_ID!,
+  locationKey: process.env.EBAY_MERCHANT_LOCATION_KEY!,
+}
+
+// Optional: check if any env var is missing and throw error
+for (const [key, value] of Object.entries(requiredEnvVars)) {
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`)
+  }
+}
 // 🔹 Construct offerData for POST to /offer
  // Log these values BEFORE creating offerData
     console.log("🧪 Creating offerData...")
