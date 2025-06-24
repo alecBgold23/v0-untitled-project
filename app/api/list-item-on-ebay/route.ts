@@ -514,7 +514,9 @@ const rawPrice = submission.estimated_price
 const priceValue = typeof rawPrice === "string"
   ? parseFloat(rawPrice.replace(/[^0-9.]+/g, ""))
   : rawPrice || 0.0
+const cleanedPrice = priceValue // already parsed and cleaned
 
+console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`)
 // 🔹 Construct offerData for POST to /offer
 const offerData = {
   sku,
