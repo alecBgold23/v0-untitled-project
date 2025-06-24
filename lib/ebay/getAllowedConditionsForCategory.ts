@@ -1,6 +1,7 @@
+// Updated to support eBay enum-style condition IDs (e.g., "USED_GOOD")
 type AllowedCondition = {
-  id: string // numeric ID, e.g. "3000"
-  name: string // e.g. "Used"
+  id: string // enum-style ID, e.g. "USED_GOOD"
+  name: string // human-readable label, e.g. "used - good"
 }
 
 export async function getAllowedConditionsForCategory(
@@ -62,7 +63,7 @@ export async function getAllowedConditionsForCategory(
 
     const mapped: AllowedCondition[] = conditions.map((cond: any) => {
       const id = cond.conditionId != null ? String(cond.conditionId) : "UNKNOWN_ID"
-      const name = cond.conditionDescription ? cond.conditionDescription.toLowerCase() : "unknown"
+      const name = cond.conditionDisplayName ? cond.conditionDisplayName.toLowerCase() : "unknown"
       if (id === "UNKNOWN_ID" || name === "unknown") {
         console.warn(`[eBay] Found condition with missing id or name: ${JSON.stringify(cond)}`)
       }
