@@ -384,8 +384,8 @@ function autoFillMissingAspects(
     const name = aspect.aspectName;
     const allowedValues: string[] = aspect.aspectValues?.map((v: any) => v.value) || [];
 
-    const matched = allowedValues.find((val: string) =>
-      userText.includes(val.toLowerCase())
+    const matched = allowedValues.find((val: string | undefined | null) =>
+      val && userText.includes(val.toLowerCase())
     );
 
     if (matched) {
