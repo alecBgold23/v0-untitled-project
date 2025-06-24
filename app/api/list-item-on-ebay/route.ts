@@ -509,28 +509,36 @@ if (!putResponse.ok) {
   htmlEntityCheck(conditionNote)
   htmlEntityCheck(listingDescription)
 
-  const offerData = {
-    sku,
-    marketplaceId: "EBAY_US",
-    format: "FIXED_PRICE",
-    availableQuantity: 1,
-    categoryId,
-    conditionDescription: conditionNote, // This appears right under the condition section
-    listingDescription: listingDescription, // ADDED BACK: Required by eBay
-    listingPolicies: {
-      fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
-      paymentPolicyId: requiredEnvVars.paymentPolicyId,
-      returnPolicyId: requiredEnvVars.returnPolicyId,
+  // 🔹 Ensure priceValue is defined before using it
+const rawPrice = submission.estimated_price
+const priceValue = typeof rawPrice === "string"
+  ? parseFloat(rawPrice.replace(/[^0-9.]+/g, ""))
+  : rawPrice || 0.0
+
+// 🔹 Construct offerData for POST to /offer
+const offerData = {
+  sku,
+  marketplaceId: "EBAY_US",
+  format: "FIXED_PRICE",
+  availableQuantity: 1,
+  categoryId,
+  condition: mappedCondition, // ✅ Required at top level
+  conditionDescription: conditionNote, // 📝 Visible in listing under condition
+  listingDescription, // ✅ Required for eBay listings
+  listingPolicies: {
+    fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
+    paymentPolicyId: requiredEnvVars.paymentPolicyId,
+    returnPolicyId: requiredEnvVars.returnPolicyId,
+  },
+  pricingSummary: {
+    price: {
+      value: priceValue.toFixed(2),
+      currency: "USD",
     },
-    pricingSummary: {
-      price: {
-        value: priceValue.toFixed(2),
-        currency: "USD",
-      },
-    },
-    merchantLocationKey: requiredEnvVars.locationKey,
-    itemSpecifics,
-  }
+  },
+  merchantLocationKey: requiredEnvVars.locationKey,
+  itemSpecifics, // ✅ Your existing item specifics object
+}
 
   console.log(`ASPECTS DEBUGGING - ItemSpecifics being sent to offer: ${JSON.stringify(itemSpecifics, null, 2)}`)
 
