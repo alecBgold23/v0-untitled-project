@@ -405,9 +405,16 @@ function extractStorageCapacity(text: string | undefined | null): string | null 
   return null;
 }
 
-// Check if 'Storage Capacity' is a required aspect
+// Log any aspects missing 'aspectName' to help debugging
+requiredAspects.forEach((aspect: any, index: number) => {
+  if (!aspect.aspectName) {
+    console.warn(`Warning: aspect at index ${index} is missing aspectName`, aspect);
+  }
+});
+
+// Check if 'Storage Capacity' is a required aspect safely
 const storageCapacityRequired = requiredAspects.some(
-  (aspect: any) => aspect.aspectName.toLowerCase() === "storage capacity"
+  (aspect: any) => aspect.aspectName?.toLowerCase() === "storage capacity"
 );
 
 if (storageCapacityRequired) {
@@ -422,6 +429,7 @@ if (storageCapacityRequired) {
 }
 
 console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`);
+
 console.log("FINAL DESCRIPTION DATA:")
 console.log(`Condition note (${conditionNote.length} chars): "${conditionNote}"`)
 console.log(`Listing description (${listingDescription.length} chars): "${listingDescription}"`)
