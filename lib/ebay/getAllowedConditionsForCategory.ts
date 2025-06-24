@@ -1,4 +1,5 @@
 // Define your enum mapping from eBay numeric condition IDs to your enum strings
+console.log("✅ [LOADED] getAllowedConditionsForCategory.ts")
 const ebayIdToEnumCondition: Record<string, string> = {
   "1000": "NEW",
   "1500": "NEW_OTHER",

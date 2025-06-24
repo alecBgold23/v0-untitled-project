@@ -1,3 +1,5 @@
+console.log("✅ [LOADED] route.ts - list-item-on-ebay")
+
 import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
@@ -6,6 +8,7 @@ import sharp from "sharp"
 import { getAllowedConditionsForCategory } from "@/lib/ebay/getAllowedConditionsForCategory"
 import { mapConditionToCategoryConditionId } from "@/lib/ebay/mapConditionToCategoryConditionId"
 
+console.log("✅ Imports complete")
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -519,29 +522,44 @@ const cleanedPrice = priceValue // already parsed and cleaned
 
 console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`)
 // 🔹 Construct offerData for POST to /offer
-const offerData = {
-  sku,
-  marketplaceId: "EBAY_US",
-  format: "FIXED_PRICE",
-  availableQuantity: 1,
-  categoryId,
-  condition: mappedCondition, // ✅ Required at top level
-  conditionDescription: conditionNote, // 📝 Visible in listing under condition
-  listingDescription, // ✅ Required for eBay listings
-  listingPolicies: {
-    fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
-    paymentPolicyId: requiredEnvVars.paymentPolicyId,
-    returnPolicyId: requiredEnvVars.returnPolicyId,
-  },
-  pricingSummary: {
-    price: {
-      value: priceValue.toFixed(2),
-      currency: "USD",
-    },
-  },
-  merchantLocationKey: requiredEnvVars.locationKey,
-  itemSpecifics, // ✅ Your existing item specifics object
-}
+ // Log these values BEFORE creating offerData
+    console.log("🧪 Creating offerData...")
+    console.log("Allowed conditions:", allowedConditions)
+    console.log("Mapped condition:", mappedCondition)
+    console.log("🧪 Key fields before offerData:");
+console.log("SKU:", sku);
+console.log("Category ID:", categoryId);
+console.log("Condition Note:", conditionNote);
+console.log("Listing Description length:", listingDescription.length);
+
+
+    const offerData = {
+      sku,
+      marketplaceId: "EBAY_US",
+      format: "FIXED_PRICE",
+      availableQuantity: 1,
+      categoryId,
+      condition: mappedCondition, // ✅ Required at top level
+      conditionDescription: conditionNote, // 📝 Visible in listing under condition
+      listingDescription, // ✅ Required for eBay listings
+      listingPolicies: {
+        fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
+        paymentPolicyId: requiredEnvVars.paymentPolicyId,
+        returnPolicyId: requiredEnvVars.returnPolicyId,
+      },
+      pricingSummary: {
+        price: {
+          value: priceValue.toFixed(2),
+          currency: "USD",
+        },
+      },
+      merchantLocationKey: requiredEnvVars.locationKey,
+      itemSpecifics, // ✅ Your existing item specifics object
+    }
+
+    console.log("✅ offerData object created successfully")
+    console.log("Complete offerData:", JSON.stringify(offerData, null, 2))
+
 
   console.log(`ASPECTS DEBUGGING - ItemSpecifics being sent to offer: ${JSON.stringify(itemSpecifics, null, 2)}`)
 

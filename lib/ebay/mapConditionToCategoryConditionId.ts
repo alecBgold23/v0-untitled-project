@@ -1,4 +1,7 @@
-// Updated type to reflect eBay condition enums (e.g., "USED_GOOD")
+// Add this at the very top of the file, before any type declarations
+console.log("✅ [LOADED] mapConditionToCategoryConditionId.ts")
+
+// Then your type and function can follow
 type AllowedCondition = {
   id: string // enum string, e.g. "USED_GOOD"
   name: string // human-readable name, e.g. "used - good"
@@ -9,6 +12,8 @@ export function mapConditionToCategoryConditionId(
   allowedConditions: AllowedCondition[],
 ): string {
   const normalizedUserCondition = userCondition.trim().toLowerCase()
+  // ...
+}
 
   console.log("📥 Input userCondition:", userCondition)
   console.log("🧹 Normalized condition:", normalizedUserCondition)
