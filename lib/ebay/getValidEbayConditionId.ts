@@ -1,43 +1,36 @@
-import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
+import { createClient } from "@supabase/supabase-js"
+import { refreshEbayAccessToken } from "./refreshAccessToken"
 
-export async function getValidEbayConditionId(categoryId: string, formCondition: string): Promise<string> {
-  const token = await getValidEbayAccessToken()
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabase = createClient(supabaseUrl, supabaseKey)
 
-  const res = await fetch(
-    `https://api.ebay.com/sell/metadata/v1/marketplace/EBAY_US/item_condition_policy?category_ids=${categoryId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    },
-  )
+export async function getValidEbayAccessToken() {
+  // 1. Fetch tokens and expiry from Supabase
+  const { data: tokenRow, error } = await supabase
+    .from("ebay_tokens")
+    .select("access_token, refresh_token, expires_at, id")
+    .single()
 
-  if (!res.ok) {
-    throw new Error(`eBay metadata API failed: ${res.status}`)
+  if (error || !tokenRow) {
+    throw new Error("Failed to fetch tokens from database")
   }
 
-  const data = await res.json()
-  const ebayConditions = data.itemConditionPolicies?.[0]?.itemConditions ?? []
+  const expiresAt = new Date(tokenRow.expires_at)
+  const now = new Date()
 
-  const normalized = formCondition.trim().toLowerCase()
-
-  const mapping: { [key: string]: string[] } = {
-    "like new": ["1000", "1500"], // New, Open box
-    excellent: ["1500", "3000"], // Open box, Used
-    good: ["3000"], // Used
-    fair: ["3000", "7000"], // Used, For parts
-    poor: ["7000"], // For parts or not working
-  }
-
-  const preferredIds = mapping[normalized] ?? ["3000"] // Default to "Used"
-
-  for (const id of preferredIds) {
-    if (ebayConditions.some((c) => c.conditionId === id)) {
-      return id
+  // 2. Check if token is expired or expiring soon (buffer 1 minute)
+  if (now >= expiresAt || expiresAt.getTime() - now.getTime() < 60 * 1000) {
+    // Token expired or about to expire → refresh
+    try {
+      const newAccessToken = await refreshEbayAccessToken()
+      return newAccessToken
+    } catch (error) {
+      console.error("Failed to refresh eBay token:", error)
+      throw new Error("Unable to obtain valid eBay access token")
     }
   }
 
-  // Fallback: return first valid condition for category
-  return ebayConditions[0]?.conditionId ?? "3000"
+  // 3. Token valid, return current access token
+  return tokenRow.access_token
 }
