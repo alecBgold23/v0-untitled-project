@@ -3,8 +3,9 @@ import { NextResponse } from "next/server"
 import { getValidEbayAccessToken } from "@/lib/ebay/getValidEbayAccessToken"
 import { extractImageUrls } from "@/lib/image-url-utils"
 import sharp from "sharp"
-import { mapConditionToCategoryConditionId } from "@/lib/ebay/mapConditionToCategoryConditionId"
 import { getAllowedConditionsForCategory } from "@/lib/ebay/getAllowedConditionsForCategory"
+import { mapConditionToCategoryConditionId } from "@/lib/ebay/mapConditionToCategoryConditionId"
+
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
