@@ -381,24 +381,50 @@ function autoFillMissingAspects(
   const filled: Record<string, string[]> = {};
 
   for (const aspect of requiredAspects) {
-    const name = aspect.aspectName;
-    const allowedValues: string[] = aspect.aspectValues?.map((v: any) => v.value) || [];
+    const name = aspect.aspectName || aspect.localizedAspectName;
 
-    const matched = allowedValues.find((val: string | undefined | null) =>
-      val && userText.includes(val.toLowerCase())
+    if (!name) {
+      console.warn("⚠️ Skipping aspect with missing name:", aspect);
+      continue;
+    }
+
+    const allowedValues: string[] =
+      aspect.aspectValues?.map((v: any) => v.localizedValue || v.value)?.filter(Boolean) || [];
+
+    // Smart Color Matching
+    if (name.toLowerCase() === "color") {
+      const colorMatch = allowedValues.find((color) =>
+        new RegExp(`\\b${color.toLowerCase()}\\b`).test(userText)
+      );
+
+      if (colorMatch) {
+        filled[name] = [colorMatch];
+        console.log(`🎨 Auto-matched Color = "${colorMatch}"`);
+        continue;
+      } else {
+        filled[name] = [];
+        console.warn(`⚠️ Color not matched. Leaving empty.`);
+        continue;
+      }
+    }
+
+    // Generic matching for all other aspects
+    const matched = allowedValues.find((val: string) =>
+      userText.includes(val.toLowerCase())
     );
 
     if (matched) {
       filled[name] = [matched];
-      console.log(`✅ Auto-matched required aspect "${name}" = "${matched}"`);
+      console.log(`✅ Auto-matched "${name}" = "${matched}"`);
     } else {
-      filled[name] = ["Not Specified"];
-      console.warn(`⚠️ Required aspect "${name}" not matched. Using "Not Specified"`);
+      filled[name] = [];
+      console.warn(`⚠️ Required aspect "${name}" not matched. Leaving empty`);
     }
   }
 
   return filled;
 }
+
 
 const autoFilledAspects = autoFillMissingAspects(requiredAspects, submission);
 
