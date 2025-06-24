@@ -421,7 +421,7 @@ console.log("🔢 Final numericCondition to send:", numericCondition)
   }
 
  const inventoryItem = {
-  condition: numericCondition, // ✅ Must be top-level
+  condition: String(numericCondition), // ✅ Must be top-level
 
   product: {
     title: submission.item_name,
@@ -452,6 +452,8 @@ console.log("🔢 Final numericCondition to send:", numericCondition)
     },
   },
 }
+
+console.log("📤 Sending condition as:", typeof inventoryItem.condition, inventoryItem.condition)
 
 console.log("✅ Final inventory item payload (with top-level condition):", JSON.stringify(inventoryItem, null, 2))
 
