@@ -373,19 +373,48 @@ if (ebayOptimizedImageUrls.length === 0) {
 }
 console.log(`Using ${ebayOptimizedImageUrls.length} eBay-optimized square images for listing`)
 
-// Build aspects object using mappedCondition for Condition aspect
-const aspects: Record<string, string[]> = {
-  Condition: [mappedCondition], // Use the mapped eBay condition string here!
-  Brand: [brand],
-  Model: [submission.item_name],
-  Type: [submission.item_name],
+function autoFillMissingAspects(
+  requiredAspects: any[],
+  submission: any
+): Record<string, string[]> {
+  const userText = `${submission.item_name} ${submission.item_description || ""}`.toLowerCase();
+  const filled: Record<string, string[]> = {};
+
+  for (const aspect of requiredAspects) {
+    const name = aspect.aspectName;
+    const allowedValues: string[] = aspect.aspectValues?.map((v: any) => v.value) || [];
+
+    const matched = allowedValues.find((val: string) =>
+      userText.includes(val.toLowerCase())
+    );
+
+    if (matched) {
+      filled[name] = [matched];
+      console.log(`✅ Auto-matched required aspect "${name}" = "${matched}"`);
+    } else {
+      filled[name] = ["Not Specified"];
+      console.warn(`⚠️ Required aspect "${name}" not matched. Using "Not Specified"`);
+    }
+  }
+
+  return filled;
 }
 
-console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`)
-console.log(`ASPECTS DEBUGGING - Aspects object keys: [${Object.keys(aspects).join(", ")}]`)
+const autoFilledAspects = autoFillMissingAspects(requiredAspects, submission);
+
+const aspects: Record<string, string[]> = {
+  ...autoFilledAspects, // autofill overwrites static
+  Condition: [mappedCondition], // always override Condition
+};
+
+if (!aspects.Brand || aspects.Brand.length === 0) aspects.Brand = [brand || "Not Specified"];
+if (!aspects.Model || aspects.Model.length === 0) aspects.Model = [submission.item_name || "Not Specified"];
+if (!aspects.Type || aspects.Type.length === 0) aspects.Type = [submission.item_name || "Not Specified"];
+
+console.log("✅ Final aspects object after autofill:", JSON.stringify(aspects, null, 2));
 Object.entries(aspects).forEach(([key, values]) => {
-  console.log(`  - ${key}: [${values.join(", ")}] (${values.length} values)`)
-})
+  console.log(`  - ${key}: [${values.join(", ")}] (${values.length} values)`);
+});
 
 // Description processing remains unchanged
 const conditionNote = sanitizeDescription(submission.item_description)
