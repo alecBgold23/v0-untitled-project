@@ -467,21 +467,6 @@ requiredAspects.forEach((aspect: any, index: number) => {
   }
 });
 
-// Check if 'Storage Capacity' is a required aspect safely
-const storageCapacityRequired = requiredAspects.some(
-  (aspect: any) => aspect.aspectName?.toLowerCase() === "storage capacity"
-);
-
-if (storageCapacityRequired) {
-  // Try to extract from item name or description or fallback
-  const storageValue =
-    extractStorageCapacity(submission.item_name) ||
-    extractStorageCapacity(submission.item_description) ||
-    "Not Specified";
-
-  aspects["Storage Capacity"] = [storageValue];
-  console.log(`Added Storage Capacity aspect: ${storageValue}`);
-}
 
 console.log(`ASPECTS DEBUGGING - Final aspects object: ${JSON.stringify(aspects, null, 2)}`);
 
