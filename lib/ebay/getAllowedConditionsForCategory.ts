@@ -8,7 +8,10 @@ export async function getAllowedConditionsForCategory(
   accessToken: string,
 ): Promise<AllowedCondition[]> {
   console.log(`[eBay] Starting fetch of allowed conditions for categoryId: "${categoryId}"`)
-  console.log(`[eBay] Access token received: ${accessToken}`) // <-- Log token here
+  console.log(`[eBay] Access token received (first 10): ${accessToken?.slice?.(0, 10)}...`)
+
+  // Log who called this function
+  console.log("[eBay] getAllowedConditionsForCategory was called from:\n", new Error().stack)
 
   try {
     const url = `https://api.ebay.com/sell/metadata/v1/marketplace/EBAY_US/get_item_condition_policies?category_id=${categoryId}`
@@ -30,7 +33,7 @@ export async function getAllowedConditionsForCategory(
     }
 
     const json = await res.json()
-    console.log(`[eBay] Raw JSON response received: ${JSON.stringify(json).slice(0, 500)}...`) // Limit output length for readability
+    console.log(`[eBay] Raw JSON response received: ${JSON.stringify(json).slice(0, 500)}...`)
 
     if (!json.conditionPolicies || !Array.isArray(json.conditionPolicies)) {
       console.warn(`[eBay] conditionPolicies field missing or not an array in response for category "${categoryId}". Full response: ${JSON.stringify(json)}`)
