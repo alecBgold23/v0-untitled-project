@@ -420,135 +420,83 @@ console.log("🔢 Final numericCondition to send:", numericCondition)
     console.error("Listing description is too short, eBay may reject it")
   }
 
-  const inventoryItem = {
-    product: {
-      title: submission.item_name,
-      aspects,
-      imageUrls: ebayOptimizedImageUrls,
-      primaryImage: {
-        imageUrl: ebayOptimizedImageUrls[0],
-      },
-    },
-    condition: numericCondition, // Use the string ID directly
-    availability: {
-      shipToLocationAvailability: {
-        quantity: 1,
-      },
-    },
-    packageWeightAndSize: {
-      packageType: "USPS_LARGE_PACK",
-      weight: {
-        value: 2.0,
-        unit: "POUND",
-      },
-      dimensions: {
-        length: 10,
-        width: 7,
-        height: 3,
-        unit: "INCH",
-      },
-    },
-  }
+ const inventoryItem = {
+  condition: numericCondition, // Moved to top-level as required by eBay API
 
-  console.log(`INVENTORY ASPECTS DEBUG - Aspects being sent to inventory item: ${JSON.stringify(aspects, null, 2)}`)
-
-  console.log("Creating inventory item with eBay-optimized square images...")
-  console.log(`Inventory item payload: ${JSON.stringify(inventoryItem, null, 2)}`)
-
-  const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Language": "en-US",
-      "Accept-Language": "en-US",
+  product: {
+    title: submission.item_name,
+    aspects,
+    imageUrls: ebayOptimizedImageUrls,
+    primaryImage: {
+      imageUrl: ebayOptimizedImageUrls[0],
     },
-    body: JSON.stringify(inventoryItem),
+  },
+
+  availability: {
+    shipToLocationAvailability: {
+      quantity: 1,
+    },
+  },
+
+  packageWeightAndSize: {
+    packageType: "USPS_LARGE_PACK",
+    weight: {
+      value: 2.0,
+      unit: "POUND",
+    },
+    dimensions: {
+      length: 10,
+      width: 7,
+      height: 3,
+      unit: "INCH",
+    },
+  },
+}
+
+console.log(`INVENTORY ASPECTS DEBUG - Aspects being sent to inventory item: ${JSON.stringify(aspects, null, 2)}`)
+
+console.log("Creating inventory item with eBay-optimized square images...")
+console.log(`Inventory item payload: ${JSON.stringify(inventoryItem, null, 2)}`)
+
+const putResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${sku}`, {
+  method: "PUT",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Language": "en-US",
+    "Accept-Language": "en-US",
+  },
+  body: JSON.stringify(inventoryItem),
+})
+
+const putText = await putResponse.text()
+console.log(`Raw PUT inventory response: ${putText}`)
+console.log("PUT inventory response status:", putResponse.status, putResponse.statusText)
+
+if (!putResponse.ok) {
+  console.error("PUT inventory item creation failed:", {
+    status: putResponse.status,
+    statusText: putResponse.statusText,
+    response: putText,
   })
 
-  const putText = await putResponse.text()
-  console.log(`Raw PUT inventory response: ${putText}`)
-  console.log("PUT inventory response status:", putResponse.status, putResponse.statusText)
-
-  if (!putResponse.ok) {
-    console.error("PUT inventory item creation failed:", {
-      status: putResponse.status,
-      statusText: putResponse.statusText,
-      response: putText,
+  // Update status to failed if listing process fails
+  const { error: failedUpdateError } = await supabase
+    .from("sell_items")
+    .update({
+      status: "approved", // Reset to approved so it can be retried
+      ebay_status: "failed",
+      listing_error: putText || "Unknown error",
     })
+    .eq("id", id)
 
-    // Update status to failed if listing process fails
-    const { error: failedUpdateError } = await supabase
-      .from("sell_items")
-      .update({
-        status: "approved", // Reset to approved so it can be retried
-        ebay_status: "failed",
-        listing_error: putText || "Unknown error",
-      })
-      .eq("id", id)
-
-    if (failedUpdateError) {
-      console.warn("Failed to update failed listing status:", failedUpdateError)
-    }
-
-    return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
+  if (failedUpdateError) {
+    console.warn("Failed to update failed listing status:", failedUpdateError)
   }
 
-  console.log("Inventory item created with optimized square images")
+  return NextResponse.json({ error: "Inventory item creation failed", response: putText }, { status: 500 })
+}
 
-  const requiredEnvVars = {
-    fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID,
-    paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID,
-    returnPolicyId: process.env.EBAY_RETURN_POLICY_ID,
-    locationKey: process.env.EBAY_LOCATION_KEY,
-  }
-
-  console.log("Checking required eBay environment variables:")
-  for (const [key, value] of Object.entries(requiredEnvVars)) {
-    if (!value) {
-      console.error(`Missing environment variable: EBAY_${key.toUpperCase()}`)
-
-      // Update status to failed if listing process fails
-      const { error: failedUpdateError } = await supabase
-        .from("sell_items")
-        .update({
-          status: "approved", // Reset to approved so it can be retried
-          ebay_status: "failed",
-          listing_error: `Missing required eBay configuration: ${key}` || "Unknown error",
-        })
-        .eq("id", id)
-
-      if (failedUpdateError) {
-        console.warn("Failed to update failed listing status:", failedUpdateError)
-      }
-
-      return NextResponse.json({ error: `Missing required eBay configuration: ${key}` }, { status: 500 })
-    }
-    console.log(`Found EBAY_${key.toUpperCase()}: ${value.substring(0, 5)}...`)
-  }
-
-  const rawPrice = submission.estimated_price
-  const cleanedPrice = typeof rawPrice === "string" ? rawPrice.replace(/[^0-9.-]+/g, "") : rawPrice
-  const priceValue = Number(cleanedPrice)
-  if (isNaN(priceValue) || priceValue <= 0) {
-    console.error("Invalid or missing estimated price:", submission.estimated_price)
-
-    // Update status to failed if listing process fails
-    const { error: failedUpdateError } = await supabase
-      .from("sell_items")
-      .update({
-        status: "approved", // Reset to approved so it can be retried
-        ebay_status: "failed",
-        listing_error: "Invalid or missing estimated price" || "Unknown error",
-      })
-      .eq("id", id)
-
-    if (failedUpdateError) {
-      console.warn("Failed to update failed listing status:", failedUpdateError)
-    }
-
-    return NextResponse.json({ error: "Invalid or missing estimated price" }, { status: 400 })
-  }
 
   console.log("Creating offer on eBay...")
   console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`)
