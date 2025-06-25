@@ -477,8 +477,12 @@ console.log("🔎 Extracted rawStorageCapacity:", rawStorageCapacity); // ✅ GO
 
 if (rawStorageCapacity) {
   const storageAspect = requiredAspects.find(
-    (a: any) => a.aspectName?.toLowerCase() === "storage capacity"
-  );
+  (a: any) =>
+    (a.aspectName && a.aspectName.toLowerCase() === "storage capacity") ||
+    (a.localizedAspectName && a.localizedAspectName.toLowerCase() === "storage capacity")
+);
+console.log("📦 Raw Storage Capacity aspect object:", JSON.stringify(storageAspect, null, 2));
+
 
   if (storageAspect && storageAspect.aspectValues?.length > 0) {
     const allowedValues = storageAspect.aspectValues.map((v: any) => v.value);
