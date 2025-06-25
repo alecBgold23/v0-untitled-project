@@ -572,59 +572,10 @@ if (!putResponse.ok) {
 }
 
 
+console.log("Creating offer on eBay...")
 
-  console.log("Creating offer on eBay...")
-
-
-  console.log(`ASPECTS DEBUGGING - Converting aspects to itemSpecifics...`)
-  console.log(`ASPECTS DEBUGGING - Processing ${Object.keys(aspects).length} aspect categories`)
-  
-
-  console.log(`ASPECTS DEBUGGING - Generated itemSpecifics: ${JSON.stringify(itemSpecifics, null, 2)}`)
-  console.log(`ASPECTS DEBUGGING - ItemSpecifics count: ${itemSpecifics.length}`)
-  itemSpecifics.forEach((spec, index) => {
-    console.log(`ItemSpecific ${index + 1}: "${spec.name}" = [${spec.value.join(", ")}]`)
-  })
-
-  // Log the item description for debugging
-  console.log("OFFER CREATION - DESCRIPTION DATA:")
-  console.log(`Condition description (${conditionNote.length} chars): "${conditionNote}"`)
-  console.log(`Listing description (${listingDescription.length} chars): "${listingDescription}"`)
-
-  // Check for HTML entities that might cause issues
-  const htmlEntityCheck = (text: string) => {
-    const entities = text.match(/&[a-z]+;/g)
-    if (entities) {
-      console.warn(`Found HTML entities that might cause issues: ${entities.join(", ")}`)
-    }
-  }
-
-  htmlEntityCheck(conditionNote)
-  htmlEntityCheck(listingDescription)
-
-  // 🔹 Ensure priceValue is defined before using it
-const rawPrice = submission.estimated_price;
-const priceValue = typeof rawPrice === "string"
-  ? parseFloat(rawPrice.replace(/[^0-9.]+/g, ""))
-  : rawPrice || 0.0;
-const cleanedPrice = priceValue; // already parsed and cleaned
-
-console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`);
-
-// <-- Insert the requiredEnvVars declaration here -->
-const requiredEnvVars = {
-  fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID!,
-  paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID!,
-  returnPolicyId: process.env.EBAY_RETURN_POLICY_ID!,
-  locationKey: process.env.EBAY_MERCHANT_LOCATION_KEY!,
-};
-
-// Optional: check if any env var is missing and throw error
-for (const [key, value] of Object.entries(requiredEnvVars)) {
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`);
-  }
-}
+console.log("ASPECTS DEBUGGING - Converting aspects to itemSpecifics...")
+console.log(`ASPECTS DEBUGGING - Processing ${Object.keys(aspects).length} aspect categories`)
 
 // 🔹 Build itemSpecifics array from aspects object, excluding empty or "Not Specified" values
 const itemSpecifics = Object.entries(aspects)
@@ -639,18 +590,61 @@ const itemSpecifics = Object.entries(aspects)
     value: values,
   }));
 
-console.log("🧪 Final itemSpecifics sent to offer:", JSON.stringify(itemSpecifics, null, 2));
+console.log("🧪 Final itemSpecifics sent to offer:", JSON.stringify(itemSpecifics, null, 2))
+console.log(`ASPECTS DEBUGGING - ItemSpecifics count: ${itemSpecifics.length}`)
+itemSpecifics.forEach((spec, index) => {
+  console.log(`ItemSpecific ${index + 1}: "${spec.name}" = [${spec.value.join(", ")}]`)
+})
 
-// 🔹 Construct offerData for POST to /offer
-// Log these values BEFORE creating offerData
-console.log("🧪 Creating offerData...");
-console.log("Allowed conditions:", allowedConditions);
-console.log("Mapped condition:", mappedCondition);
-console.log("🧪 Key fields before offerData:");
-console.log("SKU:", sku);
-console.log("Category ID:", categoryId);
-console.log("Condition Note:", conditionNote);
-console.log("Listing Description length:", listingDescription.length);
+// Log the item description for debugging
+console.log("OFFER CREATION - DESCRIPTION DATA:")
+console.log(`Condition description (${conditionNote.length} chars): "${conditionNote}"`)
+console.log(`Listing description (${listingDescription.length} chars): "${listingDescription}"`)
+
+// Check for HTML entities that might cause issues
+const htmlEntityCheck = (text: string) => {
+  const entities = text.match(/&[a-z]+;/g)
+  if (entities) {
+    console.warn(`Found HTML entities that might cause issues: ${entities.join(", ")}`)
+  }
+}
+
+htmlEntityCheck(conditionNote)
+htmlEntityCheck(listingDescription)
+
+// 🔹 Ensure priceValue is defined before using it
+const rawPrice = submission.estimated_price
+const priceValue = typeof rawPrice === "string"
+  ? parseFloat(rawPrice.replace(/[^0-9.]+/g, ""))
+  : rawPrice || 0.0
+const cleanedPrice = priceValue
+
+console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`)
+
+// ✅ Required eBay policy env vars
+const requiredEnvVars = {
+  fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID!,
+  paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID!,
+  returnPolicyId: process.env.EBAY_RETURN_POLICY_ID!,
+  locationKey: process.env.EBAY_MERCHANT_LOCATION_KEY!,
+}
+
+// Validate all required env vars
+for (const [key, value] of Object.entries(requiredEnvVars)) {
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`)
+  }
+}
+
+// 🔹 Construct offerData
+console.log("🧪 Creating offerData...")
+console.log("Allowed conditions:", allowedConditions)
+console.log("Mapped condition:", mappedCondition)
+console.log("🧪 Key fields before offerData:")
+console.log("SKU:", sku)
+console.log("Category ID:", categoryId)
+console.log("Condition Note:", conditionNote)
+console.log("Listing Description length:", listingDescription.length)
 
 const offerData = {
   sku,
@@ -658,9 +652,9 @@ const offerData = {
   format: "FIXED_PRICE",
   availableQuantity: 1,
   categoryId,
-  condition: mappedCondition, // ✅ Required at top level
-  conditionDescription: conditionNote, // 📝 Visible in listing under condition
-  listingDescription, // ✅ Required for eBay listings
+  condition: mappedCondition, // ✅ Required
+  conditionDescription: conditionNote,
+  listingDescription,
   listingPolicies: {
     fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
     paymentPolicyId: requiredEnvVars.paymentPolicyId,
@@ -673,9 +667,8 @@ const offerData = {
     },
   },
   merchantLocationKey: requiredEnvVars.locationKey,
-  itemSpecifics, // ✅ The item specifics array built dynamically from aspects
-};
-
+  itemSpecifics, // ✅ Cleaned and filtered
+}
 console.log("✅ offerData object created successfully");
 console.log("Complete offerData:", JSON.stringify(offerData, null, 2));
 
