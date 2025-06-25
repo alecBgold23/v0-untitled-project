@@ -402,16 +402,21 @@ function autoFillMissingAspects(
   requiredAspects: any[],
   submission: any
 ): Record<string, string[]> {
-  const userText = `${submission.item_name} ${submission.item_description || ""}`.toLowerCase();
+ const itemNameSafe = typeof submission.item_name === "string" ? submission.item_name : "";
+const itemDescSafe = typeof submission.item_description === "string" ? submission.item_description : "";
+const userText = `${itemNameSafe} ${itemDescSafe}`.toLowerCase();
+
   const filled: Record<string, string[]> = {};
 
   for (const aspect of requiredAspects) {
-    const name = aspect.aspectName || aspect.localizedAspectName;
+  const nameRaw = aspect.aspectName ?? aspect.localizedAspectName;
 
-if (!name || typeof name !== "string") {
+if (!nameRaw || typeof nameRaw !== "string") {
   console.warn("⚠️ Skipping aspect with missing or invalid name:", aspect);
   continue;
 }
+
+const name = nameRaw.toLowerCase();
 
     const allowedValues: string[] = Array.isArray(aspect.aspectValues)
       ? aspect.aspectValues
