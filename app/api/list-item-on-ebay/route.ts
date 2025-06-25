@@ -607,66 +607,81 @@ if (!putResponse.ok) {
   htmlEntityCheck(listingDescription)
 
   // 🔹 Ensure priceValue is defined before using it
-const rawPrice = submission.estimated_price
+const rawPrice = submission.estimated_price;
 const priceValue = typeof rawPrice === "string"
   ? parseFloat(rawPrice.replace(/[^0-9.]+/g, ""))
-  : rawPrice || 0.0
-const cleanedPrice = priceValue // already parsed and cleaned
+  : rawPrice || 0.0;
+const cleanedPrice = priceValue; // already parsed and cleaned
 
-console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`)
+console.log(`Price: ${priceValue} (original: ${rawPrice}, cleaned: ${cleanedPrice})`);
+
 // <-- Insert the requiredEnvVars declaration here -->
 const requiredEnvVars = {
   fulfillmentPolicyId: process.env.EBAY_FULFILLMENT_POLICY_ID!,
   paymentPolicyId: process.env.EBAY_PAYMENT_POLICY_ID!,
   returnPolicyId: process.env.EBAY_RETURN_POLICY_ID!,
   locationKey: process.env.EBAY_MERCHANT_LOCATION_KEY!,
-}
+};
 
 // Optional: check if any env var is missing and throw error
 for (const [key, value] of Object.entries(requiredEnvVars)) {
   if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`)
+    throw new Error(`Missing required environment variable: ${key}`);
   }
 }
+
+// 🔹 Build itemSpecifics array from aspects object, excluding empty or "Not Specified" values
+const itemSpecifics = Object.entries(aspects)
+  .filter(([name, values]) =>
+    Array.isArray(values) &&
+    values.length > 0 &&
+    values[0] !== "Not Specified" &&
+    values[0] !== ""
+  )
+  .map(([name, values]) => ({
+    name,
+    value: values,
+  }));
+
+console.log("🧪 Final itemSpecifics sent to offer:", JSON.stringify(itemSpecifics, null, 2));
+
 // 🔹 Construct offerData for POST to /offer
- // Log these values BEFORE creating offerData
-    console.log("🧪 Creating offerData...")
-    console.log("Allowed conditions:", allowedConditions)
-    console.log("Mapped condition:", mappedCondition)
-    console.log("🧪 Key fields before offerData:");
+// Log these values BEFORE creating offerData
+console.log("🧪 Creating offerData...");
+console.log("Allowed conditions:", allowedConditions);
+console.log("Mapped condition:", mappedCondition);
+console.log("🧪 Key fields before offerData:");
 console.log("SKU:", sku);
 console.log("Category ID:", categoryId);
 console.log("Condition Note:", conditionNote);
 console.log("Listing Description length:", listingDescription.length);
 
+const offerData = {
+  sku,
+  marketplaceId: "EBAY_US",
+  format: "FIXED_PRICE",
+  availableQuantity: 1,
+  categoryId,
+  condition: mappedCondition, // ✅ Required at top level
+  conditionDescription: conditionNote, // 📝 Visible in listing under condition
+  listingDescription, // ✅ Required for eBay listings
+  listingPolicies: {
+    fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
+    paymentPolicyId: requiredEnvVars.paymentPolicyId,
+    returnPolicyId: requiredEnvVars.returnPolicyId,
+  },
+  pricingSummary: {
+    price: {
+      value: priceValue.toFixed(2),
+      currency: "USD",
+    },
+  },
+  merchantLocationKey: requiredEnvVars.locationKey,
+  itemSpecifics, // ✅ The item specifics array built dynamically from aspects
+};
 
-    const offerData = {
-      sku,
-      marketplaceId: "EBAY_US",
-      format: "FIXED_PRICE",
-      availableQuantity: 1,
-      categoryId,
-      condition: mappedCondition, // ✅ Required at top level
-      conditionDescription: conditionNote, // 📝 Visible in listing under condition
-      listingDescription, // ✅ Required for eBay listings
-      listingPolicies: {
-        fulfillmentPolicyId: requiredEnvVars.fulfillmentPolicyId,
-        paymentPolicyId: requiredEnvVars.paymentPolicyId,
-        returnPolicyId: requiredEnvVars.returnPolicyId,
-      },
-      pricingSummary: {
-        price: {
-          value: priceValue.toFixed(2),
-          currency: "USD",
-        },
-      },
-      merchantLocationKey: requiredEnvVars.locationKey,
-      itemSpecifics, // ✅ Your existing item specifics object
-    }
-
-    console.log("✅ offerData object created successfully")
-    console.log("Complete offerData:", JSON.stringify(offerData, null, 2))
-
+console.log("✅ offerData object created successfully");
+console.log("Complete offerData:", JSON.stringify(offerData, null, 2));
 
   console.log(`ASPECTS DEBUGGING - ItemSpecifics being sent to offer: ${JSON.stringify(itemSpecifics, null, 2)}`)
 
