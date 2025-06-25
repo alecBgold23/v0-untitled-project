@@ -576,6 +576,8 @@ console.log("Creating offer on eBay...")
 
 console.log("ASPECTS DEBUGGING - Converting aspects to itemSpecifics...")
 console.log(`ASPECTS DEBUGGING - Processing ${Object.keys(aspects).length} aspect categories`)
+// Add this line here:
+console.log("Aspects before building itemSpecifics:", JSON.stringify(aspects, null, 2));
 
 // 🔹 Build itemSpecifics array from aspects object, excluding empty or "Not Specified" values
 const itemSpecifics = Object.entries(aspects)
