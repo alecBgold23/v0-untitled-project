@@ -13,7 +13,22 @@ function extractStorageCapacity(text: string | null | undefined): string | null 
   if (!text) return null;
   const match = text.match(/(\d+)\s?(GB|TB)/i);
   if (match) {
-    return `${match[1]} ${match[2].toUpperCase()}`; // keep space
+return ${match[1]} ${match[2].toUpperCase()}; // keep space
+  }
+  return null;
+}
+// ✅ Add this helper function immediately below:
+function matchToAllowedAspectValue(
+  input: string | null,
+  allowedValues: string[],
+): string | null {
+  if (!input) return null;
+  const normalizedInput = input.toLowerCase().replace(/\s+/g, '');
+  for (const allowed of allowedValues) {
+    const normalizedAllowed = allowed.toLowerCase().replace(/\s+/g, '');
+    if (normalizedInput === normalizedAllowed) {
+      return allowed; // Use original casing from eBay
+    }
   }
   return null;
 }
@@ -652,15 +667,40 @@ for (const [key, value] of Object.entries(requiredEnvVars)) {
 }
 
 // 🔹 Construct offerData
-console.log("🧪 Creating offerData...")
-console.log("Allowed conditions:", allowedConditions)
-console.log("Mapped condition:", mappedCondition)
-console.log("🧪 Key fields before offerData:")
-console.log("SKU:", sku)
-console.log("Category ID:", categoryId)
-console.log("Condition Note:", conditionNote)
-console.log("Listing Description length:", listingDescription.length)
+console.log("🧪 Creating offerData...");
+console.log("Allowed conditions:", allowedConditions);
+console.log("Mapped condition:", mappedCondition);
+console.log("🧪 Key fields before offerData:");
+console.log("SKU:", sku);
+console.log("Category ID:", categoryId);
+console.log("Condition Note:", conditionNote);
+console.log("Listing Description length:", listingDescription.length);
 
+// 🔹 Extract & match Storage Capacity dynamically
+const storageCapacityRaw =
+  extractStorageCapacity(submission.item_name) ||
+  extractStorageCapacity(submission.item_description);
+
+const storageAspect = requiredAspects.find(
+  (a: any) => a.aspectName?.toLowerCase() === "storage capacity",
+);
+
+if (storageAspect && storageAspect.aspectValues?.length > 0) {
+  const allowedStorageValues = storageAspect.aspectValues.map((v: any) => v.value);
+  const matchedStorage = matchToAllowedAspectValue(storageCapacityRaw, allowedStorageValues);
+
+  if (matchedStorage) {
+    aspects["Storage Capacity"] = [matchedStorage];
+    console.log("✅ Matched Storage Capacity to allowed value:", matchedStorage);
+  } else {
+    console.warn(
+      `⚠️ Extracted Storage Capacity "${storageCapacityRaw}" did not match any allowed values:`,
+      allowedStorageValues,
+    );
+  }
+} else {
+  console.warn("⚠️ No allowed values found for 'Storage Capacity' aspect.");
+}
 const offerData = {
   sku,
   marketplaceId: "EBAY_US",
