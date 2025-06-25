@@ -473,6 +473,8 @@ const rawStorageCapacity =
   extractStorageCapacity(submission.item_name) ||
   extractStorageCapacity(submission.item_description);
 
+console.log("🔎 Extracted rawStorageCapacity:", rawStorageCapacity); // ✅ GOOD: Log right after extraction
+
 if (rawStorageCapacity) {
   const storageAspect = requiredAspects.find(
     (a: any) => a.aspectName?.toLowerCase() === "storage capacity"
@@ -480,7 +482,12 @@ if (rawStorageCapacity) {
 
   if (storageAspect && storageAspect.aspectValues?.length > 0) {
     const allowedValues = storageAspect.aspectValues.map((v: any) => v.value);
+
+    console.log("📋 Allowed Storage Capacity values:", allowedValues); // ✅ MOVE THIS UP HERE (before match)
+
     const matchedValue = matchToAllowedAspectValue(rawStorageCapacity, allowedValues);
+
+    console.log("🔗 Matched value (if any):", matchedValue); // ✅ NEW: Log the result of the match
 
     if (matchedValue) {
       aspects["Storage Capacity"] = [matchedValue];
@@ -499,6 +506,7 @@ if (rawStorageCapacity) {
   console.log("ℹ️ No Storage Capacity found in title or description");
   delete aspects["Storage Capacity"];
 }
+
 
 // **Now run cleanup AFTER Storage Capacity is set**
 Object.entries(aspects).forEach(([key, values]) => {
