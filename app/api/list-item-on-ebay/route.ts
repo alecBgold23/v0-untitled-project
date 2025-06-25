@@ -421,9 +421,15 @@ function autoFillMissingAspects(
 
     // Special handling for Color
     if (name.toLowerCase() === "color") {
-      const colorMatch = allowedValues.find(
-        (color) => typeof color === "string" && new RegExp(`\\b${color.toLowerCase()}\\b`).test(userText)
-      );
+     const colorMatch = allowedValues.find((color) => {
+  if (typeof color !== "string") return false;
+  try {
+    return new RegExp(`\\b${color.toLowerCase()}\\b`).test(userText);
+  } catch (err) {
+    console.warn("⚠️ Invalid RegExp for color:", color, err);
+    return false;
+  }
+});
 
       if (colorMatch) {
         filled[name] = [colorMatch];
