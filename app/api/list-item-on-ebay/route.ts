@@ -578,11 +578,7 @@ if (!putResponse.ok) {
 
   console.log(`ASPECTS DEBUGGING - Converting aspects to itemSpecifics...`)
   console.log(`ASPECTS DEBUGGING - Processing ${Object.keys(aspects).length} aspect categories`)
-  // Prepare item specifics for offer (required by eBay, including "Type")
-  const itemSpecifics = Object.entries(aspects).map(([name, values]) => ({
-    name,
-    value: values,
-  }))
+  
 
   console.log(`ASPECTS DEBUGGING - Generated itemSpecifics: ${JSON.stringify(itemSpecifics, null, 2)}`)
   console.log(`ASPECTS DEBUGGING - ItemSpecifics count: ${itemSpecifics.length}`)
