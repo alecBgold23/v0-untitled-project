@@ -709,6 +709,36 @@ console.log("SKU:", sku);
 console.log("Category ID:", categoryId);
 console.log("Condition Note:", conditionNote);
 console.log("Listing Description length:", listingDescription.length);
+const rawStorageCapacity =
+  extractStorageCapacity(submission.item_name) ||
+  extractStorageCapacity(submission.item_description);
+
+if (rawStorageCapacity) {
+  const storageAspect = requiredAspects.find(
+    (a: any) => a.aspectName?.toLowerCase() === "storage capacity"
+  );
+
+  if (storageAspect && storageAspect.aspectValues?.length > 0) {
+    const allowedValues = storageAspect.aspectValues.map((v: any) => v.value);
+    const matchedValue = matchToAllowedAspectValue(rawStorageCapacity, allowedValues);
+
+    if (matchedValue) {
+      aspects["Storage Capacity"] = [matchedValue];
+      console.log("✅ Matched Storage Capacity to allowed value:", matchedValue);
+    } else {
+      console.warn(
+        `⚠️ Could not match extracted "${rawStorageCapacity}" to allowed values:`,
+        allowedValues
+      );
+      delete aspects["Storage Capacity"]; // Remove invalid value if any
+    }
+  } else {
+    console.warn("⚠️ Storage Capacity not required for this category or no allowed values listed");
+  }
+} else {
+  console.log("ℹ️ No Storage Capacity found in title or description");
+  delete aspects["Storage Capacity"];
+}
 
 
 const offerData = {
