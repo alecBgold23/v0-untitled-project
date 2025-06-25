@@ -450,6 +450,7 @@ function autoFillMissingAspects(
 // Get autofilled aspects
 const autoFilledAspects = autoFillMissingAspects(requiredAspects, submission);
 
+
 // Start with autofilled, overwrite Condition always
 const aspects: Record<string, string[]> = {
   ...autoFilledAspects,
@@ -467,17 +468,6 @@ if (!aspects.Type || aspects.Type.length === 0) {
   aspects.Type = [submission.item_name || "Not Specified"];
 }
 
-// Remove any aspect with empty or invalid values (e.g. [""] or empty array)
-Object.entries(aspects).forEach(([key, values]) => {
-  if (
-    !Array.isArray(values) ||
-    values.length === 0 ||
-    values.some(v => !v || v.trim() === "")
-  ) {
-    console.warn(`⚠️ Removing aspect "${key}" due to empty or invalid values:`, values);
-    delete aspects[key];
-  }
-});
 // --- Place Storage Capacity matching here ---
 const rawStorageCapacity =
   extractStorageCapacity(submission.item_name) ||
@@ -510,7 +500,20 @@ if (rawStorageCapacity) {
   delete aspects["Storage Capacity"];
 }
 
+// **Now run cleanup AFTER Storage Capacity is set**
+Object.entries(aspects).forEach(([key, values]) => {
+  if (
+    !Array.isArray(values) ||
+    values.length === 0 ||
+    values.some(v => !v || v.trim() === "")
+  ) {
+    console.warn(`⚠️ Removing aspect "${key}" due to empty or invalid values:`, values);
+    delete aspects[key];
+  }
+});
+
 console.log("✅ Final aspects object after autofill & cleanup:", JSON.stringify(aspects, null, 2));
+
 Object.entries(aspects).forEach(([key, values]) => {
   console.log(`  - ${key}: [${values.join(", ")}] (${values.length} values)`);
 });
