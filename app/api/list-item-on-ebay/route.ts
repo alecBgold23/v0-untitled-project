@@ -9,15 +9,15 @@ import { getAllowedConditionsForCategory } from "@/lib/ebay/getAllowedConditions
 import { mapConditionToCategoryConditionId } from "@/lib/ebay/mapConditionToCategoryConditionId"
 
 console.log("✅ Imports complete")
-// 2️⃣ Add this function **right below your imports and above your main handler function**:
 function extractStorageCapacity(text: string | null | undefined): string | null {
   if (!text) return null;
   const match = text.match(/(\d+)\s?(GB|TB)/i);
   if (match) {
-    return `${match[1]} ${match[2].toUpperCase()}`;
+    return `${match[1]}${match[2].toUpperCase()}`; // compact, no space
   }
   return null;
 }
+
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
