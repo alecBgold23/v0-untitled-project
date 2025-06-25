@@ -402,21 +402,21 @@ function autoFillMissingAspects(
   requiredAspects: any[],
   submission: any
 ): Record<string, string[]> {
- const itemNameSafe = typeof submission.item_name === "string" ? submission.item_name : "";
-const itemDescSafe = typeof submission.item_description === "string" ? submission.item_description : "";
-const userText = `${itemNameSafe} ${itemDescSafe}`.toLowerCase();
+  const itemNameSafe = typeof submission.item_name === "string" ? submission.item_name : "";
+  const itemDescSafe = typeof submission.item_description === "string" ? submission.item_description : "";
+  const userText = `${itemNameSafe} ${itemDescSafe}`.toLowerCase();
 
   const filled: Record<string, string[]> = {};
 
   for (const aspect of requiredAspects) {
-  const nameRaw = aspect.aspectName ?? aspect.localizedAspectName;
+    const nameRaw = aspect?.aspectName ?? aspect?.localizedAspectName;
 
-if (!nameRaw || typeof nameRaw !== "string") {
-  console.warn("⚠️ Skipping aspect with missing or invalid name:", aspect);
-  continue;
-}
+    if (!nameRaw || typeof nameRaw !== "string") {
+      console.warn("⚠️ Skipping aspect with missing or invalid name:", aspect);
+      continue;
+    }
 
-const name = nameRaw.toLowerCase();
+    const name = nameRaw.toLowerCase();
 
     const allowedValues: string[] = Array.isArray(aspect.aspectValues)
       ? aspect.aspectValues
@@ -425,16 +425,16 @@ const name = nameRaw.toLowerCase();
       : [];
 
     // Special handling for Color
-    if (name.toLowerCase() === "color") {
-     const colorMatch = allowedValues.find((color) => {
-  if (typeof color !== "string") return false;
-  try {
-    return new RegExp(`\\b${color.toLowerCase()}\\b`).test(userText);
-  } catch (err) {
-    console.warn("⚠️ Invalid RegExp for color:", color, err);
-    return false;
-  }
-});
+    if (name === "color") {
+      const colorMatch = allowedValues.find((color) => {
+        if (typeof color !== "string") return false;
+        try {
+          return new RegExp(`\\b${color.toLowerCase()}\\b`).test(userText);
+        } catch (err) {
+          console.warn("⚠️ Invalid RegExp for color:", color, err);
+          return false;
+        }
+      });
 
       if (colorMatch) {
         filled[name] = [colorMatch];
@@ -461,20 +461,18 @@ const name = nameRaw.toLowerCase();
   return filled;
 }
 
-
-// Get autofilled aspects
+// Autofill aspects
 const autoFilledAspects = autoFillMissingAspects(requiredAspects, submission);
-
 
 // Start with autofilled, overwrite Condition always
 const aspects: Record<string, string[]> = {
   ...autoFilledAspects,
-  Condition: [mappedCondition], // always set Condition
+  Condition: [mappedCondition],
 };
 
 // Fill Brand, Model, Type if missing or empty
 if (!aspects.Brand || aspects.Brand.length === 0) {
-  aspects.Brand = [brand || "Not Specified"];
+  aspects.Brand = [typeof brand === "string" ? brand : "Not Specified"];
 }
 if (!aspects.Model || aspects.Model.length === 0) {
   aspects.Model = [submission.item_name || "Not Specified"];
@@ -483,42 +481,53 @@ if (!aspects.Type || aspects.Type.length === 0) {
   aspects.Type = [submission.item_name || "Not Specified"];
 }
 
-// --- Place Storage Capacity matching here ---
+// --- Matching helper ---
+function matchToAllowedAspectValue(input: string | null, allowedValues: any[]): string | null {
+  if (!input) return null;
+  const normalizedInput = input.toLowerCase().replace(/\s+/g, "");
+  for (const allowed of allowedValues) {
+    if (typeof allowed !== "string") continue;
+    const normalizedAllowed = allowed.toLowerCase().replace(/\s+/g, "");
+    if (normalizedInput === normalizedAllowed) {
+      return allowed;
+    }
+  }
+  return null;
+}
+
+// --- Match storage capacity ---
 const rawStorageCapacity =
   extractStorageCapacity(submission.item_name) ||
   extractStorageCapacity(submission.item_description);
 
-console.log("🔎 Extracted rawStorageCapacity:", rawStorageCapacity); // ✅ GOOD: Log right after extraction
+console.log("🔎 Extracted rawStorageCapacity:", rawStorageCapacity);
 
 if (rawStorageCapacity) {
-const storageAspect = requiredAspects.find((a: any) => {
-  if (!a || typeof a !== "object") return false;
-  const name = typeof a.aspectName === "string" ? a.aspectName.toLowerCase() : "";
-  const localized = typeof a.localizedAspectName === "string" ? a.localizedAspectName.toLowerCase() : "";
-  return name === "storage capacity" || localized === "storage capacity";
-});
+  const storageAspect = requiredAspects.find((a: any) => {
+    if (!a || typeof a !== "object") return false;
+    const name = typeof a.aspectName === "string" ? a.aspectName.toLowerCase() : "";
+    const localized = typeof a.localizedAspectName === "string" ? a.localizedAspectName.toLowerCase() : "";
+    return name === "storage capacity" || localized === "storage capacity";
+  });
 
+  console.log("📦 Raw Storage Capacity aspect object:", JSON.stringify(storageAspect, null, 2));
 
-console.log("📦 Raw Storage Capacity aspect object:", JSON.stringify(storageAspect, null, 2));
+  if (storageAspect && Array.isArray(storageAspect.aspectValues) && storageAspect.aspectValues.length > 0) {
+    const allowedValues = storageAspect.aspectValues
+      .map((v: any) => v?.value)
+      .filter((v): v is string => typeof v === "string" && v.trim() !== "");
 
-
-  if (storageAspect && storageAspect.aspectValues?.length > 0) {
-    const allowedValues = storageAspect.aspectValues.map((v: any) => v.value);
-
-    console.log("📋 Allowed Storage Capacity values:", allowedValues); // ✅ MOVE THIS UP HERE (before match)
+    console.log("📋 Allowed Storage Capacity values:", allowedValues);
 
     const matchedValue = matchToAllowedAspectValue(rawStorageCapacity, allowedValues);
 
-    console.log("🔗 Matched value (if any):", matchedValue); // ✅ NEW: Log the result of the match
+    console.log("🔗 Matched value (if any):", matchedValue);
 
     if (matchedValue) {
       aspects["Storage Capacity"] = [matchedValue];
       console.log("✅ Matched Storage Capacity to allowed value:", matchedValue);
     } else {
-      console.warn(
-        `⚠️ Could not match extracted "${rawStorageCapacity}" to allowed values:`,
-        allowedValues
-      );
+      console.warn(`⚠️ Could not match extracted "${rawStorageCapacity}" to allowed values:`, allowedValues);
       delete aspects["Storage Capacity"];
     }
   } else {
@@ -529,13 +538,12 @@ console.log("📦 Raw Storage Capacity aspect object:", JSON.stringify(storageAs
   delete aspects["Storage Capacity"];
 }
 
-
-// **Now run cleanup AFTER Storage Capacity is set**
+// Final cleanup
 Object.entries(aspects).forEach(([key, values]) => {
   if (
     !Array.isArray(values) ||
     values.length === 0 ||
-    values.some(v => !v || v.trim() === "")
+    values.some((v) => !v || v.trim() === "")
   ) {
     console.warn(`⚠️ Removing aspect "${key}" due to empty or invalid values:`, values);
     delete aspects[key];
@@ -543,11 +551,9 @@ Object.entries(aspects).forEach(([key, values]) => {
 });
 
 console.log("✅ Final aspects object after autofill & cleanup:", JSON.stringify(aspects, null, 2));
-
 Object.entries(aspects).forEach(([key, values]) => {
   console.log(`  - ${key}: [${values.join(", ")}] (${values.length} values)`);
 });
-
 
 // Description processing remains unchanged
 const conditionNote = sanitizeDescription(submission.item_description)
