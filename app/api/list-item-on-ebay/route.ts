@@ -433,7 +433,10 @@ function autoFillMissingAspects(
     }
 
     // Generic match for other aspects
-    const matched = allowedValues.find(val => userText.includes(val.toLowerCase()));
+// With:
+const matched = allowedValues.find(val => 
+  typeof val === "string" && userText.includes(val.toLowerCase())
+);
 
     if (matched) {
       filled[name] = [matched];
