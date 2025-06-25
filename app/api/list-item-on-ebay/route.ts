@@ -381,6 +381,7 @@ function autoFillMissingAspects(
   const filled: Record<string, string[]> = {};
 
   for (const aspect of requiredAspects) {
+    // Use aspectName or localizedAspectName (whichever is present)
     const name = aspect.aspectName || aspect.localizedAspectName;
 
     if (!name) {
@@ -391,56 +392,73 @@ function autoFillMissingAspects(
     const allowedValues: string[] =
       aspect.aspectValues?.map((v: any) => v.localizedValue || v.value)?.filter(Boolean) || [];
 
-    // Smart Color Matching
+    // Special handling for Color (optional)
     if (name.toLowerCase() === "color") {
-      const colorMatch = allowedValues.find((color) =>
+      const colorMatch = allowedValues.find(color =>
         new RegExp(`\\b${color.toLowerCase()}\\b`).test(userText)
       );
 
       if (colorMatch) {
         filled[name] = [colorMatch];
         console.log(`🎨 Auto-matched Color = "${colorMatch}"`);
-        continue;
       } else {
-        filled[name] = [];
-        console.warn(`⚠️ Color not matched. Leaving empty.`);
-        continue;
+        console.warn(`⚠️ Color not matched. Skipping aspect.`);
       }
+      continue;
     }
 
-    // Generic matching for all other aspects
-    const matched = allowedValues.find((val: string) =>
-      userText.includes(val.toLowerCase())
-    );
+    // Generic match for other aspects
+    const matched = allowedValues.find(val => userText.includes(val.toLowerCase()));
 
     if (matched) {
       filled[name] = [matched];
       console.log(`✅ Auto-matched "${name}" = "${matched}"`);
     } else {
-      filled[name] = [];
-      console.warn(`⚠️ Required aspect "${name}" not matched. Leaving empty`);
+      console.warn(`⚠️ Required aspect "${name}" not matched. Skipping aspect.`);
+      // Don't set empty arrays, just skip
     }
   }
 
   return filled;
 }
 
-
+// Get autofilled aspects
 const autoFilledAspects = autoFillMissingAspects(requiredAspects, submission);
 
+// Start with autofilled, overwrite Condition always
 const aspects: Record<string, string[]> = {
-  ...autoFilledAspects, // autofill overwrites static
-  Condition: [mappedCondition], // always override Condition
+  ...autoFilledAspects,
+  Condition: [mappedCondition], // always set Condition
 };
 
-if (!aspects.Brand || aspects.Brand.length === 0) aspects.Brand = [brand || "Not Specified"];
-if (!aspects.Model || aspects.Model.length === 0) aspects.Model = [submission.item_name || "Not Specified"];
-if (!aspects.Type || aspects.Type.length === 0) aspects.Type = [submission.item_name || "Not Specified"];
+// Fill Brand, Model, Type if missing or empty
+if (!aspects.Brand || aspects.Brand.length === 0) {
+  aspects.Brand = [brand || "Not Specified"];
+}
+if (!aspects.Model || aspects.Model.length === 0) {
+  aspects.Model = [submission.item_name || "Not Specified"];
+}
+if (!aspects.Type || aspects.Type.length === 0) {
+  aspects.Type = [submission.item_name || "Not Specified"];
+}
 
-console.log("✅ Final aspects object after autofill:", JSON.stringify(aspects, null, 2));
+// Remove any aspect with empty or invalid values (e.g. [""] or empty array)
+Object.entries(aspects).forEach(([key, values]) => {
+  if (
+    !Array.isArray(values) ||
+    values.length === 0 ||
+    values.some(v => !v || v.trim() === "")
+  ) {
+    console.warn(`⚠️ Removing aspect "${key}" due to empty or invalid values:`, values);
+    delete aspects[key];
+  }
+});
+
+console.log("✅ Final aspects object after autofill & cleanup:", JSON.stringify(aspects, null, 2));
 Object.entries(aspects).forEach(([key, values]) => {
   console.log(`  - ${key}: [${values.join(", ")}] (${values.length} values)`);
 });
+
 
 // Description processing remains unchanged
 const conditionNote = sanitizeDescription(submission.item_description)
