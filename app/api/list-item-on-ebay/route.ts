@@ -13,11 +13,12 @@ function extractStorageCapacity(text: string | null | undefined): string | null 
   if (!text) return null;
   const match = text.match(/(\d+)\s?(GB|TB)/i);
   if (match) {
-return `${match[1]} ${match[2].toUpperCase()}`; // keep space
-
+    // Normalize: number + space + uppercase unit
+    return `${match[1]} ${match[2].toUpperCase()}`;
   }
   return null;
 }
+
 // ✅ Add this helper function immediately below:
 function matchToAllowedAspectValue(
   input: string | null,
@@ -477,6 +478,37 @@ Object.entries(aspects).forEach(([key, values]) => {
     delete aspects[key];
   }
 });
+// --- Place Storage Capacity matching here ---
+const rawStorageCapacity =
+  extractStorageCapacity(submission.item_name) ||
+  extractStorageCapacity(submission.item_description);
+
+if (rawStorageCapacity) {
+  const storageAspect = requiredAspects.find(
+    (a: any) => a.aspectName?.toLowerCase() === "storage capacity"
+  );
+
+  if (storageAspect && storageAspect.aspectValues?.length > 0) {
+    const allowedValues = storageAspect.aspectValues.map((v: any) => v.value);
+    const matchedValue = matchToAllowedAspectValue(rawStorageCapacity, allowedValues);
+
+    if (matchedValue) {
+      aspects["Storage Capacity"] = [matchedValue];
+      console.log("✅ Matched Storage Capacity to allowed value:", matchedValue);
+    } else {
+      console.warn(
+        `⚠️ Could not match extracted "${rawStorageCapacity}" to allowed values:`,
+        allowedValues
+      );
+      delete aspects["Storage Capacity"];
+    }
+  } else {
+    console.warn("⚠️ Storage Capacity not required for this category or no allowed values listed");
+  }
+} else {
+  console.log("ℹ️ No Storage Capacity found in title or description");
+  delete aspects["Storage Capacity"];
+}
 
 console.log("✅ Final aspects object after autofill & cleanup:", JSON.stringify(aspects, null, 2));
 Object.entries(aspects).forEach(([key, values]) => {
@@ -597,7 +629,7 @@ console.log(`ASPECTS DEBUGGING - Processing ${Object.keys(aspects).length} aspec
 // Add this line here:
 console.log("Aspects before building itemSpecifics:", JSON.stringify(aspects, null, 2));
 
-// 🔹 Build itemSpecifics array from aspects object, excluding empty or "Not Specified" values
+// Now build itemSpecifics after Storage Capacity injection
 const itemSpecifics = Object.entries(aspects)
   .filter(([name, values]) =>
     Array.isArray(values) &&
@@ -610,7 +642,8 @@ const itemSpecifics = Object.entries(aspects)
     value: values,
   }));
 
-console.log("🧪 Final itemSpecifics sent to offer:", JSON.stringify(itemSpecifics, null, 2))
+console.log("🧪 Final itemSpecifics sent to offer:", JSON.stringify(itemSpecifics, null, 2));
+
 console.log(`ASPECTS DEBUGGING - ItemSpecifics count: ${itemSpecifics.length}`)
 itemSpecifics.forEach((spec, index) => {
   console.log(`ItemSpecific ${index + 1}: "${spec.name}" = [${spec.value.join(", ")}]`)
@@ -665,36 +698,7 @@ console.log("SKU:", sku);
 console.log("Category ID:", categoryId);
 console.log("Condition Note:", conditionNote);
 console.log("Listing Description length:", listingDescription.length);
-const rawStorageCapacity =
-  extractStorageCapacity(submission.item_name) ||
-  extractStorageCapacity(submission.item_description);
 
-if (rawStorageCapacity) {
-  const storageAspect = requiredAspects.find(
-    (a: any) => a.aspectName?.toLowerCase() === "storage capacity"
-  );
-
-  if (storageAspect && storageAspect.aspectValues?.length > 0) {
-    const allowedValues = storageAspect.aspectValues.map((v: any) => v.value);
-    const matchedValue = matchToAllowedAspectValue(rawStorageCapacity, allowedValues);
-
-    if (matchedValue) {
-      aspects["Storage Capacity"] = [matchedValue];
-      console.log("✅ Matched Storage Capacity to allowed value:", matchedValue);
-    } else {
-      console.warn(
-        `⚠️ Could not match extracted "${rawStorageCapacity}" to allowed values:`,
-        allowedValues
-      );
-      delete aspects["Storage Capacity"]; // Remove invalid value if any
-    }
-  } else {
-    console.warn("⚠️ Storage Capacity not required for this category or no allowed values listed");
-  }
-} else {
-  console.log("ℹ️ No Storage Capacity found in title or description");
-  delete aspects["Storage Capacity"];
-}
 
 
 const offerData = {
