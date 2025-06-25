@@ -9,6 +9,15 @@ import { getAllowedConditionsForCategory } from "@/lib/ebay/getAllowedConditions
 import { mapConditionToCategoryConditionId } from "@/lib/ebay/mapConditionToCategoryConditionId"
 
 console.log("✅ Imports complete")
+// 2️⃣ Add this function **right below your imports and above your main handler function**:
+function extractStorageCapacity(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const match = text.match(/(\d+)\s?(GB|TB)/i);
+  if (match) {
+    return `${match[1]} ${match[2].toUpperCase()}`;
+  }
+  return null;
+}
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -574,8 +583,18 @@ if (!putResponse.ok) {
 
 console.log("Creating offer on eBay...")
 
-console.log("ASPECTS DEBUGGING - Converting aspects to itemSpecifics...")
+console.log(`ASPECTS DEBUGGING - Converting aspects to itemSpecifics...`)
 console.log(`ASPECTS DEBUGGING - Processing ${Object.keys(aspects).length} aspect categories`)
+
+// Add storage capacity aspect if found
+const storageCapacity = extractStorageCapacity(submission.item_name) || extractStorageCapacity(submission.item_description);
+
+if (storageCapacity) {
+  aspects["Storage Capacity"] = [storageCapacity];
+  console.log(`Added Storage Capacity to aspects: ${storageCapacity}`);
+} else {
+  console.warn("Storage Capacity not found in item name or description");
+}
 // Add this line here:
 console.log("Aspects before building itemSpecifics:", JSON.stringify(aspects, null, 2));
 
