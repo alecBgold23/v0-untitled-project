@@ -13,7 +13,8 @@ function extractStorageCapacity(text: string | null | undefined): string | null 
   if (!text) return null;
   const match = text.match(/(\d+)\s?(GB|TB)/i);
   if (match) {
-return ${match[1]} ${match[2].toUpperCase()}; // keep space
+return `${match[1]} ${match[2].toUpperCase()}`; // keep space
+
   }
   return null;
 }
