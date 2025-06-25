@@ -477,15 +477,7 @@ const listingDescription = createEbayDescription(
   brand,
   submission.item_description,
 )
-// Helper function to extract storage capacity info from text
-function extractStorageCapacity(text: string | undefined | null): string | null {
-  if (!text) return null;
-  const match = text.match(/(\d+)\s?(GB|TB)/i);
-  if (match) {
-    return `${match[1]} ${match[2].toUpperCase()}`;
-  }
-  return null;
-}
+
 
 // Log any aspects missing 'aspectName' to help debugging
 requiredAspects.forEach((aspect: any, index: number) => {
@@ -588,7 +580,7 @@ console.log(`ASPECTS DEBUGGING - Processing ${Object.keys(aspects).length} aspec
 
 // Add storage capacity aspect if found
 const storageCapacity = extractStorageCapacity(submission.item_name) || extractStorageCapacity(submission.item_description);
-
+console.log("Extracted storage capacity:", storageCapacity);  // <-- Add this line here
 if (storageCapacity) {
   aspects["Storage Capacity"] = [storageCapacity];
   console.log(`Added Storage Capacity to aspects: ${storageCapacity}`);
