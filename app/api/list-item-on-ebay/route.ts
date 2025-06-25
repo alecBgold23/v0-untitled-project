@@ -406,7 +406,6 @@ function autoFillMissingAspects(
   const filled: Record<string, string[]> = {};
 
   for (const aspect of requiredAspects) {
-    // Use aspectName or localizedAspectName (whichever is present)
     const name = aspect.aspectName || aspect.localizedAspectName;
 
     if (!name) {
@@ -420,10 +419,10 @@ function autoFillMissingAspects(
           .filter((v): v is string => typeof v === "string" && v.trim() !== "")
       : [];
 
-    // Special handling for Color (optional)
+    // Special handling for Color
     if (name.toLowerCase() === "color") {
-      const colorMatch = allowedValues.find(color =>
-        new RegExp(`\\b${color.toLowerCase()}\\b`).test(userText)
+      const colorMatch = allowedValues.find(
+        (color) => typeof color === "string" && new RegExp(`\\b${color.toLowerCase()}\\b`).test(userText)
       );
 
       if (colorMatch) {
@@ -435,9 +434,9 @@ function autoFillMissingAspects(
       continue;
     }
 
-    // Generic match for other aspects
-    const matched = allowedValues.find(val =>
-      typeof val === "string" && userText.includes(val.toLowerCase())
+    // Generic match for all other aspects
+    const matched = allowedValues.find(
+      (val) => typeof val === "string" && userText.includes(val.toLowerCase())
     );
 
     if (matched) {
@@ -445,12 +444,12 @@ function autoFillMissingAspects(
       console.log(`✅ Auto-matched "${name}" = "${matched}"`);
     } else {
       console.warn(`⚠️ Required aspect "${name}" not matched. Skipping aspect.`);
-      // Don't set empty arrays, just skip
     }
   }
 
   return filled;
 }
+
 
 // Get autofilled aspects
 const autoFilledAspects = autoFillMissingAspects(requiredAspects, submission);
