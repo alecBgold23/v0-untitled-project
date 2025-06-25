@@ -710,31 +710,7 @@ console.log("Category ID:", categoryId);
 console.log("Condition Note:", conditionNote);
 console.log("Listing Description length:", listingDescription.length);
 
-// 🔹 Extract & match Storage Capacity dynamically
-const storageCapacityRaw =
-  extractStorageCapacity(submission.item_name) ||
-  extractStorageCapacity(submission.item_description);
 
-const storageAspect = requiredAspects.find(
-  (a: any) => a.aspectName?.toLowerCase() === "storage capacity",
-);
-
-if (storageAspect && storageAspect.aspectValues?.length > 0) {
-  const allowedStorageValues = storageAspect.aspectValues.map((v: any) => v.value);
-  const matchedStorage = matchToAllowedAspectValue(storageCapacityRaw, allowedStorageValues);
-
-  if (matchedStorage) {
-    aspects["Storage Capacity"] = [matchedStorage];
-    console.log("✅ Matched Storage Capacity to allowed value:", matchedStorage);
-  } else {
-    console.warn(
-      `⚠️ Extracted Storage Capacity "${storageCapacityRaw}" did not match any allowed values:`,
-      allowedStorageValues,
-    );
-  }
-} else {
-  console.warn("⚠️ No allowed values found for 'Storage Capacity' aspect.");
-}
 const offerData = {
   sku,
   marketplaceId: "EBAY_US",
