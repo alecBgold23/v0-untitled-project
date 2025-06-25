@@ -414,8 +414,11 @@ function autoFillMissingAspects(
       continue;
     }
 
-    const allowedValues: string[] =
-      aspect.aspectValues?.map((v: any) => v.localizedValue || v.value)?.filter(Boolean) || [];
+    const allowedValues: string[] = Array.isArray(aspect.aspectValues)
+      ? aspect.aspectValues
+          .map((v: any) => v?.localizedValue || v?.value)
+          .filter((v): v is string => typeof v === "string" && v.trim() !== "")
+      : [];
 
     // Special handling for Color (optional)
     if (name.toLowerCase() === "color") {
@@ -433,13 +436,9 @@ function autoFillMissingAspects(
     }
 
     // Generic match for other aspects
-// With:
-const allowedValues: string[] =
-  Array.isArray(aspect.aspectValues)
-    ? aspect.aspectValues
-        .map((v: any) => v?.localizedValue || v?.value)
-        .filter((v): v is string => typeof v === "string" && v.trim() !== "")
-    : [];
+    const matched = allowedValues.find(val =>
+      typeof val === "string" && userText.includes(val.toLowerCase())
+    );
 
     if (matched) {
       filled[name] = [matched];
