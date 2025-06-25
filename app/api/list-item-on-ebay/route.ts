@@ -593,50 +593,6 @@ console.log("Creating offer on eBay...")
 console.log(`ASPECTS DEBUGGING - Converting aspects to itemSpecifics...`)
 console.log(`ASPECTS DEBUGGING - Processing ${Object.keys(aspects).length} aspect categories`)
 
-// 1. Extract raw Storage Capacity from item name or description
-const rawStorageCapacity =
-  extractStorageCapacity(submission.item_name) ||
-  extractStorageCapacity(submission.item_description);
-
-if (rawStorageCapacity) {
-  // 2. Find the 'Storage Capacity' aspect from eBay required aspects
-  const storageAspect = requiredAspects.find(
-    (a: any) => a.aspectName?.toLowerCase() === "storage capacity"
-  );
-
-  if (storageAspect && storageAspect.aspectValues?.length > 0) {
-    // 3. Get allowed values for storage capacity from eBay
-    const allowedStorageValues = storageAspect.aspectValues.map((v: any) => v.value);
-
-    // 4. Match raw extracted capacity to one of the allowed values (normalizing for case/space)
-    const matchedStorage = matchToAllowedAspectValue(rawStorageCapacity, allowedStorageValues);
-
-    if (matchedStorage) {
-      // 5. Add matched, validated Storage Capacity to aspects
-      aspects["Storage Capacity"] = [matchedStorage];
-      console.log("✅ Matched Storage Capacity to allowed value:", matchedStorage);
-    } else {
-      // 6. No valid match found — do NOT add invalid value, just warn
-      console.warn(
-        `⚠️ Extracted Storage Capacity "${rawStorageCapacity}" did not match any allowed values:`,
-        allowedStorageValues
-      );
-      // Optional: remove Storage Capacity aspect if previously set
-      delete aspects["Storage Capacity"];
-    }
-  } else {
-    // No allowed values found for this aspect — do nothing or warn
-    console.warn("⚠️ No allowed values found for 'Storage Capacity' aspect.");
-    delete aspects["Storage Capacity"];
-  }
-} else {
-  // No raw Storage Capacity found — ensure no stale value
-  delete aspects["Storage Capacity"];
-  console.log("Storage Capacity not found in item name or description");
-}
-
-// ✅ Add this
-console.log("🧪 Final Storage Capacity aspect value in aspects:", aspects["Storage Capacity"]);
 
 // Add this line here:
 console.log("Aspects before building itemSpecifics:", JSON.stringify(aspects, null, 2));
