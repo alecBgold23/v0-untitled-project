@@ -408,10 +408,10 @@ function autoFillMissingAspects(
   for (const aspect of requiredAspects) {
     const name = aspect.aspectName || aspect.localizedAspectName;
 
-    if (!name) {
-      console.warn("⚠️ Skipping aspect with missing name:", aspect);
-      continue;
-    }
+if (!name || typeof name !== "string") {
+  console.warn("⚠️ Skipping aspect with missing or invalid name:", aspect);
+  continue;
+}
 
     const allowedValues: string[] = Array.isArray(aspect.aspectValues)
       ? aspect.aspectValues
