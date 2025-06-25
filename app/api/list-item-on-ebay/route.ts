@@ -434,9 +434,12 @@ function autoFillMissingAspects(
 
     // Generic match for other aspects
 // With:
-const matched = allowedValues.find(val => 
-  typeof val === "string" && userText.includes(val.toLowerCase())
-);
+const allowedValues: string[] =
+  Array.isArray(aspect.aspectValues)
+    ? aspect.aspectValues
+        .map((v: any) => v?.localizedValue || v?.value)
+        .filter((v): v is string => typeof v === "string" && v.trim() !== "")
+    : [];
 
     if (matched) {
       filled[name] = [matched];
