@@ -512,24 +512,42 @@ if (rawStorageCapacity) {
 
   console.log("📦 Raw Storage Capacity aspect object:", JSON.stringify(storageAspect, null, 2));
 
-  if (storageAspect && Array.isArray(storageAspect.aspectValues) && storageAspect.aspectValues.length > 0) {
+  if (storageAspect && Array.isArray(storageAspect.aspectValues)) {
+    console.log("📦 Raw aspectValues for Storage Capacity:", storageAspect.aspectValues); // ✅ STEP 1
+
     const allowedValues = storageAspect.aspectValues
       .map((v: any) => v?.value)
       .filter((v): v is string => typeof v === "string" && v.trim() !== "");
 
-    console.log("📋 Allowed Storage Capacity values:", allowedValues);
-
-    const matchedValue = matchToAllowedAspectValue(rawStorageCapacity, allowedValues);
-
-    console.log("🔗 Matched value (if any):", matchedValue);
-
-    if (matchedValue) {
-      aspects["Storage Capacity"] = [matchedValue];
-      console.log("✅ Matched Storage Capacity to allowed value:", matchedValue);
-    } else {
-      console.warn(`⚠️ Could not match extracted "${rawStorageCapacity}" to allowed values:`, allowedValues);
+    if (allowedValues.length === 0) {
+      console.warn("⚠️ Storage Capacity aspect exists but has no allowed values from eBay.");
       delete aspects["Storage Capacity"];
+    } else {
+      console.log("📋 Allowed Storage Capacity values:", allowedValues);
+
+      const matchedValue = matchToAllowedAspectValue(rawStorageCapacity, allowedValues);
+      console.log("🔗 Matched value (if any):", matchedValue);
+
+      if (matchedValue) {
+        aspects["Storage Capacity"] = [matchedValue];
+        console.log("✅ Matched Storage Capacity to allowed value:", matchedValue);
+      } else {
+        console.warn(
+          `⚠️ Could not match extracted "${rawStorageCapacity}" to allowed values:`,
+          allowedValues
+        );
+        delete aspects["Storage Capacity"];
+      }
     }
+  }
+} else {
+    console.warn("⚠️ Storage Capacity not required for this category or missing aspectValues field");
+  }
+} else {
+  console.log("ℹ️ No Storage Capacity found in title or description");
+  delete aspects["Storage Capacity"];
+}
+
   } else {
     console.warn("⚠️ Storage Capacity not required for this category or no allowed values listed");
   }
