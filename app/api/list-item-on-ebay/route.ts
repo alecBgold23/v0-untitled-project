@@ -502,6 +502,8 @@ const rawStorageCapacity =
 
 console.log("🔎 Extracted rawStorageCapacity:", rawStorageCapacity);
 
+console.log("🔎 Extracted rawStorageCapacity:", rawStorageCapacity);
+
 if (rawStorageCapacity) {
   const storageAspect = requiredAspects.find((a: any) => {
     if (!a || typeof a !== "object") return false;
@@ -513,7 +515,7 @@ if (rawStorageCapacity) {
   console.log("📦 Raw Storage Capacity aspect object:", JSON.stringify(storageAspect, null, 2));
 
   if (storageAspect && Array.isArray(storageAspect.aspectValues)) {
-    console.log("📦 Raw aspectValues for Storage Capacity:", storageAspect.aspectValues); // ✅ STEP 1
+    console.log("📦 Raw aspectValues for Storage Capacity:", storageAspect.aspectValues);
 
     const allowedValues = storageAspect.aspectValues
       .map((v: any) => v?.value)
@@ -532,22 +534,10 @@ if (rawStorageCapacity) {
         aspects["Storage Capacity"] = [matchedValue];
         console.log("✅ Matched Storage Capacity to allowed value:", matchedValue);
       } else {
-        console.warn(
-          `⚠️ Could not match extracted "${rawStorageCapacity}" to allowed values:`,
-          allowedValues
-        );
+        console.warn(`⚠️ Could not match extracted "${rawStorageCapacity}" to allowed values:`, allowedValues);
         delete aspects["Storage Capacity"];
       }
     }
-  }
-} else {
-    console.warn("⚠️ Storage Capacity not required for this category or missing aspectValues field");
-  }
-} else {
-  console.log("ℹ️ No Storage Capacity found in title or description");
-  delete aspects["Storage Capacity"];
-}
-
   } else {
     console.warn("⚠️ Storage Capacity not required for this category or no allowed values listed");
   }
@@ -555,6 +545,7 @@ if (rawStorageCapacity) {
   console.log("ℹ️ No Storage Capacity found in title or description");
   delete aspects["Storage Capacity"];
 }
+
 
 // Final cleanup
 Object.entries(aspects).forEach(([key, values]) => {
