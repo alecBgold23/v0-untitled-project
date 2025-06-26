@@ -1,54 +1,58 @@
-// mapConditionToCategoryConditionId.ts
-
-console.log("✅ [LOADED] mapConditionToCategoryConditionId.ts")
+console.log("✅ [LOADED] getAllowedConditionsForCategory.ts")
 
 export type AllowedCondition = {
-  id: string
-  name: string
+  id: string   // numeric condition ID as string, e.g. "1000"
+  name: string // human-readable label, e.g. "new"
 }
 
 /**
- * Fetch allowed conditions from eBay API for a given category ID.
- * Requires EBAY_OAUTH_TOKEN in environment variables.
+ * Fetch allowed numeric condition IDs and descriptions from eBay Metadata API for a given category ID.
+ * Requires a valid eBay OAuth access token.
  */
-export async function fetchAllowedConditionsFromEbay(categoryId: string): Promise<AllowedCondition[]> {
-  const url = `https://api.ebay.com/commerce/taxonomy/v1/category_tree/0/get_item_aspects_for_category?category_id=${categoryId}`
-  const token = process.env.EBAY_OAUTH_TOKEN
-  if (!token) throw new Error("Missing eBay OAuth token")
+export async function getAllowedConditionsForCategory(
+  categoryId: string,
+  accessToken: string,
+): Promise<AllowedCondition[]> {
+  console.log(`[eBay] Fetching allowed conditions for category "${categoryId}"`)
 
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  })
+  try {
+    const url = `https://api.ebay.com/sell/metadata/v1/marketplace/EBAY_US/get_item_condition_policies?category_id=${categoryId}`
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    })
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch eBay conditions: ${res.statusText}`)
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(`Failed to fetch conditions: ${res.status} ${res.statusText} - ${errorText}`)
+    }
+
+    const json = await res.json()
+
+    const conditions = json.itemConditionPolicies?.[0]?.itemConditions
+    if (!Array.isArray(conditions) || conditions.length === 0) {
+      throw new Error(`No itemConditions found for category "${categoryId}"`)
+    }
+
+    // Map to numeric id and lowercased description
+    const allowedConditions: AllowedCondition[] = conditions.map((cond: any) => ({
+      id: String(cond.conditionId),  // numeric string ID like "1000"
+      name: (cond.conditionDescription ?? "unknown").toLowerCase(),
+    }))
+
+    console.log(`[eBay] Allowed conditions for category "${categoryId}":`, allowedConditions)
+    return allowedConditions
+
+  } catch (error) {
+    console.error(`[eBay] Error fetching allowed conditions for category "${categoryId}":`, error)
+    return []
   }
-
-  const data = await res.json()
-
-  const conditionAspect = data.aspects?.find(
-    (aspect: any) => aspect.name.toLowerCase() === "condition"
-  )
-
-  if (!conditionAspect) {
-    throw new Error("Condition aspect not found in eBay response")
-  }
-
-  const allowedConditions: AllowedCondition[] = conditionAspect.values.map((value: any) => ({
-    id: value.expectedValues?.[0]?.value || "UNKNOWN",
-    name: value.localizedValues?.[0]?.value || "unknown",
-  }))
-
-  console.log(`[eBay] Mapped allowed conditions for category "${categoryId}":`, allowedConditions)
-
-  return allowedConditions
 }
 
 /**
- * Normalize string: trim, lowercase, replace dash/underscore with space, remove non-alphanum except space
+ * Normalize condition strings (trim, lowercase, replace dash/underscore with space, remove non-alphanum except space)
  */
 function normalizeConditionName(name: string): string {
   return name
@@ -59,19 +63,18 @@ function normalizeConditionName(name: string): string {
 }
 
 /**
- * Map user condition string to closest eBay allowed condition ID.
+ * Map a user-entered condition string to the closest numeric eBay condition ID from allowed conditions.
  */
 export function mapConditionToCategoryConditionId(
   userCondition: string,
   allowedConditions: AllowedCondition[]
 ): string {
   const normalizedUserCondition = normalizeConditionName(userCondition)
-
   console.log("📥 Input userCondition:", userCondition)
   console.log("🧹 Normalized condition:", normalizedUserCondition)
   console.log("📦 Allowed eBay conditions:", allowedConditions)
 
-  // Build map: normalized name → id
+  // Build map: normalized name -> numeric id string
   const conditionMap: Record<string, string> = {}
   allowedConditions.forEach((cond) => {
     const normalizedName = normalizeConditionName(cond.name)
@@ -130,14 +133,18 @@ export function mapConditionToCategoryConditionId(
   }
 
   // 6. Hardcoded fallback if nothing else matched
-  console.error(`❌ No valid condition match for "${userCondition}". Using hardcoded fallback: "USED"`)
-  return "USED"
+  console.error(`❌ No valid condition match for "${userCondition}". Using hardcoded fallback: "3000" (Used)`)
+  return "3000"  // Default to "Used"
 }
 
 /**
- * Async helper to fetch allowed conditions and map user input in one call.
+ * Helper function to fetch allowed conditions and map user input in one call.
  */
-export async function mapUserConditionForCategory(userCondition: string, categoryId: string): Promise<string> {
-  const allowedConditions = await fetchAllowedConditionsFromEbay(categoryId)
+export async function mapUserConditionForCategory(
+  userCondition: string,
+  categoryId: string,
+  accessToken: string
+): Promise<string> {
+  const allowedConditions = await getAllowedConditionsForCategory(categoryId, accessToken)
   return mapConditionToCategoryConditionId(userCondition, allowedConditions)
 }
