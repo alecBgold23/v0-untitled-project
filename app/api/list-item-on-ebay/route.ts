@@ -738,6 +738,18 @@ for (const [key, value] of Object.entries(requiredEnvVars)) {
   }
 }
 
+
+// 1. Extract categoryId and user condition from submission
+const categoryId = submission.category_id;
+const userCondition = submission.item_condition;
+
+// 2. Fetch allowed conditions from eBay API for this category
+const allowedConditions = await getAllowedConditionsForCategory(categoryId, accessToken);
+
+// 3. Map user condition string to eBay condition enum ID
+const mappedCondition = mapConditionToCategoryConditionId(userCondition, allowedConditions);
+
+
 // 🔹 Construct offerData
 console.log("🧪 Creating offerData...");
 console.log("Allowed conditions:", allowedConditions);
@@ -747,8 +759,6 @@ console.log("SKU:", sku);
 console.log("Category ID:", categoryId);
 console.log("Condition Note:", conditionNote);
 console.log("Listing Description length:", listingDescription.length);
-
-
 
 const offerData = {
   sku,
@@ -771,8 +781,9 @@ const offerData = {
     },
   },
   merchantLocationKey: requiredEnvVars.locationKey,
-  itemSpecifics, // ✅ Cleaned and filtered
-}
+  itemSpecifics,
+};
+
 console.log("✅ offerData object created successfully");
 console.log("Complete offerData:", JSON.stringify(offerData, null, 2));
 
