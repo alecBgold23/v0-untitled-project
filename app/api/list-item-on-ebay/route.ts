@@ -517,9 +517,10 @@ if (rawStorageCapacity) {
   if (storageAspect && Array.isArray(storageAspect.aspectValues)) {
     console.log("📦 Raw aspectValues for Storage Capacity:", storageAspect.aspectValues);
 
-    const allowedValues = storageAspect.aspectValues
-      .map((v: any) => v?.value)
-      .filter((v): v is string => typeof v === "string" && v.trim() !== "");
+  const allowedValues = storageAspect.aspectValues
+  .map((v: any) => v?.localizedValue || v?.value)
+  .filter((v): v is string => typeof v === "string" && v.trim() !== "");
+
 
     if (allowedValues.length === 0) {
       console.warn("⚠️ Storage Capacity aspect exists but has no allowed values from eBay.");
