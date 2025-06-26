@@ -1,10 +1,3 @@
-console.log("✅ [LOADED] getAllowedConditionsForCategory.ts");
-
-type AllowedCondition = {
-  id: string;   // enum-style ID, e.g. "USED" or "LIKE_NEW"
-  name: string; // human-readable label, e.g. "used"
-};
-
 export async function getAllowedConditionsForCategory(
   categoryId: string,
   accessToken: string,
@@ -61,17 +54,18 @@ export async function getAllowedConditionsForCategory(
     console.log(`[eBay] Found ${conditions.length} condition(s) for category "${categoryId}". Mapping results...`);
 
     const mapped: AllowedCondition[] = conditions.map((cond: any) => {
-      // Create enum-like ID dynamically from conditionDisplayName
-      const nameRaw = cond.conditionDisplayName || "unknown";
+      // Use conditionDescription field here
+      const nameRaw = cond.conditionDescription || "unknown";
+
       const enumId = nameRaw
         .toUpperCase()
-        .replace(/[^A-Z0-9]+/g, "_") // Replace all non-alphanumeric with underscore
-        .replace(/^_+|_+$/g, "");    // Trim leading/trailing underscores
+        .replace(/[^A-Z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
 
       const name = nameRaw.toLowerCase();
 
-      if (!cond.conditionDisplayName) {
-        console.warn(`[eBay] Condition missing displayName: ${JSON.stringify(cond)}`);
+      if (!cond.conditionDescription) {
+        console.warn(`[eBay] Condition missing description: ${JSON.stringify(cond)}`);
       }
 
       return { id: enumId, name };
