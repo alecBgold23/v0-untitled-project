@@ -1,75 +1,75 @@
-// Log immediately when this module is loaded
-console.log("✅ [LOADED] mapConditionToCategoryConditionId.ts")
-
-// Define the AllowedCondition type
+// Define the allowed condition type
 type AllowedCondition = {
-  id: string // enum string, e.g. "USED_GOOD"
-  name: string // human-readable name, e.g. "used - good"
+  id: string;   // eBay enum, e.g. "USED_GOOD"
+  name: string; // human-readable, e.g. "used - good"
 }
 
-// Main function to map user condition string to eBay enum condition ID
 export function mapConditionToCategoryConditionId(
   userCondition: string,
   allowedConditions: AllowedCondition[],
 ): string {
-  // Normalize input for easier matching
-  const normalizedUserCondition = userCondition.trim().toLowerCase()
+  // Normalize input for matching
+  const normalizedUserCondition = userCondition.trim().toLowerCase();
 
-  // Debug logs for inputs
-  console.log("📥 Input userCondition:", userCondition)
-  console.log("🧹 Normalized condition:", normalizedUserCondition)
-  console.log("📦 Allowed eBay conditions:", allowedConditions)
+  console.log("📥 Input userCondition:", userCondition);
+  console.log("🧹 Normalized userCondition:", normalizedUserCondition);
+  console.log("📦 Allowed eBay conditions:", allowedConditions);
 
-  // Build a map: condition name (lowercased) → enum id
-  const conditionMap: Record<string, string> = {}
-  allowedConditions.forEach((cond) => {
-    conditionMap[cond.name.toLowerCase()] = cond.id
-  })
+  // Build quick lookup map: lowercase name -> id
+  const conditionMap: Record<string, string> = {};
+  allowedConditions.forEach(cond => {
+    conditionMap[cond.name.toLowerCase()] = cond.id;
+  });
 
-  // 1. Try exact match first
+  // Define mapping from form condition to possible eBay condition names (in allowedConditions)
+  const mapping: Record<string, string[]> = {
+    "like new": ["used - like new", "new other"],           // Adjust if your allowedConditions include "new other"
+    "excellent": ["used - very good", "used - good"],
+    "good": ["used - good", "used - acceptable"],
+    "fair": ["used - acceptable"],
+    "poor": ["for parts or not working"]
+  };
+
+  // Try exact direct match with eBay condition names first (rare)
   if (conditionMap[normalizedUserCondition]) {
-    console.log(`✅ Exact match: "${normalizedUserCondition}" → ${conditionMap[normalizedUserCondition]}`)
-    return conditionMap[normalizedUserCondition]
+    console.log(`✅ Exact match found for "${normalizedUserCondition}": ${conditionMap[normalizedUserCondition]}`);
+    return conditionMap[normalizedUserCondition];
   }
 
-  // 2. Try fuzzy/alias matches
-  const fuzzyMappings: Record<string, string[]> = {
-    "brand new": ["new"],
-    "like new": ["new with defects", "new other", "used - like new"],
-    excellent: ["very good", "good"],
-    "very good": ["good"],
-    fair: ["acceptable"],
-    poor: ["for parts or not working", "parts or not working"],
-    broken: ["for parts or not working", "parts or not working"],
-  }
-
-  for (const alias in fuzzyMappings) {
-    if (normalizedUserCondition.includes(alias)) {
-      for (const ebayTerm of fuzzyMappings[alias]) {
-        const ebayTermNormalized = ebayTerm.toLowerCase()
-        if (conditionMap[ebayTermNormalized]) {
-          console.log(`~ Fuzzy match: "${normalizedUserCondition}" → "${ebayTermNormalized}" → ${conditionMap[ebayTermNormalized]}`)
-          return conditionMap[ebayTermNormalized]
-        }
+  // Try mapping userCondition (form input) to eBay allowed condition names
+  if (mapping[normalizedUserCondition]) {
+    for (const ebayName of mapping[normalizedUserCondition]) {
+      const ebayNameLower = ebayName.toLowerCase();
+      if (conditionMap[ebayNameLower]) {
+        console.log(`✅ Mapped "${normalizedUserCondition}" → "${ebayNameLower}" → ${conditionMap[ebayNameLower]}`);
+        return conditionMap[ebayNameLower];
       }
     }
   }
 
-  // 3. Fallback: If any condition includes "used", return that ID
-  for (const [key, id] of Object.entries(conditionMap)) {
-    if (key.includes("used")) {
-      console.warn(`⚠️ Fallback to 'used' match: ${id} (${key})`)
-      return id
+  // As fallback, try partial fuzzy match with conditionMap keys
+  for (const [name, id] of Object.entries(conditionMap)) {
+    if (normalizedUserCondition.includes(name)) {
+      console.log(`~ Partial match fallback: "${normalizedUserCondition}" includes "${name}", returning ${id}`);
+      return id;
     }
   }
 
-  // 4. Fallback: Return first allowed condition if available
-  if (allowedConditions.length > 0) {
-    console.warn(`⚠️ Fallback to first allowed condition: ${allowedConditions[0].id} (${allowedConditions[0].name})`)
-    return allowedConditions[0].id
+  // Fallback to any allowed condition containing "used" (safe fallback)
+  for (const [name, id] of Object.entries(conditionMap)) {
+    if (name.includes("used")) {
+      console.warn(`⚠️ Fallback to first 'used' condition: ${id} (${name})`);
+      return id;
+    }
   }
 
-  // 5. Hard fallback if nothing matches
-  console.error(`❌ No valid condition match for "${userCondition}". Using hardcoded fallback: "USED"`)
-  return "USED"
+  // Fallback to first allowed condition if present
+  if (allowedConditions.length > 0) {
+    console.warn(`⚠️ Fallback to first allowed condition: ${allowedConditions[0].id} (${allowedConditions[0].name})`);
+    return allowedConditions[0].id;
+  }
+
+  // Hard fallback
+  console.error(`❌ No valid condition match for "${userCondition}". Using hardcoded fallback "USED"`);
+  return "USED";
 }
