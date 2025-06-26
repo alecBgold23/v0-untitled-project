@@ -1,16 +1,8 @@
-// Define your enum mapping from eBay numeric condition IDs to your enum strings
 console.log("✅ [LOADED] getAllowedConditionsForCategory.ts")
-const ebayIdToEnumCondition: Record<string, string> = {
-  "1000": "NEW",
-  "1500": "NEW_OTHER",
-  "2500": "REFURBISHED",
-  "3000": "USED",
-  "7000": "FOR_PARTS_OR_NOT_WORKING",
-}
 
 type AllowedCondition = {
-  id: string // enum-style ID, e.g. "USED"
-  name: string // human-readable label, e.g. "used"
+  id: string // eBay numeric ID as string, e.g. "1000"
+  name: string // eBay condition display name, e.g. "New"
 }
 
 export async function getAllowedConditionsForCategory(
@@ -69,15 +61,14 @@ export async function getAllowedConditionsForCategory(
     console.log(`[eBay] Found ${conditions.length} condition(s) for category "${categoryId}". Mapping results...`)
 
     const mapped: AllowedCondition[] = conditions.map((cond: any) => {
-      const numericId = cond.conditionId != null ? String(cond.conditionId) : "UNKNOWN_ID"
-      const enumId = ebayIdToEnumCondition[numericId] || "UNKNOWN"
-      const name = cond.conditionDisplayName ? cond.conditionDisplayName.toLowerCase() : "unknown"
+      const id = cond.conditionId != null ? String(cond.conditionId) : "UNKNOWN_ID"
+      const name = cond.conditionDisplayName || cond.conditionDescription || "unknown"
 
-      if (numericId === "UNKNOWN_ID" || name === "unknown") {
+      if (id === "UNKNOWN_ID" || name === "unknown") {
         console.warn(`[eBay] Found condition with missing id or name: ${JSON.stringify(cond)}`)
       }
 
-      return { id: enumId, name }
+      return { id, name }
     })
 
     console.log(`[eBay] Mapped allowed conditions for category "${categoryId}":`, mapped)
