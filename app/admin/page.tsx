@@ -22,12 +22,40 @@ interface ItemSubmission {
   item_condition: string
   ebay_listing_id: string | null
   listed_on_ebay: boolean | null
+  platform: string,
 }
+
+
 
 // Demo data for preview with multiple images
 const DEMO_SUBMISSIONS: ItemSubmission[] = [
   {
     id: "1",
+    platform: "amazon",
+    item_name: "iPhone 14 Pro Max",
+    item_description:
+      "Excellent condition iPhone 14 Pro Max, 256GB, Space Black. Minor scratches on the back but screen is perfect.",
+    item_issues: "Small scratch on back camera",
+    full_name: "John Smith",
+    email: "john.smith@email.com",
+    phone: "+1 (555) 123-4567",
+    address: "123 Main St, New York, NY 10001",
+    status: "approved",
+    ebay_status: "listed",
+    submission_date: "2024-01-15T10:30:00Z",
+    image_url: [
+      "/placeholder.svg?height=300&width=300&text=iPhone+Front",
+      "/placeholder.svg?height=300&width=300&text=iPhone+Back",
+      "/placeholder.svg?height=300&width=300&text=iPhone+Side",
+    ],
+    estimated_price: 899,
+    item_condition: "Excellent",
+    ebay_listing_id: "123456789",
+    listed_on_ebay: true,
+  },
+  {
+    id: "11",
+    platform: "ebay",
     item_name: "iPhone 14 Pro Max",
     item_description:
       "Excellent condition iPhone 14 Pro Max, 256GB, Space Black. Minor scratches on the back but screen is perfect.",
@@ -51,6 +79,7 @@ const DEMO_SUBMISSIONS: ItemSubmission[] = [
   },
   {
     id: "2",
+    platform: "amazon",
     item_name: "MacBook Air M2",
     item_description: "2022 MacBook Air with M2 chip, 8GB RAM, 256GB SSD. Used for light work, excellent performance.",
     item_issues: null,
@@ -74,6 +103,7 @@ const DEMO_SUBMISSIONS: ItemSubmission[] = [
   },
   {
     id: "3",
+    platform: "amazon",
     item_name: "iPad Pro 12.9 inch",
     item_description: "iPad Pro with Apple Pencil and Magic Keyboard. Perfect for creative work and productivity.",
     item_issues: "Minor wear on corners",
@@ -95,6 +125,7 @@ const DEMO_SUBMISSIONS: ItemSubmission[] = [
   },
   {
     id: "4",
+    platform: "ebay",
     item_name: "Sony WH-1000XM4 Headphones",
     item_description: "Premium noise-canceling headphones in excellent condition. Includes original case and cables.",
     item_issues: null,
@@ -113,6 +144,7 @@ const DEMO_SUBMISSIONS: ItemSubmission[] = [
   },
   {
     id: "5",
+    platform: "amazon",
     item_name: "Nintendo Switch OLED",
     item_description:
       "Nintendo Switch OLED model with Joy-Con controllers. Includes dock and all original accessories.",
@@ -150,6 +182,48 @@ export default function AdminDashboard() {
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
+
+  const listOnAmazon = async (selectedItem: any) => {
+  if (!selectedItem) {
+    console.error("No item selected for listing on Amazon.");
+    return;
+  }
+
+  try {
+    setActionLoading(selectedItem.id);
+
+    const payload = {
+      platform: selectedItem.platform, // Keep platform field
+      sku: selectedItem.id, // Use id as SKU
+      title: selectedItem.item_name, // Map item_name to title
+      description: selectedItem.item_description, // Map item_description to description
+      price: selectedItem.estimated_price, // Map estimated_price to price
+      quantity: 1, // Set default quantity
+    };
+
+    const response = await fetch("/api/admin/get-items", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+    console.log('result')
+    console.log(result)
+    if (response.ok) {
+      alert("Item successfully listed on Amazon!");
+    } else {
+      console.error(result.error);
+      alert(`Failed to list item: ${result.error}`);
+    }
+  } catch (error) {
+    console.error("Error listing item:", error);
+    alert("An unexpected error occurred.");
+  } finally {
+    setActionLoading(null);
+  }
+};
+  
   // Check if we're in preview mode (no environment variables)
   useEffect(() => {
     const hasSupabaseConfig =
@@ -777,9 +851,20 @@ export default function AdminDashboard() {
                           <div className="flex gap-2">
                             {isListedOnEbay(item) ? (
                               <div className="flex gap-2">
-                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border border-green-300">
-                                  Listed on eBay
-                                </span>
+                                <button
+        onClick={() => listOnAmazon(item)}
+        disabled={actionLoading === item.id}
+        className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border border-green-300 hover:bg-green-200 disabled:opacity-50"
+      >
+        {actionLoading === item.id ? "Listing..." : item.platform}
+      </button>
+      <button
+        onClick={() => unlistFromEbay(item.id)}
+        disabled={actionLoading === item.id}
+        className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
+      >
+        {actionLoading === item.id ? "Unlisting..." : "Unlist"}
+      </button>
                                 <button
                                   onClick={() => unlistFromEbay(item.id)}
                                   disabled={actionLoading === item.id}
@@ -794,7 +879,7 @@ export default function AdminDashboard() {
                                 disabled={actionLoading === item.id}
                                 className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 disabled:opacity-50"
                               >
-                                {actionLoading === item.id ? "Listing..." : "List on eBay"}
+                                {actionLoading === item.id ? "Listing..." : item.platform}
                               </button>
                             )}
 
