@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 // Navigation items
 const mainNavItems = [
@@ -72,7 +73,7 @@ export default function Navbar() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-background/95 backdrop-blur-sm shadow-sm" : "bg-background"
+        scrolled ? "bg-background/95 backdrop-blur-sm shadow-sm border-b border-border" : "bg-background"
       }`}
     >
       <div className="container mx-auto px-4">
@@ -100,18 +101,18 @@ export default function Navbar() {
           </div>
 
           {/* Right side controls */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             {/* Search button */}
             <button
-              className="text-foreground/80 transition-all duration-200 hover:text-primary"
+              className="p-2 text-foreground/80 transition-all duration-200 hover:text-primary hover:bg-accent rounded-md"
               onClick={toggleSearch}
               aria-label="Search"
             >
-              <SearchIcon size={20} />
+              <SearchIcon size={18} />
             </button>
 
             {/* Theme toggle */}
-            {/* <ThemeToggle /> */}
+            <ThemeToggle />
 
             {user && (
               <DropdownMenu>
@@ -147,11 +148,11 @@ export default function Navbar() {
 
             {/* Mobile menu button */}
             <button
-              className="md:hidden text-foreground/80 transition-all duration-200 hover:text-primary"
+              className="md:hidden p-2 text-foreground/80 transition-all duration-200 hover:text-primary hover:bg-accent rounded-md"
               onClick={toggleMenu}
               aria-label={isMenuOpen ? "Close menu" : "Open menu"}
             >
-              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              {isMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </nav>
@@ -159,6 +160,10 @@ export default function Navbar() {
         {/* Mobile navigation */}
         {isMenuOpen && (
           <div className="md:hidden py-4 flex flex-col gap-3 items-center bg-background border-t border-border">
+            {/* Theme toggle for mobile */}
+            <div className="flex items-center justify-center py-2">
+              <ThemeToggle />
+            </div>
             {mainNavItems.map((item) => (
               <Link
                 key={item.href}
