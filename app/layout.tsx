@@ -4,7 +4,6 @@ import { ThemeProvider } from "@/components/theme-provider"
 import ClientLayout from "./client-layout"
 import { AuthProvider } from "@/contexts/auth-context"
 import SmoothTransitionProvider from "@/components/smooth-transition-provider"
-import { ThemeTransition } from "@/components/theme-transition"
 
 export const metadata = {
   title: "BluBerry - Selling Made Simpler",
@@ -16,8 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true}>
-          <ThemeTransition />
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
           <AuthProvider>
             <ClientLayout>
               <SmoothTransitionProvider>{children}</SmoothTransitionProvider>

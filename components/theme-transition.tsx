@@ -1,25 +1,16 @@
 "use client"
 
-import { useTheme } from "next-themes"
 import { useEffect } from "react"
 
 export function ThemeTransition() {
-  const { theme, resolvedTheme } = useTheme()
-
   useEffect(() => {
-    // Add transition class to html element
-    document.documentElement.classList.add("theme-transition")
-
-    // Remove it after transitions are complete
-    const timeout = setTimeout(() => {
-      document.documentElement.classList.remove("theme-transition")
-    }, 300)
+    // Add theme transition class to body
+    document.body.classList.add("theme-transition")
 
     return () => {
-      clearTimeout(timeout)
-      document.documentElement.classList.remove("theme-transition")
+      document.body.classList.remove("theme-transition")
     }
-  }, [theme, resolvedTheme])
+  }, [])
 
   return null
 }

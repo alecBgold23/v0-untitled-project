@@ -5,3 +5,6 @@ import type { ThemeProviderProps } from "next-themes"
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>
 }
+
+// Add default export for compatibility
+export default ThemeProvider

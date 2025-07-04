@@ -116,12 +116,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Combined How It Works & Why Choose BluBerry Section - Lighter Gray Background */}
-      <section
-        className={`py-16 ${
-          isMobile ? "bg-black text-white" : "bg-gradient-to-b from-secondary to-background"
-        } relative rounded-t-[30px] transform translate-y-[-30px] border-t border-border z-10 mb-8 shadow-section`}
-      >
+      {/* Combined How It Works & Why Choose BluBerry Section */}
+      <section className="py-16 bg-gradient-to-b from-secondary to-background relative rounded-t-[30px] transform translate-y-[-30px] border-t border-border z-10 mb-8 shadow-section">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <h2 className="text-2xl md:text-3xl font-light mb-8 text-center tracking-wide">
@@ -138,19 +134,13 @@ export default function Home() {
 
             <ContentAnimation delay={0.1}>
               <div className="flex flex-col items-center relative">
-                <div
-                  className={`w-10 h-10 rounded-full ${isMobile ? "bg-gray-900" : "bg-card"} shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20`}
-                >
+                <div className="w-10 h-10 rounded-full bg-card shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
                     1
                   </span>
                 </div>
-                <h3 className={`text-lg font-medium mb-2 text-center ${isMobile ? "text-white" : "text-foreground"}`}>
-                  Submit Your Item
-                </h3>
-                <p
-                  className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-center text-xs leading-relaxed max-w-xs`}
-                >
+                <h3 className="text-lg font-medium mb-2 text-center text-foreground">Submit Your Item</h3>
+                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
                   Complete our simple form with your item details. No complex listings required.
                 </p>
               </div>
@@ -158,19 +148,13 @@ export default function Home() {
 
             <ContentAnimation delay={0.2}>
               <div className="flex flex-col items-center relative">
-                <div
-                  className={`w-10 h-10 rounded-full ${isMobile ? "bg-gray-900" : "bg-card"} shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20`}
-                >
+                <div className="w-10 h-10 rounded-full bg-card shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
                     2
                   </span>
                 </div>
-                <h3 className={`text-lg font-medium mb-2 text-center ${isMobile ? "text-white" : "text-foreground"}`}>
-                  We Pick It Up
-                </h3>
-                <p
-                  className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-center text-xs leading-relaxed max-w-xs`}
-                >
+                <h3 className="text-lg font-medium mb-2 text-center text-foreground">We Pick It Up</h3>
+                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
                   Schedule a convenient time, and our team will collect the item from your location.
                 </p>
               </div>
@@ -178,19 +162,13 @@ export default function Home() {
 
             <ContentAnimation delay={0.3}>
               <div className="flex flex-col items-center relative">
-                <div
-                  className={`w-10 h-10 rounded-full ${isMobile ? "bg-gray-900" : "bg-card"} shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20`}
-                >
+                <div className="w-10 h-10 rounded-full bg-card shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
                     3
                   </span>
                 </div>
-                <h3 className={`text-lg font-medium mb-2 text-center ${isMobile ? "text-white" : "text-foreground"}`}>
-                  Get Paid Instantly
-                </h3>
-                <p
-                  className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-center text-xs leading-relaxed max-w-xs`}
-                >
+                <h3 className="text-lg font-medium mb-2 text-center text-foreground">Get Paid Instantly</h3>
+                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
                   Receive your payment immediately upon pickup. No waiting, no complications.
                 </p>
               </div>
@@ -200,75 +178,57 @@ export default function Home() {
           {/* Why Choose BluBerry */}
           <ContentAnimation delay={0.4}>
             <h3 className="text-xl font-medium mb-6 text-center">
-              <span className={`${isMobile ? "text-white" : "text-foreground"} font-medium`}>Why Choose BluBerry</span>
+              <span className="text-foreground font-medium">Why Choose BluBerry</span>
             </h3>
-            <p
-              className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} mb-8 text-center max-w-2xl mx-auto text-xs`}
-            >
+            <p className="text-muted-foreground mb-8 text-center max-w-2xl mx-auto text-xs">
               The simplest way to sell your used items with a professional service
             </p>
           </ContentAnimation>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             <ContentAnimation delay={0.5}>
-              <div
-                className={`p-4 rounded-lg ${isMobile ? "bg-gray-900" : "bg-card"} hover:bg-secondary transition-all duration-300 group shadow-sm`}
-              >
+              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
                 <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mb-3 group-hover:bg-[#3B82F6]/20 transition-all duration-300">
                   <Clock className="h-4 w-4 text-[#3B82F6]" />
                 </div>
-                <h3 className={`text-base font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
-                  Simplified Process
-                </h3>
-                <p className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-xs leading-relaxed`}>
+                <h3 className="text-base font-medium mb-1 text-foreground">Simplified Process</h3>
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   Our streamlined form takes minutes to complete, eliminating the need for detailed descriptions.
                 </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.6}>
-              <div
-                className={`p-4 rounded-lg ${isMobile ? "bg-gray-900" : "bg-card"} hover:bg-secondary transition-all duration-300 group shadow-sm`}
-              >
+              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
                 <div className="w-10 h-10 rounded-full bg-[#8c52ff]/10 flex items-center justify-center mb-3 group-hover:bg-[#8c52ff]/20 transition-all duration-300">
                   <Shield className="h-4 w-4 text-[#8c52ff]" />
                 </div>
-                <h3 className={`text-base font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
-                  Professional Service
-                </h3>
-                <p className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-xs leading-relaxed`}>
+                <h3 className="text-base font-medium mb-1 text-foreground">Professional Service</h3>
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   Our vetted team handles pickup, ensuring security and peace of mind throughout the process.
                 </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.7}>
-              <div
-                className={`p-4 rounded-lg ${isMobile ? "bg-gray-900" : "bg-card"} hover:bg-secondary transition-all duration-300 group shadow-sm`}
-              >
+              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
                 <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mb-3 group-hover:bg-[#3B82F6]/20 transition-all duration-300">
                   <CreditCard className="h-4 w-4 text-[#3B82F6]" />
                 </div>
-                <h3 className={`text-base font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
-                  Market-Based Pricing
-                </h3>
-                <p className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-xs leading-relaxed`}>
+                <h3 className="text-base font-medium mb-1 text-foreground">Market-Based Pricing</h3>
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   We offer competitive rates based on current market value and item condition.
                 </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.8}>
-              <div
-                className={`p-4 rounded-lg ${isMobile ? "bg-gray-900" : "bg-card"} hover:bg-secondary transition-all duration-300 group shadow-sm`}
-              >
+              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
                 <div className="w-10 h-10 rounded-full bg-[#8c52ff]/10 flex items-center justify-center mb-3 group-hover:bg-[#8c52ff]/20 transition-all duration-300">
                   <Leaf className="h-4 w-4 text-[#8c52ff]" />
                 </div>
-                <h3 className={`text-base font-medium mb-1 ${isMobile ? "text-white" : "text-foreground"}`}>
-                  Immediate Payment
-                </h3>
-                <p className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} text-xs leading-relaxed`}>
+                <h3 className="text-base font-medium mb-1 text-foreground">Immediate Payment</h3>
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   Receive payment at the time of pickup, eliminating waiting periods for transactions.
                 </p>
               </div>
@@ -277,12 +237,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Combined Testimonials and Environmental Mission Section - Blending into background */}
-      <section
-        className={`py-16 ${
-          isMobile ? "bg-black text-white" : "bg-gradient-to-b from-secondary to-background"
-        } relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-border z-20 mb-0`}
-      >
+      {/* Combined Testimonials and Environmental Mission Section */}
+      <section className="py-16 bg-gradient-to-b from-secondary to-background relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-border z-20 mb-0">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <h2 className="text-2xl md:text-3xl font-light mb-8 text-center tracking-wide">
@@ -295,9 +251,7 @@ export default function Home() {
           {/* Placeholder Testimonials */}
           <div className="grid md:grid-cols-3 gap-4 mb-12">
             <ContentAnimation delay={0.1}>
-              <div
-                className={`${isMobile ? "bg-gray-900" : "bg-card"} p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]`}
-              >
+              <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
                 <div className="flex items-center mb-3">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
@@ -305,24 +259,16 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-                <p
-                  className={`${isMobile ? "text-gray-500" : "text-muted-foreground"} mb-3 text-xs leading-relaxed italic`}
-                >
-                  "Reviews coming soon..."
-                </p>
+                <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">"Reviews coming soon..."</p>
                 <div>
-                  <p className={`font-medium text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                    Your Name
-                  </p>
-                  <p className={`text-xs ${isMobile ? "text-gray-500" : "text-muted-foreground/70"}`}>Your Location</p>
+                  <p className="font-medium text-xs text-muted-foreground">Your Name</p>
+                  <p className="text-xs text-muted-foreground/70">Your Location</p>
                 </div>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.2}>
-              <div
-                className={`${isMobile ? "bg-gray-900" : "bg-card"} p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]`}
-              >
+              <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
                 <div className="flex items-center mb-3">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
@@ -330,24 +276,18 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-                <p
-                  className={`${isMobile ? "text-gray-500" : "text-muted-foreground"} mb-3 text-xs leading-relaxed italic`}
-                >
+                <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">
                   "Be the first to leave a review..."
                 </p>
                 <div>
-                  <p className={`font-medium text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                    Future Customer
-                  </p>
-                  <p className={`text-xs ${isMobile ? "text-gray-500" : "text-muted-foreground/70"}`}>Your City</p>
+                  <p className="font-medium text-xs text-muted-foreground">Future Customer</p>
+                  <p className="text-xs text-muted-foreground/70">Your City</p>
                 </div>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.3}>
-              <div
-                className={`${isMobile ? "bg-gray-900" : "bg-card"} p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]`}
-              >
+              <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
                 <div className="flex items-center mb-3">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
@@ -355,50 +295,40 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-                <p
-                  className={`${isMobile ? "text-gray-500" : "text-muted-foreground"} mb-3 text-xs leading-relaxed italic`}
-                >
+                <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">
                   "Share your experience with BluBerry..."
                 </p>
                 <div>
-                  <p className={`font-medium text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                    Valued Customer
-                  </p>
-                  <p className={`text-xs ${isMobile ? "text-gray-500" : "text-muted-foreground/70"}`}>Anywhere, USA</p>
+                  <p className="font-medium text-xs text-muted-foreground">Valued Customer</p>
+                  <p className="text-xs text-muted-foreground/70">Anywhere, USA</p>
                 </div>
               </div>
             </ContentAnimation>
           </div>
 
           {/* Environmental Mission */}
-          <div className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-lg shadow-md`}>
+          <div className="bg-card p-6 rounded-lg shadow-md">
             <ContentAnimation delay={0.4}>
               <h3 className="text-xl font-medium mb-3 tracking-wide text-center">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
                   Reducing Waste,
                 </span>{" "}
-                <span className={`${isMobile ? "text-white" : "text-foreground"}`}>Creating Value</span>
+                <span className="text-foreground">Creating Value</span>
               </h3>
-              <p
-                className={`${isMobile ? "text-white" : "text-foreground"} mb-3 text-xs leading-relaxed text-center max-w-2xl mx-auto`}
-              >
+              <p className="text-foreground mb-3 text-xs leading-relaxed text-center max-w-2xl mx-auto">
                 At BluBerry, we're committed to extending the lifecycle of quality items. By facilitating the resale of
                 used goods, we help reduce waste and environmental impact.
               </p>
-              <p
-                className={`${isMobile ? "text-white" : "text-foreground"} text-xs leading-relaxed text-center max-w-2xl mx-auto`}
-              >
+              <p className="text-foreground text-xs leading-relaxed text-center max-w-2xl mx-auto">
                 Every item we help sell is one less item in a landfill and one more opportunity to create value for both
                 sellers and future owners.
               </p>
 
               <div className="mt-4 flex items-center justify-center">
-                <div
-                  className={`w-10 h-10 rounded-full ${isMobile ? "bg-black" : "bg-secondary"} flex items-center justify-center mr-3 shadow-sm`}
-                >
+                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center mr-3 shadow-sm">
                   <Leaf className="h-4 w-4 text-[#3B82F6]" />
                 </div>
-                <p className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"} italic`}>
+                <p className="text-xs text-muted-foreground italic">
                   "Our mission is to create a more sustainable future through thoughtful commerce."
                 </p>
               </div>
@@ -407,12 +337,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Our Resale Process Section - Redesigned to match homepage style */}
-      <section
-        className={`py-16 ${
-          isMobile ? "bg-black text-white" : "bg-gradient-to-b from-secondary to-background"
-        } relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-border z-20 mb-0`}
-      >
+      {/* Our Resale Process Section */}
+      <section className="py-16 bg-gradient-to-b from-secondary to-background relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-border z-20 mb-0">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <h2 className="text-2xl md:text-3xl font-light mb-4 text-center tracking-wide">
@@ -420,9 +346,7 @@ export default function Home() {
                 Our Resale Process
               </span>
             </h2>
-            <p
-              className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} mb-8 text-center max-w-2xl mx-auto text-sm`}
-            >
+            <p className="text-muted-foreground mb-8 text-center max-w-2xl mx-auto text-sm">
               <span className="font-medium">We do everything.</span> You do nothing.
             </p>
           </ContentAnimation>
@@ -430,9 +354,7 @@ export default function Home() {
           {/* Visual Process Comparison */}
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             <ContentAnimation delay={0.1}>
-              <div
-                className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border h-full`}
-              >
+              <div className="bg-card p-6 rounded-xl shadow-md border border-border h-full">
                 <div className="flex items-center justify-center mb-4">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center">
                     <svg
@@ -448,7 +370,7 @@ export default function Home() {
                       <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
                   </div>
-                  <h3 className={`text-xl font-medium ml-3 ${isMobile ? "text-white" : "text-foreground"}`}>
+                  <h3 className="text-xl font-medium ml-3 text-foreground">
                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
                       BluBerry Handles
                     </span>
@@ -471,7 +393,7 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Item Evaluation</p>
+                    <p className="text-xs ml-2 text-foreground">Item Evaluation</p>
                   </div>
 
                   <div className="flex items-center">
@@ -489,7 +411,7 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Photography</p>
+                    <p className="text-xs ml-2 text-foreground">Photography</p>
                   </div>
 
                   <div className="flex items-center">
@@ -507,7 +429,7 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Descriptions</p>
+                    <p className="text-xs ml-2 text-foreground">Descriptions</p>
                   </div>
 
                   <div className="flex items-center">
@@ -525,9 +447,7 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>
-                      Marketplace Listings
-                    </p>
+                    <p className="text-xs ml-2 text-foreground">Marketplace Listings</p>
                   </div>
 
                   <div className="flex items-center">
@@ -545,7 +465,7 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Buyer Communication</p>
+                    <p className="text-xs ml-2 text-foreground">Buyer Communication</p>
                   </div>
 
                   <div className="flex items-center">
@@ -563,7 +483,7 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Shipping & Delivery</p>
+                    <p className="text-xs ml-2 text-foreground">Shipping & Delivery</p>
                   </div>
 
                   <div className="flex items-center">
@@ -581,7 +501,7 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Payment Processing</p>
+                    <p className="text-xs ml-2 text-foreground">Payment Processing</p>
                   </div>
 
                   <div className="flex items-center">
@@ -599,16 +519,14 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>Customer Service</p>
+                    <p className="text-xs ml-2 text-foreground">Customer Service</p>
                   </div>
                 </div>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.2}>
-              <div
-                className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border h-full`}
-              >
+              <div className="bg-card p-6 rounded-xl shadow-md border border-border h-full">
                 <div className="flex items-center justify-center mb-4">
                   <div className="w-12 h-12 rounded-full bg-red-400/20 flex items-center justify-center">
                     <svg
@@ -625,7 +543,7 @@ export default function Home() {
                       <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                   </div>
-                  <h3 className={`text-xl font-medium ml-3 ${isMobile ? "text-white" : "text-foreground"}`}>
+                  <h3 className="text-xl font-medium ml-3 text-foreground">
                     <span className="text-red-400">You Do Nothing</span>
                   </h3>
                 </div>
@@ -647,7 +565,7 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Research</p>
+                    <p className="text-xs ml-2 text-foreground">No Research</p>
                   </div>
 
                   <div className="flex items-center">
@@ -666,7 +584,7 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Photography</p>
+                    <p className="text-xs ml-2 text-foreground">No Photography</p>
                   </div>
 
                   <div className="flex items-center">
@@ -685,7 +603,7 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Descriptions</p>
+                    <p className="text-xs ml-2 text-foreground">No Descriptions</p>
                   </div>
 
                   <div className="flex items-center">
@@ -704,7 +622,7 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Listings</p>
+                    <p className="text-xs ml-2 text-foreground">No Listings</p>
                   </div>
 
                   <div className="flex items-center">
@@ -723,7 +641,7 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Buyer Contact</p>
+                    <p className="text-xs ml-2 text-foreground">No Buyer Contact</p>
                   </div>
 
                   <div className="flex items-center">
@@ -742,7 +660,7 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Shipping</p>
+                    <p className="text-xs ml-2 text-foreground">No Shipping</p>
                   </div>
 
                   <div className="flex items-center">
@@ -761,7 +679,7 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Payment Hassles</p>
+                    <p className="text-xs ml-2 text-foreground">No Payment Hassles</p>
                   </div>
 
                   <div className="flex items-center">
@@ -780,7 +698,7 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <p className={`text-xs ml-2 ${isMobile ? "text-white" : "text-foreground"}`}>No Customer Service</p>
+                    <p className="text-xs ml-2 text-foreground">No Customer Service</p>
                   </div>
                 </div>
               </div>
@@ -789,8 +707,8 @@ export default function Home() {
 
           {/* Simple 3-Step Process */}
           <ContentAnimation delay={0.3}>
-            <div className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md border border-border`}>
-              <h3 className={`text-lg font-medium mb-6 text-center ${isMobile ? "text-white" : "text-foreground"}`}>
+            <div className="bg-card p-6 rounded-xl shadow-md border border-border">
+              <h3 className="text-lg font-medium mb-6 text-center text-foreground">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
                   Your Simple 3-Step Journey
                 </span>
@@ -801,10 +719,8 @@ export default function Home() {
                   <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto">
                     <span className="text-white font-bold">1</span>
                   </div>
-                  <h4 className={`text-sm font-medium mt-2 ${isMobile ? "text-white" : "text-foreground"}`}>
-                    Submit Form
-                  </h4>
-                  <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>Takes 2 minutes</p>
+                  <h4 className="text-sm font-medium mt-2 text-foreground">Submit Form</h4>
+                  <p className="text-xs text-muted-foreground">Takes 2 minutes</p>
 
                   {/* Arrow for desktop */}
                   <div className="hidden md:block absolute top-6 right-0 w-1/3 h-0.5 bg-gradient-to-r from-[#3B82F6] to-transparent"></div>
@@ -814,12 +730,8 @@ export default function Home() {
                   <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto">
                     <span className="text-white font-bold">2</span>
                   </div>
-                  <h4 className={`text-sm font-medium mt-2 ${isMobile ? "text-white" : "text-foreground"}`}>
-                    We Pick Up
-                  </h4>
-                  <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                    At your convenience
-                  </p>
+                  <h4 className="text-sm font-medium mt-2 text-foreground">We Pick Up</h4>
+                  <p className="text-xs text-muted-foreground">At your convenience</p>
 
                   {/* Arrow for desktop */}
                   <div className="hidden md:block absolute top-6 right-0 w-1/3 h-0.5 bg-gradient-to-r from-[#3B82F6] to-transparent"></div>
@@ -829,12 +741,8 @@ export default function Home() {
                   <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto">
                     <span className="text-white font-bold">3</span>
                   </div>
-                  <h4 className={`text-sm font-medium mt-2 ${isMobile ? "text-white" : "text-foreground"}`}>
-                    Get Paid
-                  </h4>
-                  <p className={`text-xs ${isMobile ? "text-gray-400" : "text-muted-foreground"}`}>
-                    Immediately on pickup
-                  </p>
+                  <h4 className="text-sm font-medium mt-2 text-foreground">Get Paid</h4>
+                  <p className="text-xs text-muted-foreground">Immediately on pickup</p>
                 </div>
               </div>
 
@@ -852,11 +760,7 @@ export default function Home() {
       </section>
 
       {/* Social Links Section */}
-      <section
-        className={`py-12 ${
-          isMobile ? "bg-black text-white" : "bg-gradient-to-b from-secondary to-background"
-        } relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-border z-20 mb-0`}
-      >
+      <section className="py-12 bg-gradient-to-b from-secondary to-background relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-border z-20 mb-0">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <h2 className="text-xl md:text-2xl font-light mb-6 text-center tracking-wide">
@@ -864,9 +768,7 @@ export default function Home() {
                 Connect With Us
               </span>
             </h2>
-            <p
-              className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} mb-8 text-center max-w-2xl mx-auto text-sm`}
-            >
+            <p className="text-muted-foreground mb-8 text-center max-w-2xl mx-auto text-sm">
               Follow BluBerry on social media for updates, tips, and success stories
             </p>
           </ContentAnimation>
@@ -877,68 +779,56 @@ export default function Home() {
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${
-                  isMobile ? "bg-gray-900" : "bg-card"
-                } hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center`}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center"
                 aria-label="Facebook"
               >
                 <Facebook className="h-8 w-8 text-[#3B82F6]" />
-                <span className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>Facebook</span>
+                <span className="text-xs text-muted-foreground">Facebook</span>
               </a>
               <a
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${
-                  isMobile ? "bg-gray-900" : "bg-card"
-                } hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center`}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center"
                 aria-label="Instagram"
               >
                 <Instagram className="h-8 w-8 text-[#8c52ff]" />
-                <span className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>Instagram</span>
+                <span className="text-xs text-muted-foreground">Instagram</span>
               </a>
               <a
                 href="https://twitter.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${
-                  isMobile ? "bg-gray-900" : "bg-card"
-                } hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center`}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center"
                 aria-label="Twitter"
               >
                 <Twitter className="h-8 w-8 text-[#3B82F6]" />
-                <span className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>Twitter</span>
+                <span className="text-xs text-muted-foreground">Twitter</span>
               </a>
               <a
                 href="https://linkedin.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${
-                  isMobile ? "bg-gray-900" : "bg-card"
-                } hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center`}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center"
                 aria-label="LinkedIn"
               >
                 <Linkedin className="h-8 w-8 text-[#3B82F6]" />
-                <span className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>LinkedIn</span>
+                <span className="text-xs text-muted-foreground">LinkedIn</span>
               </a>
               <a
                 href="mailto:alecgold808@gmail.com"
-                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${
-                  isMobile ? "bg-gray-900" : "bg-card"
-                } hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center`}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center"
                 aria-label="Email"
               >
                 <Mail className="h-8 w-8 text-[#8c52ff]" />
-                <span className={`text-xs ${isMobile ? "text-gray-300" : "text-muted-foreground"}`}>Email</span>
+                <span className="text-xs text-muted-foreground">Email</span>
               </a>
             </div>
           </ContentAnimation>
 
           <ContentAnimation delay={0.2}>
             <div className="text-center">
-              <p className={`text-sm ${isMobile ? "text-gray-300" : "text-muted-foreground"} mb-2`}>
-                Have questions? We're here to help!
-              </p>
+              <p className="text-sm text-muted-foreground mb-2">Have questions? We're here to help!</p>
               <div className="flex justify-center gap-4">
                 <Link
                   href="/contact"
@@ -958,26 +848,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section - Completely White with no 3D effects */}
-      <section className={`py-16 ${isMobile ? "bg-black" : "bg-background"} relative z-30`}>
+      {/* CTA Section */}
+      <section className="py-16 bg-background relative z-30">
         <div className="container mx-auto px-4 max-w-3xl pb-8">
           <ContentAnimation>
-            <div
-              className={`${isMobile ? "bg-gray-900" : "bg-card"} p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px] border border-border`}
-            >
+            <div className="bg-card p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px] border border-border">
               <h2 className="text-2xl md:text-3xl font-light mb-2 tracking-wide text-center">
-                <span className={`${isMobile ? "text-white" : "text-foreground"} font-medium`}>Ready to Sell?</span>
+                <span className="text-foreground font-medium">Ready to Sell?</span>
               </h2>
-              <p
-                className={`${isMobile ? "text-gray-300" : "text-muted-foreground"} mb-4 max-w-xl mx-auto text-xs text-center`}
-              >
+              <p className="text-muted-foreground mb-4 max-w-xl mx-auto text-xs text-center">
                 Start the simple process today and turn your used items into cash with our professional service.
               </p>
               <div className="flex justify-center">
                 <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
                   <Link
                     href="/sell-multiple-items"
-                    className={`inline-flex items-center ${isMobile ? "bg-gray-900 hover:bg-gray-800" : "bg-card hover:bg-secondary"} transition-colors px-4 py-2 rounded-lg font-medium ${isMobile ? "text-white" : "text-foreground"} group text-sm`}
+                    className="inline-flex items-center bg-card hover:bg-secondary transition-colors px-4 py-2 rounded-lg font-medium text-foreground group text-sm"
                   >
                     Sell Your Item Now
                     <ArrowRight className="ml-2 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" />
