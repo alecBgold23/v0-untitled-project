@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import ContentAnimation from "@/components/content-animation"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 export default function Home() {
   const router = useRouter()
@@ -241,7 +242,7 @@ export default function Home() {
       <section className="py-16 bg-gradient-to-b from-secondary to-background relative rounded-t-[30px] shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.15)] border-t border-border z-20 mb-0">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <h2 className="text-2xl md:text-3xl font-light mb-8 text-center tracking-wide">
+            <h2 className="text-2xl md:text-3xl font-light mb-4 text-center tracking-wide">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
                 What Our Customers Say
               </span>
@@ -249,62 +250,82 @@ export default function Home() {
           </ContentAnimation>
 
           {/* Placeholder Testimonials */}
-          <div className="grid md:grid-cols-3 gap-4 mb-12">
+          <Accordion type="single" collapsible className="w-full">
             <ContentAnimation delay={0.1}>
-              <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
-                <div className="flex items-center mb-3">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-3 w-3 text-gray-300" />
-                    ))}
+              <AccordionItem value="item-1">
+                <AccordionTrigger>
+                  <div className="flex items-center mb-3">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="h-3 w-3 text-gray-300" />
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">"Reviews coming soon..."</p>
-                <div>
-                  <p className="font-medium text-xs text-muted-foreground">Your Name</p>
-                  <p className="text-xs text-muted-foreground/70">Your Location</p>
-                </div>
-              </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
+                    <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">
+                      "Reviews coming soon..."
+                    </p>
+                    <div>
+                      <p className="font-medium text-xs text-muted-foreground">Your Name</p>
+                      <p className="text-xs text-muted-foreground/70">Your Location</p>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             </ContentAnimation>
 
             <ContentAnimation delay={0.2}>
-              <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
-                <div className="flex items-center mb-3">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-3 w-3 text-gray-300" />
-                    ))}
+              <AccordionItem value="item-2">
+                <AccordionTrigger>
+                  <div className="flex items-center mb-3">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="h-3 w-3 text-gray-300" />
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">
-                  "Be the first to leave a review..."
-                </p>
-                <div>
-                  <p className="font-medium text-xs text-muted-foreground">Future Customer</p>
-                  <p className="text-xs text-muted-foreground/70">Your City</p>
-                </div>
-              </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
+                    <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">
+                      "Be the first to leave a review..."
+                    </p>
+                    <div>
+                      <p className="font-medium text-xs text-muted-foreground">Future Customer</p>
+                      <p className="text-xs text-muted-foreground/70">Your City</p>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             </ContentAnimation>
 
             <ContentAnimation delay={0.3}>
-              <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
-                <div className="flex items-center mb-3">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-3 w-3 text-gray-300" />
-                    ))}
+              <AccordionItem value="item-3">
+                <AccordionTrigger>
+                  <div className="flex items-center mb-3">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="h-3 w-3 text-gray-300" />
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">
-                  "Share your experience with BluBerry..."
-                </p>
-                <div>
-                  <p className="font-medium text-xs text-muted-foreground">Valued Customer</p>
-                  <p className="text-xs text-muted-foreground/70">Anywhere, USA</p>
-                </div>
-              </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
+                    <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">
+                      "Share your experience with BluBerry..."
+                    </p>
+                    <div>
+                      <p className="font-medium text-xs text-muted-foreground">Valued Customer</p>
+                      <p className="text-xs text-muted-foreground/70">Anywhere, USA</p>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             </ContentAnimation>
-          </div>
+          </Accordion>
 
           {/* Environmental Mission */}
           <div className="bg-card p-6 rounded-lg shadow-md">
@@ -911,6 +932,8 @@ export default function Home() {
            transform-origin: left;
            opacity: 1;
          }
+         
+         
        }
        
        .animate-line-wipe {
