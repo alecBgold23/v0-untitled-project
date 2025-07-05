@@ -69,7 +69,7 @@ export default function Home() {
   return (
     <div className="bg-background">
       {/* Hero Section - Gradient Background for both mobile and desktop */}
-      <section className="bg-gradient-to-b from-background to-secondary pt-6 pb-12 md:pt-8 md:pb-16">
+      <section className="bg-gradient-to-b from-background to-secondary pt-6 pb-12 md:pt-8 md:pb-16 min-h-screen md:min-h-0 flex items-center justify-center md:block">
         <div className="container mx-auto px-4">
           {/* Clickable hero content */}
           <ContentAnimation duration={0.3} delay={0} animation="fadeIn">
