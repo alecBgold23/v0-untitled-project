@@ -74,16 +74,16 @@ export default function Home() {
           {/* Clickable hero content */}
           <ContentAnimation duration={0.3} delay={0} animation="fadeIn">
             <div
-              className="flex flex-col items-center text-center cursor-pointer group mb-4"
+              className="flex flex-col items-center text-center cursor-pointer group mb-8"
               onClick={navigateToSellItem}
             >
-              <h1 className="text-3xl md:text-4xl font-medium mb-1 drop-shadow-sm pb-1 transition-all duration-500 ease-out group-hover:scale-105 relative">
+              <h1 className="text-5xl md:text-4xl font-medium mb-4 md:mb-1 drop-shadow-sm pb-1 transition-all duration-500 ease-out group-hover:scale-105 relative">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
                   BluBerry
                 </span>
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/70 to-transparent shimmer dark:via-black/70"></span>
               </h1>
-              <p className="text-lg md:text-xl text-foreground mb-4 transition-all duration-500 ease-out group-hover:text-[#0066ff]">
+              <p className="text-2xl md:text-xl text-foreground mb-8 md:mb-4 transition-all duration-500 ease-out group-hover:text-[#0066ff]">
                 Selling made simpler.
               </p>
               <div
@@ -98,17 +98,17 @@ export default function Home() {
 
           {/* Buttons section */}
           <ContentAnimation delay={0.1}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-3">
               <Link
                 href="/how-it-works"
-                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-4 py-1.5 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all w-[160px] sm:w-auto text-center text-sm"
+                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-8 py-3 md:px-4 md:py-1.5 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all w-[200px] md:w-[160px] sm:w-auto text-center text-base md:text-sm"
               >
                 <span className="block sm:hidden">How It Works</span>
                 <span className="hidden sm:block">Learn How It Works</span>
               </Link>
               <Link
                 href="/sell-multiple-items"
-                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-4 py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all w-[160px] sm:w-auto text-center text-sm"
+                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-8 py-3 md:px-4 md:py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all w-[200px] md:w-[160px] sm:w-auto text-center text-base md:text-sm"
               >
                 Sell Your Item
               </Link>
