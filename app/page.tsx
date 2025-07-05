@@ -69,7 +69,7 @@ export default function Home() {
   return (
     <div className="bg-background">
       {/* Hero Section - Gradient Background for both mobile and desktop */}
-      <section className="bg-gradient-to-b from-background to-secondary pt-6 pb-12 md:pt-8 md:pb-16 min-h-screen md:min-h-0 flex items-center justify-center md:block">
+      <section className="bg-gradient-to-b from-background to-secondary pt-6 pb-12 md:pt-8 md:pb-16">
         <div className="container mx-auto px-4">
           {/* Clickable hero content */}
           <ContentAnimation duration={0.3} delay={0} animation="fadeIn">
@@ -77,20 +77,20 @@ export default function Home() {
               className="flex flex-col items-center text-center cursor-pointer group mb-4"
               onClick={navigateToSellItem}
             >
-              <h1 className="text-4xl md:text-4xl font-medium mb-2 drop-shadow-sm pb-1 transition-all duration-500 ease-out md:group-hover:scale-105 relative">
+              <h1 className="text-3xl md:text-4xl font-medium mb-1 drop-shadow-sm pb-1 transition-all duration-500 ease-out group-hover:scale-105 relative">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
                   BluBerry
                 </span>
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/70 to-transparent shimmer dark:via-black/70"></span>
               </h1>
-              <p className="text-xl md:text-xl text-foreground mb-6 transition-all duration-500 ease-out md:group-hover:text-[#0066ff]">
+              <p className="text-lg md:text-xl text-foreground mb-4 transition-all duration-500 ease-out group-hover:text-[#0066ff]">
                 Selling made simpler.
               </p>
               <div
                 className={`w-full max-w-md h-1 bg-gradient-to-r from-transparent via-[#0066ff] to-transparent rounded-full ${
                   showInitialLine
                     ? "opacity-100 animate-line-wipe"
-                    : "opacity-0 transition-all duration-500 ease-out md:group-hover:opacity-100"
+                    : "opacity-0 transition-all duration-500 ease-out group-hover:opacity-100"
                 }`}
               ></div>
             </div>
@@ -98,16 +98,17 @@ export default function Home() {
 
           {/* Buttons section */}
           <ContentAnimation delay={0.1}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/how-it-works"
-                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-6 py-3 rounded-full font-medium md:hover:shadow-md md:hover:translate-y-[-1px] transition-all w-[200px] sm:w-auto text-center text-base"
+                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-4 py-1.5 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all w-[160px] sm:w-auto text-center text-sm"
               >
-                How It Works
+                <span className="block sm:hidden">How It Works</span>
+                <span className="hidden sm:block">Learn How It Works</span>
               </Link>
               <Link
                 href="/sell-multiple-items"
-                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-6 py-3 rounded-full font-medium md:hover:bg-gradient-to-r md:hover:from-[#3B82F6] md:hover:to-[#8c52ff] md:hover:text-white md:hover:border-transparent md:hover:shadow-md md:hover:translate-y-[-1px] transition-all w-[200px] sm:w-auto text-center text-base"
+                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-4 py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all w-[160px] sm:w-auto text-center text-sm"
               >
                 Sell Your Item
               </Link>
@@ -117,7 +118,7 @@ export default function Home() {
       </section>
 
       {/* Combined How It Works & Why Choose BluBerry Section */}
-      <section className="py-12 md:py-16 bg-gradient-to-b from-secondary to-background relative md:rounded-t-[30px] md:transform md:translate-y-[-30px] border-t border-border z-10 mb-8 md:shadow-section">
+      <section className="py-16 bg-gradient-to-b from-secondary to-background relative rounded-t-[30px] transform translate-y-[-30px] border-t border-border z-10 mb-8 shadow-section">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <h2 className="text-2xl md:text-3xl font-light mb-8 text-center tracking-wide">
@@ -139,8 +140,8 @@ export default function Home() {
                     1
                   </span>
                 </div>
-                <h3 className="text-base md:text-lg font-medium mb-2 text-center text-foreground">Submit Your Item</h3>
-                <p className="text-muted-foreground text-center text-sm md:text-xs leading-relaxed max-w-xs">
+                <h3 className="text-lg font-medium mb-2 text-center text-foreground">Submit Your Item</h3>
+                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
                   Complete our simple form with your item details. No complex listings required.
                 </p>
               </div>
@@ -153,8 +154,8 @@ export default function Home() {
                     2
                   </span>
                 </div>
-                <h3 className="text-base md:text-lg font-medium mb-2 text-center text-foreground">We Pick It Up</h3>
-                <p className="text-muted-foreground text-center text-sm md:text-xs leading-relaxed max-w-xs">
+                <h3 className="text-lg font-medium mb-2 text-center text-foreground">We Pick It Up</h3>
+                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
                   Schedule a convenient time, and our team will collect the item from your location.
                 </p>
               </div>
@@ -167,10 +168,8 @@ export default function Home() {
                     3
                   </span>
                 </div>
-                <h3 className="text-base md:text-lg font-medium mb-2 text-center text-foreground">
-                  Get Paid Instantly
-                </h3>
-                <p className="text-muted-foreground text-center text-sm md:text-xs leading-relaxed max-w-xs">
+                <h3 className="text-lg font-medium mb-2 text-center text-foreground">Get Paid Instantly</h3>
+                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
                   Receive your payment immediately upon pickup. No waiting, no complications.
                 </p>
               </div>
@@ -179,7 +178,7 @@ export default function Home() {
 
           {/* Why Choose BluBerry */}
           <ContentAnimation delay={0.4}>
-            <h3 className="text-lg md:text-xl font-medium mb-4 md:mb-6 text-center">
+            <h3 className="text-xl font-medium mb-6 text-center">
               <span className="text-foreground font-medium">Why Choose BluBerry</span>
             </h3>
             <p className="text-muted-foreground mb-8 text-center max-w-2xl mx-auto text-xs">
@@ -189,48 +188,48 @@ export default function Home() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             <ContentAnimation delay={0.5}>
-              <div className="p-4 rounded-lg bg-card md:hover:bg-secondary transition-all duration-300 group shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mb-3 md:group-hover:bg-[#3B82F6]/20 transition-all duration-300">
+              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mb-3 group-hover:bg-[#3B82F6]/20 transition-all duration-300">
                   <Clock className="h-4 w-4 text-[#3B82F6]" />
                 </div>
                 <h3 className="text-base font-medium mb-1 text-foreground">Simplified Process</h3>
-                <p className="text-muted-foreground text-sm md:text-xs leading-relaxed">
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   Our streamlined form takes minutes to complete, eliminating the need for detailed descriptions.
                 </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.6}>
-              <div className="p-4 rounded-lg bg-card md:hover:bg-secondary transition-all duration-300 group shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-[#8c52ff]/10 flex items-center justify-center mb-3 md:group-hover:bg-[#8c52ff]/20 transition-all duration-300">
+              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-[#8c52ff]/10 flex items-center justify-center mb-3 group-hover:bg-[#8c52ff]/20 transition-all duration-300">
                   <Shield className="h-4 w-4 text-[#8c52ff]" />
                 </div>
                 <h3 className="text-base font-medium mb-1 text-foreground">Professional Service</h3>
-                <p className="text-muted-foreground text-sm md:text-xs leading-relaxed">
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   Our vetted team handles pickup, ensuring security and peace of mind throughout the process.
                 </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.7}>
-              <div className="p-4 rounded-lg bg-card md:hover:bg-secondary transition-all duration-300 group shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mb-3 md:group-hover:bg-[#3B82F6]/20 transition-all duration-300">
+              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mb-3 group-hover:bg-[#3B82F6]/20 transition-all duration-300">
                   <CreditCard className="h-4 w-4 text-[#3B82F6]" />
                 </div>
                 <h3 className="text-base font-medium mb-1 text-foreground">Market-Based Pricing</h3>
-                <p className="text-muted-foreground text-sm md:text-xs leading-relaxed">
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   We offer competitive rates based on current market value and item condition.
                 </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.8}>
-              <div className="p-4 rounded-lg bg-card md:hover:bg-secondary transition-all duration-300 group shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-[#8c52ff]/10 flex items-center justify-center mb-3 md:group-hover:bg-[#8c52ff]/20 transition-all duration-300">
+              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-[#8c52ff]/10 flex items-center justify-center mb-3 group-hover:bg-[#8c52ff]/20 transition-all duration-300">
                   <Leaf className="h-4 w-4 text-[#8c52ff]" />
                 </div>
                 <h3 className="text-base font-medium mb-1 text-foreground">Immediate Payment</h3>
-                <p className="text-muted-foreground text-sm md:text-xs leading-relaxed">
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   Receive payment at the time of pickup, eliminating waiting periods for transactions.
                 </p>
               </div>
@@ -264,7 +263,7 @@ export default function Home() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="bg-card p-4 rounded-lg shadow-md md:hover:shadow-lg transition-all duration-300 md:transform md:hover:translate-y-[-2px]">
+                  <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
                     <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">
                       "Reviews coming soon..."
                     </p>
@@ -289,7 +288,7 @@ export default function Home() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="bg-card p-4 rounded-lg shadow-md md:hover:shadow-lg transition-all duration-300 md:transform md:hover:translate-y-[-2px]">
+                  <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
                     <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">
                       "Be the first to leave a review..."
                     </p>
@@ -314,7 +313,7 @@ export default function Home() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="bg-card p-4 rounded-lg shadow-md md:hover:shadow-lg transition-all duration-300 md:transform md:hover:translate-y-[-2px]">
+                  <div className="bg-card p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]">
                     <p className="text-muted-foreground mb-3 text-xs leading-relaxed italic">
                       "Share your experience with BluBerry..."
                     </p>
@@ -871,24 +870,24 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 md:py-16 bg-background relative z-30">
+      <section className="py-16 bg-background relative z-30">
         <div className="container mx-auto px-4 max-w-3xl pb-8">
           <ContentAnimation>
-            <div className="bg-card p-6 rounded-xl shadow-md md:hover:shadow-lg transition-all duration-300 md:transform md:hover:translate-y-[-2px] border border-border">
-              <h2 className="text-xl md:text-3xl font-light mb-2 tracking-wide text-center">
+            <div className="bg-card p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px] border border-border">
+              <h2 className="text-2xl md:text-3xl font-light mb-2 tracking-wide text-center">
                 <span className="text-foreground font-medium">Ready to Sell?</span>
               </h2>
-              <p className="text-muted-foreground mb-4 max-w-xl mx-auto text-sm md:text-xs text-center">
+              <p className="text-muted-foreground mb-4 max-w-xl mx-auto text-xs text-center">
                 Start the simple process today and turn your used items into cash with our professional service.
               </p>
               <div className="flex justify-center">
                 <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
                   <Link
                     href="/sell-multiple-items"
-                    className="inline-flex items-center bg-card md:hover:bg-secondary transition-colors px-4 py-2 rounded-lg font-medium text-foreground group text-sm"
+                    className="inline-flex items-center bg-card hover:bg-secondary transition-colors px-4 py-2 rounded-lg font-medium text-foreground group text-sm"
                   >
                     Sell Your Item Now
-                    <ArrowRight className="ml-2 h-3 w-3 transition-transform duration-300 md:group-hover:translate-x-1" />
+                    <ArrowRight className="ml-2 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                 </div>
               </div>
