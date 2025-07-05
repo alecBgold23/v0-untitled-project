@@ -69,21 +69,21 @@ export default function Home() {
   return (
     <div className="bg-background">
       {/* Hero Section - Gradient Background for both mobile and desktop */}
-      <section className="bg-gradient-to-b from-background to-secondary pt-6 pb-12 md:pt-8 md:pb-16 min-h-screen md:min-h-0 flex items-center justify-center md:block">
+      <section className="bg-gradient-to-b from-background to-secondary pt-1 pb-12 md:pt-8 md:pb-16 min-h-screen md:min-h-0 flex items-start justify-center md:items-center md:block">
         <div className="container mx-auto px-4">
           {/* Clickable hero content */}
           <ContentAnimation duration={0.3} delay={0} animation="fadeIn">
             <div
-              className="flex flex-col items-center text-center cursor-pointer group mb-8"
+              className="flex flex-col items-center text-center cursor-pointer group mb-6 md:mb-8 mt-16 md:mt-0"
               onClick={navigateToSellItem}
             >
-              <h1 className="text-5xl md:text-4xl font-medium mb-4 md:mb-1 drop-shadow-sm pb-1 transition-all duration-500 ease-out group-hover:scale-105 relative">
+              <h1 className="text-6xl md:text-4xl font-medium mb-6 md:mb-1 drop-shadow-sm pb-1 transition-all duration-500 ease-out group-hover:scale-105 relative">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
                   BluBerry
                 </span>
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/70 to-transparent shimmer dark:via-black/70"></span>
               </h1>
-              <p className="text-2xl md:text-xl text-foreground mb-8 md:mb-4 transition-all duration-500 ease-out group-hover:text-[#0066ff]">
+              <p className="text-3xl md:text-xl text-foreground mb-10 md:mb-4 transition-all duration-500 ease-out group-hover:text-[#0066ff]">
                 Selling made simpler.
               </p>
               <div
@@ -98,17 +98,17 @@ export default function Home() {
 
           {/* Buttons section */}
           <ContentAnimation delay={0.1}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-3">
+            <div className="flex flex-row sm:flex-row items-center justify-center gap-2 md:gap-3">
               <Link
                 href="/how-it-works"
-                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-8 py-3 md:px-4 md:py-1.5 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all w-[200px] md:w-[160px] sm:w-auto text-center text-base md:text-sm"
+                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-12 py-1.5 md:px-1 md:py-1.5 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all flex-1 md:max-w-none md:w-[20px] sm:w-auto text-center text-sm md:text-sm"
               >
                 <span className="block sm:hidden">How It Works</span>
                 <span className="hidden sm:block">Learn How It Works</span>
               </Link>
               <Link
                 href="/sell-multiple-items"
-                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-8 py-3 md:px-4 md:py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all w-[200px] md:w-[160px] sm:w-auto text-center text-base md:text-sm"
+                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-12 py-1.5 md:px-1 md:py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all flex-1 md:max-w-none md:w-[20px] sm:w-auto text-center text-sm md:text-sm"
               >
                 Sell Your Item
               </Link>
@@ -368,7 +368,7 @@ export default function Home() {
               </span>
             </h2>
             <p className="text-muted-foreground mb-8 text-center max-w-2xl mx-auto text-sm">
-              <span className="font-medium">We do everything.</span> You do nothing.
+              <span className="font-medium">You submit once.</span> We handle the rest.
             </p>
           </ContentAnimation>
 
@@ -414,7 +414,7 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className="text-xs ml-2 text-foreground">Item Evaluation</p>
+                    <p className="text-xs ml-2 text-foreground">Professional Evaluation</p>
                   </div>
 
                   <div className="flex items-center">
@@ -432,25 +432,7 @@ export default function Home() {
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className="text-xs ml-2 text-foreground">Photography</p>
-                  </div>
-
-                  <div className="flex items-center">
-                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-3 h-3 text-[#3B82F6]"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                    </div>
-                    <p className="text-xs ml-2 text-foreground">Descriptions</p>
+                    <p className="text-xs ml-2 text-foreground">Price Optimization</p>
                   </div>
 
                   <div className="flex items-center">
@@ -542,6 +524,24 @@ export default function Home() {
                     </div>
                     <p className="text-xs ml-2 text-foreground">Customer Service</p>
                   </div>
+
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3 h-3 text-[#3B82F6]"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <p className="text-xs ml-2 text-foreground">Returns & Refunds</p>
+                  </div>
                 </div>
               </div>
             </ContentAnimation>
@@ -549,7 +549,7 @@ export default function Home() {
             <ContentAnimation delay={0.2}>
               <div className="bg-card p-6 rounded-xl shadow-md border border-border h-full">
                 <div className="flex items-center justify-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-red-400/20 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-[#3B82F6]/20 flex items-center justify-center">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"
@@ -558,20 +558,20 @@ export default function Home() {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="w-6 h-6 text-red-400"
+                      className="w-6 h-6 text-[#3B82F6]"
                     >
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                      <path d="M9 12l2 2 4-4"></path>
+                      <circle cx="12" cy="12" r="10"></circle>
                     </svg>
                   </div>
                   <h3 className="text-xl font-medium ml-3 text-foreground">
-                    <span className="text-red-400">You Do Nothing</span>
+                    <span className="text-[#3B82F6]">What You Do</span>
                   </h3>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -580,17 +580,16 @@ export default function Home() {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="w-3 h-3 text-red-400"
+                        className="w-3 h-3 text-[#3B82F6]"
                       >
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                        <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className="text-xs ml-2 text-foreground">No Research</p>
+                    <p className="text-xs ml-2 text-foreground">Submit Form</p>
                   </div>
 
                   <div className="flex items-center">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -599,17 +598,16 @@ export default function Home() {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="w-3 h-3 text-red-400"
+                        className="w-3 h-3 text-[#3B82F6]"
                       >
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                        <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className="text-xs ml-2 text-foreground">No Photography</p>
+                    <p className="text-xs ml-2 text-foreground">Add Photos</p>
                   </div>
 
                   <div className="flex items-center">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -618,17 +616,16 @@ export default function Home() {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="w-3 h-3 text-red-400"
+                        className="w-3 h-3 text-[#3B82F6]"
                       >
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                        <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className="text-xs ml-2 text-foreground">No Descriptions</p>
+                    <p className="text-xs ml-2 text-foreground">Write Description</p>
                   </div>
 
                   <div className="flex items-center">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-[#3B82F6]/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -637,16 +634,15 @@ export default function Home() {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="w-3 h-3 text-red-400"
+                        className="w-3 h-3 text-[#3B82F6]"
                       >
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                        <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </div>
-                    <p className="text-xs ml-2 text-foreground">No Listings</p>
+                    <p className="text-xs ml-2 text-foreground">Schedule Pickup</p>
                   </div>
 
-                  <div className="flex items-center">
+                  <div className="flex items-center col-span-2 justify-center mt-4">
                     <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -662,121 +658,12 @@ export default function Home() {
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </div>
-                    <p className="text-xs ml-2 text-foreground">No Buyer Contact</p>
-                  </div>
-
-                  <div className="flex items-center">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-3 h-3 text-red-400"
-                      >
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </div>
-                    <p className="text-xs ml-2 text-foreground">No Shipping</p>
-                  </div>
-
-                  <div className="flex items-center">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-3 h-3 text-red-400"
-                      >
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </div>
-                    <p className="text-xs ml-2 text-foreground">No Payment Hassles</p>
-                  </div>
-
-                  <div className="flex items-center">
-                    <div className="w-6 h-6 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-3 h-3 text-red-400"
-                      >
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </div>
-                    <p className="text-xs ml-2 text-foreground">No Customer Service</p>
+                    <p className="text-xs ml-2 text-foreground font-medium">Everything Else</p>
                   </div>
                 </div>
               </div>
             </ContentAnimation>
           </div>
-
-          {/* Simple 3-Step Process */}
-          <ContentAnimation delay={0.3}>
-            <div className="bg-card p-6 rounded-xl shadow-md border border-border">
-              <h3 className="text-lg font-medium mb-6 text-center text-foreground">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
-                  Your Simple 3-Step Journey
-                </span>
-              </h3>
-
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="text-center w-full md:w-1/3 relative">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto">
-                    <span className="text-white font-bold">1</span>
-                  </div>
-                  <h4 className="text-sm font-medium mt-2 text-foreground">Submit Form</h4>
-                  <p className="text-xs text-muted-foreground">Takes 2 minutes</p>
-
-                  {/* Arrow for desktop */}
-                  <div className="hidden md:block absolute top-6 right-0 w-1/3 h-0.5 bg-gradient-to-r from-[#3B82F6] to-transparent"></div>
-                </div>
-
-                <div className="text-center w-full md:w-1/3 relative">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto">
-                    <span className="text-white font-bold">2</span>
-                  </div>
-                  <h4 className="text-sm font-medium mt-2 text-foreground">We Pick Up</h4>
-                  <p className="text-xs text-muted-foreground">At your convenience</p>
-
-                  {/* Arrow for desktop */}
-                  <div className="hidden md:block absolute top-6 right-0 w-1/3 h-0.5 bg-gradient-to-r from-[#3B82F6] to-transparent"></div>
-                </div>
-
-                <div className="text-center w-full md:w-1/3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] flex items-center justify-center mx-auto">
-                    <span className="text-white font-bold">3</span>
-                  </div>
-                  <h4 className="text-sm font-medium mt-2 text-foreground">Get Paid</h4>
-                  <p className="text-xs text-muted-foreground">Immediately on pickup</p>
-                </div>
-              </div>
-
-              <div className="mt-8 text-center">
-                <Link
-                  href="/sell-multiple-items"
-                  className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-6 py-2 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all text-sm"
-                >
-                  Start Selling Now
-                </Link>
-              </div>
-            </div>
-          </ContentAnimation>
         </div>
       </section>
 
