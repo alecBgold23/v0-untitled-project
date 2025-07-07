@@ -94,14 +94,14 @@ export default function Home() {
             <div className="flex flex-row sm:flex-row items-center justify-center gap-2 md:gap-3">
               <Link
                 href="/how-it-works"
-                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-12 py-1.5 md:px-1 md:py-1.5 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all flex-1 md:max-w-none md:w-[20px] sm:w-auto text-center text-sm md:text-sm"
+                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-10 py-1.5 md:px-4 md:py-1.5 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all text-center text-sm md:text-sm"
               >
                 <span className="block sm:hidden">How It Works</span>
                 <span className="hidden sm:block">Learn How It Works</span>
               </Link>
               <Link
                 href="/sell-multiple-items"
-                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-12 py-1.5 md:px-1 md:py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all flex-1 md:max-w-none md:w-[20px] sm:w-auto text-center text-sm md:text-sm"
+                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-10 py-1.5 md:px-4 md:py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all text-center text-sm md:text-sm"
               >
                 Sell Your Item
               </Link>
