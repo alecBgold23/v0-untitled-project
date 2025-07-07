@@ -97,12 +97,6 @@ export default function HowItWorksPage() {
                       Complete our straightforward form with basic information about your item. We've simplified this
                       step to eliminate the need for extensive photography or detailed descriptions.
                     </p>
-                    <div className="bg-secondary/20 p-4 rounded-lg">
-                      <p className="text-muted-foreground italic text-sm">
-                        "The submission process was remarkably efficient. I completed the form in minutes without
-                        needing to take photos." — Mary S.
-                      </p>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -121,12 +115,6 @@ export default function HowItWorksPage() {
                       Within 24 hours, our team evaluates your submission and provides a competitive offer based on the
                       item's condition and current market value, eliminating the need for negotiation.
                     </p>
-                    <div className="bg-card p-4 rounded-lg">
-                      <p className="text-muted-foreground italic text-sm">
-                        "The offer for my dining set exceeded my expectations and reflected fair market value." — Robert
-                        T.
-                      </p>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -145,12 +133,6 @@ export default function HowItWorksPage() {
                       Upon accepting our offer, we arrange a convenient pickup time. Our professional team comes to your
                       location, eliminating transportation concerns on your part.
                     </p>
-                    <div className="bg-secondary/20 p-4 rounded-lg">
-                      <p className="text-muted-foreground italic text-sm">
-                        "The pickup team arrived precisely on schedule and handled the collection process with
-                        professionalism and care." — Linda M.
-                      </p>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -169,12 +151,6 @@ export default function HowItWorksPage() {
                       At the time of pickup, you receive immediate payment via your preferred method—cash, check, or
                       digital transfer—eliminating waiting periods for funds to clear.
                     </p>
-                    <div className="bg-card p-4 rounded-lg">
-                      <p className="text-muted-foreground italic text-sm">
-                        "I received payment immediately upon item collection, which was remarkably convenient." — James
-                        W.
-                      </p>
-                    </div>
                   </div>
                 </div>
               </div>

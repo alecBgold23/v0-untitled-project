@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BluberryLogoSVG } from "@/components/blueberry-logo-svg"
-import { Facebook, Instagram, Twitter, Mail } from "lucide-react"
+import { Facebook, Instagram, Twitter } from "lucide-react"
 
 export default function Footer() {
   const pathname = usePathname()
@@ -57,13 +57,6 @@ export default function Footer() {
             >
               <Twitter className="h-5 w-5" />
             </a>
-            <a
-              href="mailto:alecgold808@gmail.com"
-              className="text-muted-foreground hover:text-[#8c52ff] transition-colors"
-              aria-label="Email"
-            >
-              <Mail className="h-5 w-5" />
-            </a>
           </div>
         </div>
 
@@ -90,16 +83,6 @@ export default function Footer() {
           <Link href="/terms" className="text-xs text-muted-foreground hover:text-primary transition-colors">
             Terms of Service
           </Link>
-        </div>
-
-        {/* Contact Info */}
-        <div className="text-center mb-4">
-          <a
-            href="mailto:alecgold808@gmail.com"
-            className="text-xs text-muted-foreground hover:text-primary transition-colors"
-          >
-            alecgold808@gmail.com
-          </a>
         </div>
 
         {/* Copyright */}
