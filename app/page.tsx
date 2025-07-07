@@ -94,14 +94,14 @@ export default function Home() {
             <div className="flex flex-row sm:flex-row items-center justify-center gap-2 md:gap-3">
               <Link
                 href="/how-it-works"
-                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-10 py-1.5 md:px-4 md:py-1.5 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all text-center text-sm md:text-sm"
+                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-10 py-1.5 md:px-8 md:py-1.5 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all text-center text-sm md:text-sm"
               >
                 <span className="block sm:hidden">How It Works</span>
                 <span className="hidden sm:block">Learn How It Works</span>
               </Link>
               <Link
                 href="/sell-multiple-items"
-                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-10 py-1.5 md:px-4 md:py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all text-center text-sm md:text-sm"
+                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-10 py-1.5 md:px-8 md:py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all text-center text-sm md:text-sm"
               >
                 Sell Your Item
               </Link>
@@ -122,48 +122,48 @@ export default function Home() {
           </ContentAnimation>
 
           {/* Process Steps */}
-          <div className="grid md:grid-cols-3 gap-4 relative mb-12">
+          <div className="grid md:grid-cols-3 gap-8 relative mb-12">
             {/* Line connecting steps on desktop */}
-            <div className="hidden md:block absolute top-12 left-1/6 right-1/6 h-0.5 bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] opacity-20"></div>
+            <div className="hidden md:block absolute top-14 left-1/6 right-1/6 h-1 bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] opacity-30"></div>
 
             <ContentAnimation delay={0.1}>
               <div className="flex flex-col items-center relative">
-                <div className="w-10 h-10 rounded-full bg-card shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20">
+                <div className="w-12 h-12 rounded-full bg-card shadow-md flex items-center justify-center mb-6 z-10 border border-[#3B82F6]/20">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
                     1
                   </span>
                 </div>
-                <h3 className="text-lg font-medium mb-2 text-center text-foreground">Submit Your Item</h3>
-                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
-                  Complete our simple form with your item details. No complex listings required.
+                <h3 className="text-xl font-medium mb-4 text-center text-foreground">Submit Your Item</h3>
+                <p className="text-muted-foreground text-center text-sm leading-relaxed max-w-xs">
+                  Fill out our quick form with basic item details and photos. Takes just 2-3 minutes to complete.
                 </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.2}>
               <div className="flex flex-col items-center relative">
-                <div className="w-10 h-10 rounded-full bg-card shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20">
+                <div className="w-12 h-12 rounded-full bg-card shadow-md flex items-center justify-center mb-6 z-10 border border-[#3B82F6]/20">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
                     2
                   </span>
                 </div>
-                <h3 className="text-lg font-medium mb-2 text-center text-foreground">We Pick It Up</h3>
-                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
-                  Schedule a convenient time, and our team will collect the item from your location.
+                <h3 className="text-xl font-medium mb-4 text-center text-foreground">We Pick It Up</h3>
+                <p className="text-muted-foreground text-center text-sm leading-relaxed max-w-xs">
+                  Choose a convenient pickup time that works for you. Our professional team handles the rest.
                 </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.3}>
               <div className="flex flex-col items-center relative">
-                <div className="w-10 h-10 rounded-full bg-card shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20">
+                <div className="w-12 h-12 rounded-full bg-card shadow-md flex items-center justify-center mb-6 z-10 border border-[#3B82F6]/20">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
                     3
                   </span>
                 </div>
-                <h3 className="text-lg font-medium mb-2 text-center text-foreground">Get Paid Instantly</h3>
-                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
-                  Receive your payment immediately upon pickup. No waiting, no complications.
+                <h3 className="text-xl font-medium mb-4 text-center text-foreground">Get Paid Instantly</h3>
+                <p className="text-muted-foreground text-center text-sm leading-relaxed max-w-xs">
+                  Get paid immediately when we collect your item. No waiting periods or delays.
                 </p>
               </div>
             </ContentAnimation>
