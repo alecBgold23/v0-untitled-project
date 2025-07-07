@@ -674,6 +674,12 @@ export default function Home() {
             </p>
           </ContentAnimation>
 
+          <div className="text-center mb-6">
+            <p className="text-xs text-muted-foreground/70 italic bg-card px-4 py-2 rounded-full inline-block border border-border">
+              Social media accounts coming soon!
+            </p>
+          </div>
+
           <ContentAnimation delay={0.1}>
             <div className="flex flex-wrap justify-center gap-6 mb-8">
               <a
