@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
+// import { ThemeToggle } from "@/components/theme-toggle"
 
 // Navigation items
 const mainNavItems = [
@@ -112,7 +112,7 @@ export default function Navbar() {
             </button>
 
             {/* Theme toggle */}
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
 
             {user && (
               <DropdownMenu>
@@ -161,9 +161,9 @@ export default function Navbar() {
         {isMenuOpen && (
           <div className="md:hidden py-4 flex flex-col gap-3 items-center bg-background border-t border-border">
             {/* Theme toggle for mobile */}
-            <div className="flex items-center justify-center py-2">
+            {/* <div className="flex items-center justify-center py-2">
               <ThemeToggle />
-            </div>
+            </div> */}
             {mainNavItems.map((item) => (
               <Link
                 key={item.href}
