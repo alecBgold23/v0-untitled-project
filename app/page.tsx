@@ -1,19 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import {
-  ArrowRight,
-  Star,
-  Leaf,
-  Clock,
-  Shield,
-  CreditCard,
-  Facebook,
-  Instagram,
-  Twitter,
-  Linkedin,
-  Mail,
-} from "lucide-react"
+import { ArrowRight, Star, Leaf, Clock, Shield, CreditCard, Facebook, Instagram, Twitter, Linkedin } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import ContentAnimation from "@/components/content-animation"
@@ -67,9 +55,14 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="bg-background">
+    <div className="bg-background relative overflow-hidden">
+      {/* Background shimmer overlay */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-shimmer-gradient animate-shimmer-bg opacity-30"></div>
+      </div>
+
       {/* Hero Section - Gradient Background for both mobile and desktop */}
-      <section className="bg-gradient-to-b from-background to-secondary pt-1 pb-12 md:pt-8 md:pb-16 min-h-screen md:min-h-0 flex items-start justify-center md:items-center md:block">
+      <section className="bg-gradient-to-b from-background to-secondary pt-1 pb-12 md:pt-8 md:pb-16 min-h-screen md:min-h-0 flex items-start justify-center md:items-center md:block relative z-10">
         <div className="container mx-auto px-4">
           {/* Clickable hero content */}
           <ContentAnimation duration={0.3} delay={0} animation="fadeIn">
@@ -723,14 +716,6 @@ export default function Home() {
                 <Linkedin className="h-8 w-8 text-[#3B82F6]" />
                 <span className="text-xs text-muted-foreground">LinkedIn</span>
               </a>
-              <a
-                href="mailto:alecgold808@gmail.com"
-                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 w-24 h-24 justify-center"
-                aria-label="Email"
-              >
-                <Mail className="h-8 w-8 text-[#8c52ff]" />
-                <span className="text-xs text-muted-foreground">Email</span>
-              </a>
             </div>
           </ContentAnimation>
 
@@ -806,6 +791,31 @@ export default function Home() {
        
        .shimmer {
          animation: shimmer 2.5s infinite;
+       }
+
+       @keyframes shimmer-bg {
+         0% {
+           background-position: -200% 0;
+         }
+         100% {
+           background-position: 200% 0;
+         }
+       }
+
+       .bg-shimmer-gradient {
+         background: linear-gradient(
+           90deg,
+           transparent 0%,
+           rgba(59, 130, 246, 0.03) 25%,
+           rgba(140, 82, 255, 0.03) 50%,
+           rgba(59, 130, 246, 0.03) 75%,
+           transparent 100%
+         );
+         background-size: 200% 100%;
+       }
+
+       .animate-shimmer-bg {
+         animation: shimmer-bg 8s ease-in-out infinite;
        }
 
        @keyframes lineWipe {

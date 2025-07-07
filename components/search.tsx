@@ -7,7 +7,7 @@ import { useAppNavigation } from "@/lib/navigation"
 // Define search routes and their keywords
 const searchRoutes = [
   {
-    path: "/sell-item",
+    path: "/sell-multiple-items",
     keywords: ["sell", "item", "submit", "selling", "form", "sell your item", "submission"],
     title: "Sell Your Item",
     description: "Submit your item for sale",

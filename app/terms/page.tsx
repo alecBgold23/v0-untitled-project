@@ -203,15 +203,7 @@ export default function TermsPage() {
           {/* Contact Information */}
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold">13. Contact Information</h2>
-            <p>If you have any questions about these Terms, please contact us at:</p>
-            <p className="font-medium">
-              Email:{" "}
-              <a href="mailto:alecgold808@gmail.com" className="text-primary hover:underline">
-                alecgold808@gmail.com
-              </a>
-              <br />
-              Phone: 847-510-3229
-            </p>
+            <p>If you have any questions about these Terms, please contact us through our website contact form.</p>
           </section>
         </div>
 

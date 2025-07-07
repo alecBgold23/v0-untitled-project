@@ -142,13 +142,7 @@ export default function PrivacyPolicyPage() {
               <h2 className="section-header mb-4">9. Contact Us</h2>
               <p>If you have any questions about this Privacy Policy, please contact us at:</p>
               <p className="mt-2">
-                <strong>Email:</strong>{" "}
-                <a href="mailto:alecgold808@gmail.com" className="text-[#3B82F6]">
-                  alecgold808@gmail.com
-                </a>
-              </p>
-              <p>
-                <strong>Phone:</strong> 847-510-3229
+                For any questions about this Privacy Policy, please contact us through our website contact form.
               </p>
             </section>
           </ContentAnimation>
