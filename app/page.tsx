@@ -94,17 +94,54 @@ export default function Home() {
             <div className="flex flex-row sm:flex-row items-center justify-center gap-2 md:gap-3">
               <Link
                 href="/how-it-works"
-                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-10 py-1.5 md:px-8 md:py-1.5 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all text-center text-sm md:text-sm"
+                className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white px-12 py-1.5 md:px-16 md:py-1.5 rounded-full font-medium hover:shadow-md hover:translate-y-[-1px] transition-all text-center text-sm md:text-sm"
               >
                 <span className="block sm:hidden">How It Works</span>
                 <span className="hidden sm:block">Learn How It Works</span>
               </Link>
               <Link
                 href="/sell-multiple-items"
-                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-10 py-1.5 md:px-8 md:py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all text-center text-sm md:text-sm"
+                className="inline-block border-2 border-[#6a5acd] text-[#6a5acd] px-12 py-1.5 md:px-16 md:py-1.5 rounded-full font-medium hover:bg-gradient-to-r hover:from-[#3B82F6] hover:to-[#8c52ff] hover:text-white hover:border-transparent hover:shadow-md hover:translate-y-[-1px] transition-all text-center text-sm md:text-sm"
               >
                 Sell Your Item
               </Link>
+            </div>
+          </ContentAnimation>
+
+          {/* Professional Statement - Mobile Visual Element */}
+          <ContentAnimation delay={0.2}>
+            <div className="mt-12 md:hidden">
+              <div className="flex flex-col items-center space-y-6">
+                <div className="text-center max-w-sm">
+                  <p className="text-lg font-light text-foreground mb-2">Your selling partner</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    We're building a service to help you sell your items with less hassle and more convenience
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-center space-x-8">
+                  <div className="text-center">
+                    <div className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                      Simple
+                    </div>
+                    <div className="text-xs text-muted-foreground">Process</div>
+                  </div>
+                  <div className="w-px h-8 bg-border"></div>
+                  <div className="text-center">
+                    <div className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-[#8c52ff] to-[#3B82F6]">
+                      Fair
+                    </div>
+                    <div className="text-xs text-muted-foreground">Pricing</div>
+                  </div>
+                  <div className="w-px h-8 bg-border"></div>
+                  <div className="text-center">
+                    <div className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                      Easy
+                    </div>
+                    <div className="text-xs text-muted-foreground">Experience</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </ContentAnimation>
         </div>
