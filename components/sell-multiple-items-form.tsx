@@ -45,11 +45,6 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { getEbayPriceEstimate } from "@/lib/ebay-price-estimator"
 
-interface SellMultipleItemsFormProps {
-  onError?: (error: Error) => void
-  onLoad?: () => void
-}
-
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 
 // Function to create correct image URL with bucket name
@@ -129,7 +124,7 @@ async function uploadImageToSupabase(file: File, userId = "anonymous") {
   }
 }
 
-export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleItemsFormProps) {
+export default function SellMultipleItemsForm() {
   const { toast } = useToast()
   const [formStep, setFormStep] = useState(1)
   const [formSubmitted, setFormSubmitted] = useState(false)
@@ -142,20 +137,6 @@ export default function SellMultipleItemsForm({ onError, onLoad }: SellMultipleI
     userEmailSent: false,
     adminEmailSent: false,
   })
-
-  // Call onLoad when component is mounted
-  useEffect(() => {
-    try {
-      if (onLoad) {
-        onLoad()
-      }
-    } catch (error) {
-      console.error("Error in onLoad callback:", error)
-      if (onError) {
-        onError(error instanceof Error ? error : new Error(String(error)))
-      }
-    }
-  }, [onLoad, onError])
 
   // Contact information
   const [fullName, setFullName] = useState("")

@@ -4,5 +4,5 @@ export default function SellMultipleItemsLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <div className="sell-multiple-items-layout">{children}</div>
+  return <>{children}</>
 }

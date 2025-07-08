@@ -1,20 +1,25 @@
-import ClientWrapper from "./client-wrapper"
 import { Suspense } from "react"
+import SellMultipleItemsForm from "@/components/sell-multiple-items-form"
 
+export const metadata = {
+  title: "Sell Your Items - Blueberry",
+  description: "Sell multiple items quickly and easily",
+}
+
+// Remove any blocking data fetching and make the page render immediately
 export default function SellMultipleItemsPage() {
   return (
     <div className="min-h-screen">
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="mt-4 text-gray-500">Loading form...</p>
-            </div>
+          <div className="animate-pulse max-w-2xl mx-auto">
+            <div className="h-32 bg-gray-200 rounded w-full mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
           </div>
         }
       >
-        <ClientWrapper />
+        <SellMultipleItemsForm />
       </Suspense>
     </div>
   )
