@@ -6,7 +6,7 @@ export default function HowItWorksPage() {
   return (
     <div className="bg-background text-foreground">
       {/* Hero Section with elegant gradient */}
-      <section className="py-12 md:py-16 bg-gradient-to-br from-background via-background to-secondary/30">
+      <section className="py-8 md:py-12 bg-gradient-to-br from-background via-background to-secondary/30">
         <div className="container mx-auto px-4">
           <ContentAnimation>
             <h1 className="text-3xl md:text-5xl font-bold mb-4 text-center font-[var(--font-roboto)] font-light tracking-tight">
@@ -24,7 +24,7 @@ export default function HowItWorksPage() {
       </section>
 
       {/* Process Steps */}
-      <section className="py-12 md:py-20 bg-background text-foreground">
+      <section className="py-8 md:py-12 bg-background text-foreground">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <h2 className="text-2xl font-semibold mb-8 text-center text-foreground">
@@ -85,10 +85,10 @@ export default function HowItWorksPage() {
       </section>
 
       {/* Full Service Section */}
-      <section className="py-12 md:py-20 bg-secondary/10 text-foreground">
+      <section className="py-8 md:py-12 bg-secondary/10 text-foreground">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-2xl font-semibold mb-4 text-foreground">We Handle Everything For You</h2>
               <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
               <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -187,10 +187,10 @@ export default function HowItWorksPage() {
       </section>
 
       {/* AI-Powered Pricing Section */}
-      <section className="py-12 md:py-20 bg-background text-foreground">
+      <section className="py-8 md:py-12 bg-background text-foreground">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-2xl font-semibold mb-4 text-foreground">AI-Powered Fair Pricing</h2>
               <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
               <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -274,10 +274,10 @@ export default function HowItWorksPage() {
       </section>
 
       {/* Service Areas Section */}
-      <section className="py-12 md:py-20 bg-secondary/10 text-foreground">
+      <section className="py-8 md:py-12 bg-secondary/10 text-foreground">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-2xl font-semibold mb-4 text-foreground">Service Areas</h2>
               <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
               <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -393,10 +393,10 @@ export default function HowItWorksPage() {
       </section>
 
       {/* What We Accept Section */}
-      <section className="py-12 md:py-20 bg-background text-foreground">
+      <section className="py-8 md:py-12 bg-background text-foreground">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-2xl font-semibold mb-4 text-foreground">What We Accept</h2>
               <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
               <p className="text-muted-foreground max-w-2xl mx-auto">

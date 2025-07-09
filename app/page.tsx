@@ -5,9 +5,6 @@ import {
   ArrowRight,
   Star,
   Leaf,
-  Clock,
-  Shield,
-  CreditCard,
   Facebook,
   Instagram,
   Twitter,
@@ -15,7 +12,6 @@ import {
   Package,
   Truck,
   DollarSign,
-  Users,
   CheckCircle,
   XCircle,
 } from "lucide-react"
@@ -165,7 +161,7 @@ export default function Home() {
       </section>
 
       {/* Why Choose BluBerry Section */}
-      <section className="py-16 bg-gradient-to-b from-secondary to-background relative rounded-t-[30px] transform translate-y-[-30px] border-t border-border z-10 mb-8 shadow-section">
+      <section className="py-8 bg-gradient-to-b from-secondary to-background relative rounded-t-[30px] transform translate-y-[-30px] border-t border-border z-10 mb-4 shadow-section">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <h2 className="text-2xl md:text-3xl font-light mb-8 text-center tracking-wide">
@@ -186,9 +182,9 @@ export default function Home() {
               <div className="grid md:grid-cols-3 gap-6 text-center">
                 <div className="bg-white/50 dark:bg-black/20 p-6 rounded-xl">
                   <Package className="h-12 w-12 mx-auto mb-4 text-[#3B82F6]" />
-                  <p className="text-lg font-semibold text-foreground mb-2">All Item Types</p>
+                  <p className="text-lg font-semibold text-foreground mb-2">Fill Out a Form</p>
                   <p className="text-sm text-muted-foreground">
-                    Furniture, electronics, clothes, collectibles - everything in one place
+                    Simple online form - just describe your items and upload photos
                   </p>
                 </div>
                 <div className="bg-white/50 dark:bg-black/20 p-6 rounded-xl">
@@ -266,41 +262,6 @@ export default function Home() {
                     <span className="text-lg">Get paid instantly</span>
                   </div>
                 </div>
-              </div>
-            </ContentAnimation>
-          </div>
-
-          {/* Big Benefits - Simple Icons */}
-          <div className="grid md:grid-cols-4 gap-6">
-            <ContentAnimation delay={0.4}>
-              <div className="text-center p-6 bg-card rounded-2xl hover:shadow-lg transition-all duration-300">
-                <Clock className="h-16 w-16 mx-auto mb-4 text-[#3B82F6]" />
-                <h3 className="text-xl font-bold mb-2 text-foreground">Save Time</h3>
-                <p className="text-muted-foreground">Minutes, not hours</p>
-              </div>
-            </ContentAnimation>
-
-            <ContentAnimation delay={0.5}>
-              <div className="text-center p-6 bg-card rounded-2xl hover:shadow-lg transition-all duration-300">
-                <Shield className="h-16 w-16 mx-auto mb-4 text-[#8c52ff]" />
-                <h3 className="text-xl font-bold mb-2 text-foreground">Stay Safe</h3>
-                <p className="text-muted-foreground">No strangers at your door</p>
-              </div>
-            </ContentAnimation>
-
-            <ContentAnimation delay={0.6}>
-              <div className="text-center p-6 bg-card rounded-2xl hover:shadow-lg transition-all duration-300">
-                <Users className="h-16 w-16 mx-auto mb-4 text-[#3B82F6]" />
-                <h3 className="text-xl font-bold mb-2 text-foreground">Zero Hassle</h3>
-                <p className="text-muted-foreground">We handle everything</p>
-              </div>
-            </ContentAnimation>
-
-            <ContentAnimation delay={0.7}>
-              <div className="text-center p-6 bg-card rounded-2xl hover:shadow-lg transition-all duration-300">
-                <CreditCard className="h-16 w-16 mx-auto mb-4 text-[#8c52ff]" />
-                <h3 className="text-xl font-bold mb-2 text-foreground">Get Paid Fast</h3>
-                <p className="text-muted-foreground">Cash on pickup</p>
               </div>
             </ContentAnimation>
           </div>
