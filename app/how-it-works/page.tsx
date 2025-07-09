@@ -18,6 +18,8 @@ export default function HowItWorksPage() {
     email: "",
     phone: "",
     zipCode: "",
+    city: "",
+    state: "",
     serviceType: "",
     itemTypes: "",
     estimatedValue: "",
@@ -49,6 +51,8 @@ export default function HowItWorksPage() {
           email: "",
           phone: "",
           zipCode: "",
+          city: "",
+          state: "",
           serviceType: "",
           itemTypes: "",
           estimatedValue: "",
@@ -417,7 +421,7 @@ export default function HowItWorksPage() {
           <div className="bg-card rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold text-foreground">Request Service in Your Area</h2>
+                <h2 className="text-2xl font-semibold text-foreground">Request BluBerry Service in Your Area</h2>
                 <button
                   onClick={() => setIsServiceFormOpen(false)}
                   className="text-muted-foreground hover:text-foreground"
@@ -458,13 +462,85 @@ export default function HowItWorksPage() {
                         required
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">ZIP Code *</label>
-                      <Input
-                        value={formData.zipCode}
-                        onChange={(e) => handleInputChange("zipCode", e.target.value)}
-                        required
-                      />
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">City *</label>
+                        <Input
+                          value={formData.city}
+                          onChange={(e) => handleInputChange("city", e.target.value)}
+                          placeholder="Enter your city"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">State *</label>
+                        <Select onValueChange={(value) => handleInputChange("state", value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select state" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AL">Alabama</SelectItem>
+                            <SelectItem value="AK">Alaska</SelectItem>
+                            <SelectItem value="AZ">Arizona</SelectItem>
+                            <SelectItem value="AR">Arkansas</SelectItem>
+                            <SelectItem value="CA">California</SelectItem>
+                            <SelectItem value="CO">Colorado</SelectItem>
+                            <SelectItem value="CT">Connecticut</SelectItem>
+                            <SelectItem value="DE">Delaware</SelectItem>
+                            <SelectItem value="FL">Florida</SelectItem>
+                            <SelectItem value="GA">Georgia</SelectItem>
+                            <SelectItem value="HI">Hawaii</SelectItem>
+                            <SelectItem value="ID">Idaho</SelectItem>
+                            <SelectItem value="IL">Illinois</SelectItem>
+                            <SelectItem value="IN">Indiana</SelectItem>
+                            <SelectItem value="IA">Iowa</SelectItem>
+                            <SelectItem value="KS">Kansas</SelectItem>
+                            <SelectItem value="KY">Kentucky</SelectItem>
+                            <SelectItem value="LA">Louisiana</SelectItem>
+                            <SelectItem value="ME">Maine</SelectItem>
+                            <SelectItem value="MD">Maryland</SelectItem>
+                            <SelectItem value="MA">Massachusetts</SelectItem>
+                            <SelectItem value="MI">Michigan</SelectItem>
+                            <SelectItem value="MN">Minnesota</SelectItem>
+                            <SelectItem value="MS">Mississippi</SelectItem>
+                            <SelectItem value="MO">Missouri</SelectItem>
+                            <SelectItem value="MT">Montana</SelectItem>
+                            <SelectItem value="NE">Nebraska</SelectItem>
+                            <SelectItem value="NV">Nevada</SelectItem>
+                            <SelectItem value="NH">New Hampshire</SelectItem>
+                            <SelectItem value="NJ">New Jersey</SelectItem>
+                            <SelectItem value="NM">New Mexico</SelectItem>
+                            <SelectItem value="NY">New York</SelectItem>
+                            <SelectItem value="NC">North Carolina</SelectItem>
+                            <SelectItem value="ND">North Dakota</SelectItem>
+                            <SelectItem value="OH">Ohio</SelectItem>
+                            <SelectItem value="OK">Oklahoma</SelectItem>
+                            <SelectItem value="OR">Oregon</SelectItem>
+                            <SelectItem value="PA">Pennsylvania</SelectItem>
+                            <SelectItem value="RI">Rhode Island</SelectItem>
+                            <SelectItem value="SC">South Carolina</SelectItem>
+                            <SelectItem value="SD">South Dakota</SelectItem>
+                            <SelectItem value="TN">Tennessee</SelectItem>
+                            <SelectItem value="TX">Texas</SelectItem>
+                            <SelectItem value="UT">Utah</SelectItem>
+                            <SelectItem value="VT">Vermont</SelectItem>
+                            <SelectItem value="VA">Virginia</SelectItem>
+                            <SelectItem value="WA">Washington</SelectItem>
+                            <SelectItem value="WV">West Virginia</SelectItem>
+                            <SelectItem value="WI">Wisconsin</SelectItem>
+                            <SelectItem value="WY">Wyoming</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">ZIP Code *</label>
+                        <Input
+                          value={formData.zipCode}
+                          onChange={(e) => handleInputChange("zipCode", e.target.value)}
+                          placeholder="Enter ZIP code"
+                          required
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -554,11 +630,7 @@ export default function HowItWorksPage() {
               ) : (
                 <div className="text-center py-8">
                   <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Request Submitted!</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Thank you for your interest! We'll contact you within 24 hours to discuss bringing BluBerry to your
-                    area.
-                  </p>
+                  <h3 className="text-xl font-semibold mb-2">Thank you for your request!</h3>
                   <Button
                     onClick={() => {
                       setIsSubmitted(false)

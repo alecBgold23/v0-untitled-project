@@ -7,33 +7,49 @@ const resend = new Resend(resendApiKey)
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, email, phone, zipCode, serviceType, itemTypes, estimatedValue, timeframe, additionalInfo } = body
+    const {
+      name,
+      email,
+      phone,
+      zipCode,
+      city,
+      state,
+      serviceType,
+      itemTypes,
+      estimatedValue,
+      timeframe,
+      additionalInfo,
+    } = body
 
     const emailContent = `
-      New Service Request Submission:
-      
-      Contact Information:
-      - Name: ${name}
-      - Email: ${email}
-      - Phone: ${phone}
-      - ZIP Code: ${zipCode}
-      
-      Service Details:
-      - Service Type: ${serviceType}
-      - Item Types: ${itemTypes || "Not specified"}
-      - Estimated Value: ${estimatedValue || "Not specified"}
-      - Preferred Timeframe: ${timeframe || "Not specified"}
-      
-      Additional Information:
-      ${additionalInfo || "None provided"}
-      
-      Submitted on: ${new Date().toLocaleString()}
-    `
+  New Service Area Request:
+  
+  Contact Information:
+  - Name: ${name}
+  - Email: ${email}
+  - Phone: ${phone}
+  
+  Location Details:
+  - City: ${city}
+  - State: ${state}
+  - ZIP Code: ${zipCode}
+  
+  Service Details:
+  - Service Type: ${serviceType}
+  - Item Types: ${itemTypes || "Not specified"}
+  - Estimated Value: ${estimatedValue || "Not specified"}
+  - Preferred Timeframe: ${timeframe || "Not specified"}
+  
+  Additional Information:
+  ${additionalInfo || "None provided"}
+  
+  Submitted on: ${new Date().toLocaleString()}
+`
 
     const { data, error } = await resend.emails.send({
       from: "BluBerry Service Request <onboarding@resend.dev>",
       to: ["alecgold808@gmail.com"],
-      subject: `New Service Request from ${name} - ${zipCode}`,
+      subject: `Service Area Request: ${city}, ${state} ${zipCode} - ${name}`,
       text: emailContent,
     })
 
