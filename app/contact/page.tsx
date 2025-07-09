@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Mail, Phone, AlertCircle, CheckCircle, Loader2, ArrowRight } from "lucide-react"
+import { AlertCircle, CheckCircle, Loader2, ArrowRight } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
 import ConfettiEffect from "@/components/confetti-effect"
 
@@ -95,146 +95,99 @@ export default function ContactPage() {
 
       {/* Contact Section */}
       <section className="py-12 md:py-20 bg-background">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Contact Info */}
-            <ContentAnimation>
+        <div className="container mx-auto px-4 max-w-2xl">
+          <ContentAnimation>
+            {!isSubmitted ? (
               <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50">
-                <h2 className="text-2xl font-semibold mb-6 text-foreground">Contact Info</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-4 bg-secondary/20 rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-[#4f7bff]/10 flex items-center justify-center flex-shrink-0">
-                      <Mail className="w-5 h-5 text-[#4f7bff]" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Email</p>
-                      <p className="text-foreground">alecgold808@gmail.com</p>
-                    </div>
+                <h2 className="text-2xl font-semibold mb-6 text-foreground text-center">Send a Message</h2>
+                <form className="space-y-4" onSubmit={handleSubmit}>
+                  <div className="relative">
+                    <Input
+                      id="name"
+                      name="name"
+                      placeholder="Your Name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className={`${formErrors.name ? "border-red-500" : ""}`}
+                      required
+                    />
+                    {formErrors.name && <ErrorMessage message={formErrors.name} />}
                   </div>
-                  <div className="flex items-center gap-3 p-4 bg-secondary/20 rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-[#a855f7]/10 flex items-center justify-center flex-shrink-0">
-                      <Phone className="w-5 h-5 text-[#a855f7]" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Phone</p>
-                      <p className="text-foreground">847-510-3229</p>
-                    </div>
+
+                  <div className="relative">
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="Your Email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={`${formErrors.email ? "border-red-500" : ""}`}
+                      required
+                    />
+                    {formErrors.email && <ErrorMessage message={formErrors.email} />}
                   </div>
-                </div>
 
-                {/* FAQ Mini Section */}
-                <div className="mt-8">
-                  <h3 className="text-lg font-medium mb-4">FAQ</h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="bg-secondary/10 p-4 rounded-lg">
-                      <p className="font-medium text-foreground mb-1">What items do you accept?</p>
-                      <p className="text-muted-foreground">
-                        Furniture, electronics, appliances, sporting equipment, and more.
-                      </p>
-                    </div>
-                    <div className="bg-secondary/10 p-4 rounded-lg">
-                      <p className="font-medium text-foreground mb-1">Payment methods:</p>
-                      <p className="text-muted-foreground">Cash, check, Venmo, or PayPal.</p>
-                    </div>
+                  <div className="relative">
+                    <Textarea
+                      id="message"
+                      name="message"
+                      placeholder="Your message..."
+                      rows={4}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      className={`${formErrors.message ? "border-red-500" : ""}`}
+                      required
+                    />
+                    {formErrors.message && <ErrorMessage message={formErrors.message} />}
                   </div>
-                </div>
-              </div>
-            </ContentAnimation>
 
-            {/* Form */}
-            <ContentAnimation delay={0.1}>
-              {!isSubmitted ? (
-                <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50">
-                  <h2 className="text-2xl font-semibold mb-6 text-foreground">Send a Message</h2>
-                  <form className="space-y-4" onSubmit={handleSubmit}>
-                    <div className="relative">
-                      <Input
-                        id="name"
-                        name="name"
-                        placeholder="Your Name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className={`${formErrors.name ? "border-red-500" : ""}`}
-                        required
-                      />
-                      {formErrors.name && <ErrorMessage message={formErrors.name} />}
+                  {submitError && (
+                    <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
+                      {submitError}
                     </div>
+                  )}
 
-                    <div className="relative">
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder="Your Email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className={`${formErrors.email ? "border-red-500" : ""}`}
-                        required
-                      />
-                      {formErrors.email && <ErrorMessage message={formErrors.email} />}
-                    </div>
-
-                    <div className="relative">
-                      <Textarea
-                        id="message"
-                        name="message"
-                        placeholder="Your message..."
-                        rows={4}
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        className={`${formErrors.message ? "border-red-500" : ""}`}
-                        required
-                      />
-                      {formErrors.message && <ErrorMessage message={formErrors.message} />}
-                    </div>
-
-                    {submitError && (
-                      <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
-                        {submitError}
-                      </div>
-                    )}
-
-                    <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg w-full">
-                      <button
-                        type="submit"
-                        disabled={!isFormValid || isSubmitting}
-                        className="w-full flex justify-center items-center bg-card hover:bg-secondary transition-colors px-4 py-2 rounded-lg font-medium text-foreground group text-sm"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Sending...
-                          </>
-                        ) : (
-                          <>
-                            Send Message
-                            <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              ) : (
-                <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50 text-center">
-                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                  <h2 className="text-xl font-medium mb-2 text-foreground">Message Sent!</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Thank you for contacting us. We'll respond within 24 hours.
-                  </p>
-                  <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
+                  <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg w-full">
                     <button
-                      onClick={() => setIsSubmitted(false)}
-                      className="flex items-center bg-card hover:bg-secondary transition-colors px-4 py-2 rounded-lg font-medium text-foreground group text-sm"
+                      type="submit"
+                      disabled={!isFormValid || isSubmitting}
+                      className="w-full flex justify-center items-center bg-card hover:bg-secondary transition-colors px-4 py-2 rounded-lg font-medium text-foreground group text-sm"
                     >
-                      Send Another
-                      <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          Send Message
+                          <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                        </>
+                      )}
                     </button>
                   </div>
+                </form>
+              </div>
+            ) : (
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50 text-center">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                <h2 className="text-xl font-medium mb-2 text-foreground">Message Sent!</h2>
+                <p className="text-muted-foreground mb-6">
+                  Thank you for contacting us. We'll respond within 24 hours.
+                </p>
+                <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
+                  <button
+                    onClick={() => setIsSubmitted(false)}
+                    className="flex items-center bg-card hover:bg-secondary transition-colors px-4 py-2 rounded-lg font-medium text-foreground group text-sm"
+                  >
+                    Send Another
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  </button>
                 </div>
-              )}
-            </ContentAnimation>
-          </div>
+              </div>
+            )}
+          </ContentAnimation>
         </div>
       </section>
     </div>
