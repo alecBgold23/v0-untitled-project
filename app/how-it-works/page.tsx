@@ -1,82 +1,138 @@
+"use client"
+
+import type React from "react"
+
 import Link from "next/link"
+import { useState } from "react"
+import { ArrowRight, CheckCircle, Clock, DollarSign, Package, Truck, Users, MapPin } from "lucide-react"
 import ContentAnimation from "@/components/content-animation"
-import { ArrowRight, Check, MessageSquare, Package, Truck, Brain, Zap } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function HowItWorksPage() {
+  const [isServiceFormOpen, setIsServiceFormOpen] = useState(false)
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    zipCode: "",
+    serviceType: "",
+    itemTypes: "",
+    estimatedValue: "",
+    timeframe: "",
+    additionalInfo: "",
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleServiceFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch("/api/send-service-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+
+      if (response.ok) {
+        setIsSubmitted(true)
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          zipCode: "",
+          serviceType: "",
+          itemTypes: "",
+          estimatedValue: "",
+          timeframe: "",
+          additionalInfo: "",
+        })
+      }
+    } catch (error) {
+      console.error("Error submitting service request:", error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
-    <div className="bg-background text-foreground">
-      {/* Hero Section with elegant gradient */}
+    <div className="bg-background">
+      {/* Hero Section */}
       <section className="py-8 md:py-12 bg-gradient-to-br from-background via-background to-secondary/30">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <h1 className="text-3xl md:text-5xl font-bold mb-4 text-center font-[var(--font-roboto)] font-light tracking-tight">
+            <h1 className="text-3xl md:text-5xl font-bold mb-4 text-center font-light tracking-tight">
               <span className="bg-gradient-to-r from-[#4361ee] via-[#7209b7] to-[#3a0ca3] bg-clip-text text-transparent">
                 How BluBerry Works
               </span>
             </h1>
           </ContentAnimation>
           <ContentAnimation delay={0.1}>
-            <p className="text-lg md:text-xl text-center max-w-2xl mx-auto text-muted-foreground">
-              Our streamlined process makes selling your items efficient and hassle-free.
+            <p className="text-lg md:text-xl text-center max-w-3xl mx-auto text-muted-foreground mb-8">
+              From submission to cash in hand - here's how our simple 3-step process works
             </p>
           </ContentAnimation>
         </div>
       </section>
 
-      {/* Process Steps */}
-      <section className="py-8 md:py-12 bg-background text-foreground">
+      {/* Process Steps Section */}
+      <section className="py-8 md:py-12 bg-background">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <h2 className="text-2xl font-semibold mb-8 text-center text-foreground">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
-                How BluBerry Works
+            <h2 className="text-2xl md:text-3xl font-semibold mb-8 text-center">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                Simple 3-Step Process
               </span>
             </h2>
           </ContentAnimation>
 
           {/* Process Steps */}
-          <div className="grid md:grid-cols-3 gap-4 relative mb-12">
+          <div className="grid md:grid-cols-3 gap-8 relative">
             {/* Line connecting steps on desktop */}
             <div className="hidden md:block absolute top-12 left-1/6 right-1/6 h-0.5 bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] opacity-20"></div>
 
             <ContentAnimation delay={0.1}>
               <div className="flex flex-col items-center relative">
-                <div className="w-10 h-10 rounded-full bg-card shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
-                    1
-                  </span>
+                <div className="w-16 h-16 rounded-full bg-card shadow-lg flex items-center justify-center mb-6 z-10 border border-[#3B82F6]/20">
+                  <Package className="h-8 w-8 text-[#3B82F6]" />
                 </div>
-                <h3 className="text-lg font-medium mb-2 text-center text-foreground">Submit Your Item</h3>
-                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
-                  Complete our simple form with your item details. No complex listings required.
+                <h3 className="text-xl font-semibold mb-3 text-center text-foreground">1. Fill Out Form</h3>
+                <p className="text-muted-foreground text-center leading-relaxed max-w-xs">
+                  Complete our simple online form with your item details, photos, and contact information. Takes just
+                  2-3 minutes.
                 </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.2}>
               <div className="flex flex-col items-center relative">
-                <div className="w-10 h-10 rounded-full bg-card shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
-                    2
-                  </span>
+                <div className="w-16 h-16 rounded-full bg-card shadow-lg flex items-center justify-center mb-6 z-10 border border-[#8c52ff]/20">
+                  <Truck className="h-8 w-8 text-[#8c52ff]" />
                 </div>
-                <h3 className="text-lg font-medium mb-2 text-center text-foreground">We Pick It Up</h3>
-                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
-                  Schedule a convenient time, and our team will collect the item from your location.
+                <h3 className="text-xl font-semibold mb-3 text-center text-foreground">2. We Come To You</h3>
+                <p className="text-muted-foreground text-center leading-relaxed max-w-xs">
+                  Schedule a convenient pickup time. Our professional team comes to your location to collect and
+                  evaluate your items.
                 </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.3}>
               <div className="flex flex-col items-center relative">
-                <div className="w-10 h-10 rounded-full bg-card shadow-md flex items-center justify-center mb-4 z-10 border border-[#3B82F6]/20">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
-                    3
-                  </span>
+                <div className="w-16 h-16 rounded-full bg-card shadow-lg flex items-center justify-center mb-6 z-10 border border-[#3B82F6]/20">
+                  <DollarSign className="h-8 w-8 text-[#3B82F6]" />
                 </div>
-                <h3 className="text-lg font-medium mb-2 text-center text-foreground">Get Paid Instantly</h3>
-                <p className="text-muted-foreground text-center text-xs leading-relaxed max-w-xs">
-                  Receive your payment immediately upon pickup. No waiting, no complications.
+                <h3 className="text-xl font-semibold mb-3 text-center text-foreground">3. Get Paid Instantly</h3>
+                <p className="text-muted-foreground text-center leading-relaxed max-w-xs">
+                  Receive your payment immediately upon pickup. Cash, check, Venmo, or PayPal - your choice.
                 </p>
               </div>
             </ContentAnimation>
@@ -85,460 +141,438 @@ export default function HowItWorksPage() {
       </section>
 
       {/* Full Service Section */}
-      <section className="py-8 md:py-12 bg-secondary/10 text-foreground">
+      <section className="py-8 md:py-12 bg-secondary/30">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-semibold mb-4 text-foreground">We Handle Everything For You</h2>
-              <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                BluBerry takes care of the entire resale process from start to finish, so you don't have to.
-              </p>
-            </div>
+            <h2 className="text-2xl md:text-3xl font-semibold mb-8 text-center">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                Full-Service Experience
+              </span>
+            </h2>
           </ContentAnimation>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-8">
             <ContentAnimation delay={0.1}>
-              <div className="bg-card p-6 rounded-lg shadow-sm border border-border/50 hover:shadow-md transition-shadow duration-300 h-full flex flex-col">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#3B82F6]/70 flex items-center justify-center mb-4 mx-auto">
-                  <Package className="h-5 w-5 text-white" />
-                </div>
-                <h3 className="text-lg font-medium mb-3 text-center text-foreground">Minimal Photo Requirements</h3>
-                <p className="text-muted-foreground text-center text-sm flex-grow">
-                  Just take a few quick photos with your phone. No professional photography or detailed descriptions
-                  needed.
-                </p>
-                <div className="mt-4 pt-4 border-t border-border/50">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Check className="h-4 w-4 text-[#3B82F6] mr-2" />
-                    <span>Simple phone photos work</span>
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50">
+                <h3 className="text-xl font-semibold mb-4 text-foreground">What We Handle</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-foreground">Professional item evaluation</span>
                   </div>
-                  <div className="flex items-center text-sm text-muted-foreground mt-2">
-                    <Check className="h-4 w-4 text-[#3B82F6] mr-2" />
-                    <span>No detailed descriptions needed</span>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-foreground">Market research and pricing</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-foreground">Photography and listings</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-foreground">Buyer communication</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-foreground">Shipping and delivery</span>
                   </div>
                 </div>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.2}>
-              <div className="bg-card p-6 rounded-lg shadow-sm border border-border/50 hover:shadow-md transition-shadow duration-300 h-full flex flex-col">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#8A4FFF] to-[#8A4FFF]/70 flex items-center justify-center mb-4 mx-auto">
-                  <MessageSquare className="h-5 w-5 text-white" />
-                </div>
-                <h3 className="text-lg font-medium mb-3 text-center text-foreground">No Buyer Negotiations</h3>
-                <p className="text-muted-foreground text-center text-sm flex-grow">
-                  We deal with potential buyers, handle all inquiries, and manage the negotiation process completely.
-                </p>
-                <div className="mt-4 pt-4 border-t border-border/50">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Check className="h-4 w-4 text-[#8A4FFF] mr-2" />
-                    <span>No haggling with buyers</span>
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50">
+                <h3 className="text-xl font-semibold mb-4 text-foreground">What You Do</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mr-3 flex-shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-[#3B82F6]"></div>
+                    </div>
+                    <span className="text-foreground">Fill out our simple form</span>
                   </div>
-                  <div className="flex items-center text-sm text-muted-foreground mt-2">
-                    <Check className="h-4 w-4 text-[#8A4FFF] mr-2" />
-                    <span>No answering endless questions</span>
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mr-3 flex-shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-[#3B82F6]"></div>
+                    </div>
+                    <span className="text-foreground">Schedule a pickup time</span>
                   </div>
-                </div>
-              </div>
-            </ContentAnimation>
-
-            <ContentAnimation delay={0.3}>
-              <div className="bg-card p-6 rounded-lg shadow-sm border border-border/50 hover:shadow-md transition-shadow duration-300 h-full flex flex-col">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#8A4FFF] flex items-center justify-center mb-4 mx-auto">
-                  <Truck className="h-5 w-5 text-white" />
-                </div>
-                <h3 className="text-lg font-medium mb-3 text-center text-foreground">No Logistics Hassle</h3>
-                <p className="text-muted-foreground text-center text-sm flex-grow">
-                  We manage all aspects of pickup, delivery, and transportation, saving you time and effort.
-                </p>
-                <div className="mt-4 pt-4 border-t border-border/50">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Check className="h-4 w-4 text-[#3B82F6] mr-2" />
-                    <span>No arranging transportation</span>
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mr-3 flex-shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-[#3B82F6]"></div>
+                    </div>
+                    <span className="text-foreground">Be available for pickup</span>
                   </div>
-                  <div className="flex items-center text-sm text-muted-foreground mt-2">
-                    <Check className="h-4 w-4 text-[#3B82F6] mr-2" />
-                    <span>No delivery coordination</span>
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 rounded-full bg-[#3B82F6]/20 flex items-center justify-center mr-3 flex-shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-[#3B82F6]"></div>
+                    </div>
+                    <span className="text-foreground">Receive your payment</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center mr-3 flex-shrink-0">
+                      <CheckCircle className="w-3 h-3 text-green-500" />
+                    </div>
+                    <span className="text-foreground font-medium">That's it!</span>
                   </div>
                 </div>
               </div>
             </ContentAnimation>
           </div>
-
-          <ContentAnimation delay={0.4}>
-            <div className="mt-12 text-center">
-              <p className="text-muted-foreground max-w-3xl mx-auto mb-6">
-                From furniture and electronics to appliances and collectibles, we accept a wide range of items and
-                handle every aspect of the selling process.
-              </p>
-              <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
-                <Link
-                  href="/sell-multiple-items"
-                  className="inline-flex items-center bg-card hover:bg-secondary transition-colors px-4 py-2 rounded-lg font-medium text-foreground group text-sm"
-                >
-                  Start Selling Today
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </Link>
-              </div>
-            </div>
-          </ContentAnimation>
         </div>
       </section>
 
       {/* AI-Powered Pricing Section */}
-      <section className="py-8 md:py-12 bg-background text-foreground">
+      <section className="py-8 md:py-12 bg-background">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-semibold mb-4 text-foreground">AI-Powered Fair Pricing</h2>
-              <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Our advanced AI system analyzes market data to ensure you get the best possible price for your items.
-              </p>
-            </div>
+            <h2 className="text-2xl md:text-3xl font-semibold mb-8 text-center">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                Smart Pricing Technology
+              </span>
+            </h2>
           </ContentAnimation>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
+          <div className="grid md:grid-cols-3 gap-6">
             <ContentAnimation delay={0.1}>
-              <div className="bg-card p-8 rounded-xl shadow-sm border border-border/50">
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#3B82F6]/70 flex items-center justify-center mb-6 mx-auto">
-                    <Brain className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-4 text-foreground">Smart Market Analysis</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Our AI analyzes thousands of similar items across multiple platforms to determine the optimal
-                    selling price for your item.
-                  </p>
-                  <div className="space-y-3">
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Check className="h-4 w-4 text-[#3B82F6] mr-3" />
-                      <span>Real-time market data analysis</span>
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Check className="h-4 w-4 text-[#3B82F6] mr-3" />
-                      <span>Condition-based pricing adjustments</span>
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Check className="h-4 w-4 text-[#3B82F6] mr-3" />
-                      <span>Local market considerations</span>
-                    </div>
-                  </div>
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50 text-center">
+                <div className="w-12 h-12 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-6 w-6 text-[#3B82F6]" />
                 </div>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Market Analysis</h3>
+                <p className="text-muted-foreground text-sm">
+                  AI analyzes current market trends and comparable sales to determine optimal pricing
+                </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.2}>
-              <div className="bg-secondary/30 p-8 rounded-xl shadow-sm border border-border/50">
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#8A4FFF] to-[#8A4FFF]/70 flex items-center justify-center mb-6 mx-auto">
-                    <Zap className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-4 text-foreground">Dynamic Pricing Strategy</h3>
-                  <p className="text-muted-foreground mb-6">
-                    We adjust our commission based on item value, demand, and market conditions to maximize your payout
-                    while ensuring quick sales.
-                  </p>
-                  <div className="space-y-3">
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Check className="h-4 w-4 text-[#8A4FFF] mr-3" />
-                      <span>Flexible commission structure</span>
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Check className="h-4 w-4 text-[#8A4FFF] mr-3" />
-                      <span>Higher payouts for premium items</span>
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Check className="h-4 w-4 text-[#8A4FFF] mr-3" />
-                      <span>Transparent pricing breakdown</span>
-                    </div>
-                  </div>
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50 text-center">
+                <div className="w-12 h-12 rounded-full bg-[#8c52ff]/10 flex items-center justify-center mx-auto mb-4">
+                  <Clock className="h-6 w-6 text-[#8c52ff]" />
                 </div>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Real-Time Updates</h3>
+                <p className="text-muted-foreground text-sm">
+                  Pricing adjusts automatically based on demand, seasonality, and market conditions
+                </p>
+              </div>
+            </ContentAnimation>
+
+            <ContentAnimation delay={0.3}>
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50 text-center">
+                <div className="w-12 h-12 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mx-auto mb-4">
+                  <DollarSign className="h-6 w-6 text-[#3B82F6]" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Maximum Value</h3>
+                <p className="text-muted-foreground text-sm">
+                  Our algorithms ensure you get the best possible price for your items
+                </p>
               </div>
             </ContentAnimation>
           </div>
-
-          <ContentAnimation delay={0.4}>
-            <div className="mt-8 text-center">
-              <div className="bg-gradient-to-r from-[#3B82F6]/10 to-[#8A4FFF]/10 p-6 rounded-xl border border-border/50">
-                <h5 className="font-semibold text-foreground mb-2">No Hidden Fees, No Surprises</h5>
-                <p className="text-muted-foreground text-sm">
-                  You'll know exactly how much you'll receive before we pick up your item. Our AI ensures fair,
-                  competitive pricing that benefits both you and the buyer.
-                </p>
-              </div>
-            </div>
-          </ContentAnimation>
         </div>
       </section>
 
       {/* Service Areas Section */}
-      <section className="py-8 md:py-12 bg-secondary/10 text-foreground">
+      <section className="py-8 md:py-12 bg-secondary/30">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-semibold mb-4 text-foreground">Service Areas</h2>
-              <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                We're just getting started in the Chicagoland area, with plans to expand nationwide as we grow.
-              </p>
-            </div>
+            <h2 className="text-2xl md:text-3xl font-semibold mb-8 text-center">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                Service Areas
+              </span>
+            </h2>
           </ContentAnimation>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
             <ContentAnimation delay={0.1}>
-              <div className="bg-card p-8 rounded-xl shadow-sm border border-border/50">
-                <h3 className="text-xl font-semibold mb-6 text-center text-foreground">Current Service Areas</h3>
-                <div className="space-y-4">
+              <div>
+                <h3 className="text-xl font-semibold mb-4 text-foreground">Currently Serving</h3>
+                <div className="space-y-3">
                   <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-[#3B82F6] mr-4"></div>
-                    <div>
-                      <div className="font-medium text-foreground">Chicago Suburbs - North</div>
-                      <div className="text-sm text-muted-foreground">Evanston, Skokie, Wilmette, Winnetka, Glencoe</div>
-                    </div>
+                    <MapPin className="h-5 w-5 text-[#3B82F6] mr-3 flex-shrink-0" />
+                    <span className="text-foreground">Chicago Metropolitan Area</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-[#3B82F6] mr-4"></div>
-                    <div>
-                      <div className="font-medium text-foreground">Chicago Suburbs - West</div>
-                      <div className="text-sm text-muted-foreground">
-                        Oak Park, River Forest, Elmhurst, Hinsdale, Western Springs
-                      </div>
-                    </div>
+                    <MapPin className="h-5 w-5 text-[#3B82F6] mr-3 flex-shrink-0" />
+                    <span className="text-foreground">North Shore Suburbs</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-[#3B82F6] mr-4"></div>
-                    <div>
-                      <div className="font-medium text-foreground">Chicago Suburbs - Northwest</div>
-                      <div className="text-sm text-muted-foreground">
-                        Schaumburg, Arlington Heights, Des Plaines, Mount Prospect
-                      </div>
-                    </div>
+                    <MapPin className="h-5 w-5 text-[#3B82F6] mr-3 flex-shrink-0" />
+                    <span className="text-foreground">Northwest Suburbs</span>
                   </div>
                 </div>
+                <p className="text-muted-foreground mt-4 text-sm">
+                  Don't see your area? We're expanding rapidly. Request service in your area below!
+                </p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.2}>
-              <div className="bg-secondary/30 p-8 rounded-xl shadow-sm border border-border/50">
-                <h3 className="text-xl font-semibold mb-6 text-center text-foreground">Expanding Soon</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-[#8A4FFF] mr-4"></div>
-                    <div>
-                      <div className="font-medium text-foreground">Chicago Suburbs - South</div>
-                      <div className="text-sm text-muted-foreground">
-                        Orland Park, Tinley Park, Oak Lawn, Palos Heights
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-[#8A4FFF] mr-4"></div>
-                    <div>
-                      <div className="font-medium text-foreground">DuPage County</div>
-                      <div className="text-sm text-muted-foreground">
-                        Naperville, Wheaton, Downers Grove, Glen Ellyn
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-[#8A4FFF] mr-4"></div>
-                    <div>
-                      <div className="font-medium text-foreground">Lake County</div>
-                      <div className="text-sm text-muted-foreground">
-                        Highland Park, Lake Forest, Libertyville, Vernon Hills
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50">
+                <h3 className="text-lg font-semibold mb-4 text-foreground">Request Service in Your Area</h3>
+                <Button
+                  onClick={() => setIsServiceFormOpen(true)}
+                  className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white hover:opacity-90"
+                >
+                  Request Service
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </div>
             </ContentAnimation>
           </div>
-
-          <ContentAnimation delay={0.3}>
-            <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50 text-center">
-              <h4 className="text-lg font-semibold mb-4 text-foreground">Our Vision: Nationwide Service</h4>
-              <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                BluBerry is just getting started! As we grow and prosper, our goal is to bring our hassle-free selling
-                service to every major metropolitan area across the United States. Your success helps us expand to serve
-                more communities.
-              </p>
-              <div className="grid md:grid-cols-3 gap-4 mb-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#3B82F6]">Phase 1</div>
-                  <div className="text-sm text-muted-foreground">Chicagoland Complete</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#8A4FFF]">Phase 2</div>
-                  <div className="text-sm text-muted-foreground">Midwest Expansion</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gradient-to-r from-[#3B82F6] to-[#8A4FFF]">Phase 3</div>
-                  <div className="text-sm text-muted-foreground">National Coverage</div>
-                </div>
-              </div>
-              <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
-                <Link
-                  href="/contact"
-                  className="inline-flex items-center bg-card hover:bg-secondary transition-colors px-6 py-3 rounded-lg font-medium text-foreground group"
-                >
-                  Request Service in Your Area
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </Link>
-              </div>
-            </div>
-          </ContentAnimation>
         </div>
       </section>
 
       {/* What We Accept Section */}
-      <section className="py-8 md:py-12 bg-background text-foreground">
+      <section className="py-8 md:py-12 bg-background">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-semibold mb-4 text-foreground">What We Accept</h2>
-              <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                We accept a wide variety of items in good condition. Here's what we can help you sell.
-              </p>
-            </div>
+            <h2 className="text-2xl md:text-3xl font-semibold mb-8 text-center">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                What We Accept
+              </span>
+            </h2>
           </ContentAnimation>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <ContentAnimation delay={0.1}>
-              <div className="bg-card p-8 rounded-xl shadow-sm border border-border/50">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#3B82F6]/70 flex items-center justify-center mb-6">
-                  <Check className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold mb-6 text-foreground">We Accept</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Furniture</div>
-                    <div className="text-sm text-muted-foreground">
-                      Sofas, chairs, tables, dressers, beds, cabinets, bookshelves
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Electronics</div>
-                    <div className="text-sm text-muted-foreground">
-                      TVs, computers, gaming consoles, audio equipment, cameras
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Appliances</div>
-                    <div className="text-sm text-muted-foreground">
-                      Refrigerators, washers, dryers, microwaves, small appliances
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Home Decor</div>
-                    <div className="text-sm text-muted-foreground">Artwork, mirrors, lamps, rugs, decorative items</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Collectibles & Antiques</div>
-                    <div className="text-sm text-muted-foreground">
-                      Vintage items, collectibles, antique furniture, memorabilia
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Exercise Equipment</div>
-                    <div className="text-sm text-muted-foreground">Treadmills, weights, bikes, home gym equipment</div>
-                  </div>
-                </div>
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50 text-center">
+                <h3 className="text-lg font-semibold mb-3 text-foreground">Electronics</h3>
+                <ul className="text-muted-foreground text-sm space-y-1">
+                  <li>Smartphones & Tablets</li>
+                  <li>Laptops & Computers</li>
+                  <li>Gaming Consoles</li>
+                  <li>Audio Equipment</li>
+                </ul>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.2}>
-              <div className="bg-secondary/30 p-8 rounded-xl shadow-sm border border-border/50">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mb-6">
-                  <span className="text-white text-xl font-bold">×</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-6 text-foreground">We Don't Accept</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Damaged Items</div>
-                    <div className="text-sm text-muted-foreground">Broken, heavily worn, or non-functional items</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Clothing & Textiles</div>
-                    <div className="text-sm text-muted-foreground">Clothes, shoes, bedding, curtains, fabric items</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Personal Items</div>
-                    <div className="text-sm text-muted-foreground">
-                      Documents, photos, personal memorabilia, jewelry
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Hazardous Materials</div>
-                    <div className="text-sm text-muted-foreground">Chemicals, paint, batteries, flammable items</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Perishables</div>
-                    <div className="text-sm text-muted-foreground">Food, plants, anything that can spoil or decay</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground mb-2">Items Under $50 Value</div>
-                    <div className="text-sm text-muted-foreground">
-                      Low-value items that don't meet our minimum threshold
-                    </div>
-                  </div>
-                </div>
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50 text-center">
+                <h3 className="text-lg font-semibold mb-3 text-foreground">Furniture</h3>
+                <ul className="text-muted-foreground text-sm space-y-1">
+                  <li>Living Room Sets</li>
+                  <li>Bedroom Furniture</li>
+                  <li>Office Furniture</li>
+                  <li>Antiques</li>
+                </ul>
+              </div>
+            </ContentAnimation>
+
+            <ContentAnimation delay={0.3}>
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50 text-center">
+                <h3 className="text-lg font-semibold mb-3 text-foreground">Appliances</h3>
+                <ul className="text-muted-foreground text-sm space-y-1">
+                  <li>Kitchen Appliances</li>
+                  <li>Washers & Dryers</li>
+                  <li>Small Appliances</li>
+                  <li>HVAC Equipment</li>
+                </ul>
+              </div>
+            </ContentAnimation>
+
+            <ContentAnimation delay={0.4}>
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50 text-center">
+                <h3 className="text-lg font-semibold mb-3 text-foreground">More Items</h3>
+                <ul className="text-muted-foreground text-sm space-y-1">
+                  <li>Sporting Equipment</li>
+                  <li>Musical Instruments</li>
+                  <li>Collectibles</li>
+                  <li>Tools & Equipment</li>
+                </ul>
               </div>
             </ContentAnimation>
           </div>
+        </div>
+      </section>
 
-          <ContentAnimation delay={0.3}>
-            <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50">
-              <h4 className="text-lg font-semibold mb-4 text-center text-foreground">Item Condition Requirements</h4>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4 mx-auto">
-                    <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h5 className="font-semibold text-foreground mb-2">Excellent Condition</h5>
-                  <p className="text-sm text-muted-foreground">Like new, minimal wear, fully functional</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mb-4 mx-auto">
-                    <Check className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                  <h5 className="font-semibold text-foreground mb-2">Good Condition</h5>
-                  <p className="text-sm text-muted-foreground">Light wear, fully functional, clean</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-4 mx-auto">
-                    <Check className="h-8 w-8 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <h5 className="font-semibold text-foreground mb-2">Fair Condition</h5>
-                  <p className="text-sm text-muted-foreground">
-                    Noticeable wear but functional, may need minor repairs
-                  </p>
-                </div>
-              </div>
-            </div>
-          </ContentAnimation>
-
-          <ContentAnimation delay={0.4}>
-            <div className="mt-12 text-center">
-              <p className="text-muted-foreground max-w-3xl mx-auto mb-6">
-                Not sure if we'll accept your item? Submit it anyway! Our team will evaluate each submission and let you
-                know if it meets our criteria.
-              </p>
-              <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
-                <Link
-                  href="/sell-multiple-items"
-                  className="inline-flex items-center bg-card hover:bg-secondary transition-colors px-6 py-3 rounded-lg font-medium text-foreground group"
-                >
-                  Submit Your Item
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </Link>
-              </div>
+      {/* CTA Section */}
+      <section className="py-8 md:py-12 bg-gradient-to-br from-[#3B82F6]/5 to-[#8c52ff]/5">
+        <div className="container mx-auto px-4 max-w-3xl text-center">
+          <ContentAnimation>
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Get Started?</h2>
+            <p className="text-muted-foreground text-lg mb-8">
+              Turn your unused items into cash today with our simple 3-step process
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/sell-multiple-items">
+                <Button size="lg" className="bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white hover:opacity-90">
+                  Start Selling Now
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/contact">
+                <Button size="lg" variant="outline">
+                  Have Questions?
+                </Button>
+              </Link>
             </div>
           </ContentAnimation>
         </div>
       </section>
+
+      {/* Service Request Modal */}
+      {isServiceFormOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-semibold text-foreground">Request Service in Your Area</h2>
+                <button
+                  onClick={() => setIsServiceFormOpen(false)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {!isSubmitted ? (
+                <form onSubmit={handleServiceFormSubmit} className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Full Name *</label>
+                      <Input
+                        value={formData.name}
+                        onChange={(e) => handleInputChange("name", e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Email *</label>
+                      <Input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Phone Number *</label>
+                      <Input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">ZIP Code *</label>
+                      <Input
+                        value={formData.zipCode}
+                        onChange={(e) => handleInputChange("zipCode", e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Service Type *</label>
+                    <Select onValueChange={(value) => handleInputChange("serviceType", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select service type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pickup">Item Pickup & Sale</SelectItem>
+                        <SelectItem value="evaluation">Item Evaluation Only</SelectItem>
+                        <SelectItem value="consultation">Selling Consultation</SelectItem>
+                        <SelectItem value="bulk">Bulk Item Sale</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Types of Items</label>
+                    <Input
+                      placeholder="e.g., furniture, electronics, appliances"
+                      value={formData.itemTypes}
+                      onChange={(e) => handleInputChange("itemTypes", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Estimated Total Value</label>
+                    <Select onValueChange={(value) => handleInputChange("estimatedValue", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select estimated value range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="under-500">Under $500</SelectItem>
+                        <SelectItem value="500-1000">$500 - $1,000</SelectItem>
+                        <SelectItem value="1000-2500">$1,000 - $2,500</SelectItem>
+                        <SelectItem value="2500-5000">$2,500 - $5,000</SelectItem>
+                        <SelectItem value="over-5000">Over $5,000</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Preferred Timeframe</label>
+                    <Select onValueChange={(value) => handleInputChange("timeframe", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="When would you like service?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="asap">As soon as possible</SelectItem>
+                        <SelectItem value="week">Within a week</SelectItem>
+                        <SelectItem value="month">Within a month</SelectItem>
+                        <SelectItem value="flexible">I'm flexible</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Additional Information</label>
+                    <Textarea
+                      placeholder="Tell us more about your items, special requirements, or questions..."
+                      value={formData.additionalInfo}
+                      onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex gap-4 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsServiceFormOpen(false)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] text-white"
+                    >
+                      {isSubmitting ? "Submitting..." : "Request Service"}
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="text-center py-8">
+                  <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Request Submitted!</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Thank you for your interest! We'll contact you within 24 hours to discuss bringing BluBerry to your
+                    area.
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setIsSubmitted(false)
+                      setIsServiceFormOpen(false)
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
