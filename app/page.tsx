@@ -1,7 +1,24 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, Star, Leaf, Clock, Shield, CreditCard, Facebook, Instagram, Twitter, Linkedin } from "lucide-react"
+import {
+  ArrowRight,
+  Star,
+  Leaf,
+  Clock,
+  Shield,
+  CreditCard,
+  Facebook,
+  Instagram,
+  Twitter,
+  Linkedin,
+  Package,
+  Truck,
+  DollarSign,
+  Users,
+  CheckCircle,
+  XCircle,
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import ContentAnimation from "@/components/content-animation"
@@ -147,121 +164,143 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Combined How It Works & Why Choose BluBerry Section */}
+      {/* Why Choose BluBerry Section */}
       <section className="py-16 bg-gradient-to-b from-secondary to-background relative rounded-t-[30px] transform translate-y-[-30px] border-t border-border z-10 mb-8 shadow-section">
         <div className="container mx-auto px-4 max-w-5xl">
           <ContentAnimation>
             <h2 className="text-2xl md:text-3xl font-light mb-8 text-center tracking-wide">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
-                How BluBerry Works
+                Why Choose BluBerry
               </span>
             </h2>
           </ContentAnimation>
 
-          {/* Process Steps */}
-          <div className="grid md:grid-cols-3 gap-8 relative mb-12">
-            {/* Line connecting steps on desktop */}
-            <div className="hidden md:block absolute top-14 left-1/6 right-1/6 h-1 bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] opacity-30"></div>
-
-            <ContentAnimation delay={0.1}>
-              <div className="flex flex-col items-center relative">
-                <div className="w-12 h-12 rounded-full bg-card shadow-md flex items-center justify-center mb-6 z-10 border border-[#3B82F6]/20">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
-                    1
-                  </span>
+          {/* The Service That Didn't Exist - Now at the top */}
+          <ContentAnimation delay={0.1}>
+            <div className="bg-gradient-to-r from-[#3B82F6]/10 to-[#8c52ff]/10 p-8 rounded-2xl border border-[#3B82F6]/20 mb-12">
+              <h3 className="text-2xl font-bold mb-6 text-center">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82F6] to-[#8c52ff]">
+                  The Service That Didn't Exist... Until Now
+                </span>
+              </h3>
+              <div className="grid md:grid-cols-3 gap-6 text-center">
+                <div className="bg-white/50 dark:bg-black/20 p-6 rounded-xl">
+                  <Package className="h-12 w-12 mx-auto mb-4 text-[#3B82F6]" />
+                  <p className="text-lg font-semibold text-foreground mb-2">All Item Types</p>
+                  <p className="text-sm text-muted-foreground">
+                    Furniture, electronics, clothes, collectibles - everything in one place
+                  </p>
                 </div>
-                <h3 className="text-xl font-medium mb-4 text-center text-foreground">Submit Your Item</h3>
-                <p className="text-muted-foreground text-center text-sm leading-relaxed max-w-xs">
-                  Fill out our quick form with basic item details and photos. Takes just 2-3 minutes to complete.
-                </p>
+                <div className="bg-white/50 dark:bg-black/20 p-6 rounded-xl">
+                  <Truck className="h-12 w-12 mx-auto mb-4 text-[#8c52ff]" />
+                  <p className="text-lg font-semibold text-foreground mb-2">We Come To You</p>
+                  <p className="text-sm text-muted-foreground">
+                    Professional pickup at your door - no other platform does this
+                  </p>
+                </div>
+                <div className="bg-white/50 dark:bg-black/20 p-6 rounded-xl">
+                  <DollarSign className="h-12 w-12 mx-auto mb-4 text-[#3B82F6]" />
+                  <p className="text-lg font-semibold text-foreground mb-2">Instant Cash</p>
+                  <p className="text-sm text-muted-foreground">Get paid immediately when we collect your items</p>
+                </div>
               </div>
-            </ContentAnimation>
+            </div>
+          </ContentAnimation>
 
+          {/* Simple Before/After Comparison */}
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            {/* Before BluBerry */}
             <ContentAnimation delay={0.2}>
-              <div className="flex flex-col items-center relative">
-                <div className="w-12 h-12 rounded-full bg-card shadow-md flex items-center justify-center mb-6 z-10 border border-[#3B82F6]/20">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
-                    2
-                  </span>
+              <div className="bg-red-50 dark:bg-red-950/20 p-6 rounded-2xl border-2 border-red-200 dark:border-red-800">
+                <div className="text-center mb-6">
+                  <XCircle className="h-16 w-16 mx-auto mb-4 text-red-500" />
+                  <h3 className="text-2xl font-bold text-red-600 dark:text-red-400">Before BluBerry</h3>
+                  <p className="text-lg text-red-500 dark:text-red-300">The Old Way Was Hard</p>
                 </div>
-                <h3 className="text-xl font-medium mb-4 text-center text-foreground">We Pick It Up</h3>
-                <p className="text-muted-foreground text-center text-sm leading-relaxed max-w-xs">
-                  Choose a convenient pickup time that works for you. Our professional team handles the rest.
-                </p>
+
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <XCircle className="h-6 w-6 text-red-500 mr-3 flex-shrink-0" />
+                    <span className="text-lg">Hours per item to sell</span>
+                  </div>
+                  <div className="flex items-center">
+                    <XCircle className="h-6 w-6 text-red-500 mr-3 flex-shrink-0" />
+                    <span className="text-lg">Multiple websites needed</span>
+                  </div>
+                  <div className="flex items-center">
+                    <XCircle className="h-6 w-6 text-red-500 mr-3 flex-shrink-0" />
+                    <span className="text-lg">Dealing with strangers</span>
+                  </div>
+                  <div className="flex items-center">
+                    <XCircle className="h-6 w-6 text-red-500 mr-3 flex-shrink-0" />
+                    <span className="text-lg">Waiting weeks for payment</span>
+                  </div>
+                </div>
               </div>
             </ContentAnimation>
 
+            {/* After BluBerry */}
             <ContentAnimation delay={0.3}>
-              <div className="flex flex-col items-center relative">
-                <div className="w-12 h-12 rounded-full bg-card shadow-md flex items-center justify-center mb-6 z-10 border border-[#3B82F6]/20">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B82F6] to-[#8c52ff] font-medium">
-                    3
-                  </span>
+              <div className="bg-green-50 dark:bg-green-950/20 p-6 rounded-2xl border-2 border-green-200 dark:border-green-800">
+                <div className="text-center mb-6">
+                  <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-500" />
+                  <h3 className="text-2xl font-bold text-green-600 dark:text-green-400">With BluBerry</h3>
+                  <p className="text-lg text-green-500 dark:text-green-300">Selling Made Simple</p>
                 </div>
-                <h3 className="text-xl font-medium mb-4 text-center text-foreground">Get Paid Instantly</h3>
-                <p className="text-muted-foreground text-center text-sm leading-relaxed max-w-xs">
-                  Get paid immediately when we collect your item. No waiting periods or delays.
-                </p>
+
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-lg">2-3 minutes per item</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-lg">One platform for everything</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-lg">Professional pickup team</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
+                    <span className="text-lg">Get paid instantly</span>
+                  </div>
+                </div>
               </div>
             </ContentAnimation>
           </div>
 
-          {/* Why Choose BluBerry */}
-          <ContentAnimation delay={0.4}>
-            <h3 className="text-xl font-medium mb-6 text-center">
-              <span className="text-foreground font-medium">Why Choose BluBerry</span>
-            </h3>
-            <p className="text-muted-foreground mb-8 text-center max-w-2xl mx-auto text-xs">
-              The simplest way to sell your used items with a professional service
-            </p>
-          </ContentAnimation>
+          {/* Big Benefits - Simple Icons */}
+          <div className="grid md:grid-cols-4 gap-6">
+            <ContentAnimation delay={0.4}>
+              <div className="text-center p-6 bg-card rounded-2xl hover:shadow-lg transition-all duration-300">
+                <Clock className="h-16 w-16 mx-auto mb-4 text-[#3B82F6]" />
+                <h3 className="text-xl font-bold mb-2 text-foreground">Save Time</h3>
+                <p className="text-muted-foreground">Minutes, not hours</p>
+              </div>
+            </ContentAnimation>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             <ContentAnimation delay={0.5}>
-              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mb-3 group-hover:bg-[#3B82F6]/20 transition-all duration-300">
-                  <Clock className="h-4 w-4 text-[#3B82F6]" />
-                </div>
-                <h3 className="text-base font-medium mb-1 text-foreground">Simplified Process</h3>
-                <p className="text-muted-foreground text-xs leading-relaxed">
-                  Our streamlined form takes minutes to complete, eliminating the need for detailed descriptions.
-                </p>
+              <div className="text-center p-6 bg-card rounded-2xl hover:shadow-lg transition-all duration-300">
+                <Shield className="h-16 w-16 mx-auto mb-4 text-[#8c52ff]" />
+                <h3 className="text-xl font-bold mb-2 text-foreground">Stay Safe</h3>
+                <p className="text-muted-foreground">No strangers at your door</p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.6}>
-              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-[#8c52ff]/10 flex items-center justify-center mb-3 group-hover:bg-[#8c52ff]/20 transition-all duration-300">
-                  <Shield className="h-4 w-4 text-[#8c52ff]" />
-                </div>
-                <h3 className="text-base font-medium mb-1 text-foreground">Professional Service</h3>
-                <p className="text-muted-foreground text-xs leading-relaxed">
-                  Our vetted team handles pickup, ensuring security and peace of mind throughout the process.
-                </p>
+              <div className="text-center p-6 bg-card rounded-2xl hover:shadow-lg transition-all duration-300">
+                <Users className="h-16 w-16 mx-auto mb-4 text-[#3B82F6]" />
+                <h3 className="text-xl font-bold mb-2 text-foreground">Zero Hassle</h3>
+                <p className="text-muted-foreground">We handle everything</p>
               </div>
             </ContentAnimation>
 
             <ContentAnimation delay={0.7}>
-              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center mb-3 group-hover:bg-[#3B82F6]/20 transition-all duration-300">
-                  <CreditCard className="h-4 w-4 text-[#3B82F6]" />
-                </div>
-                <h3 className="text-base font-medium mb-1 text-foreground">Market-Based Pricing</h3>
-                <p className="text-muted-foreground text-xs leading-relaxed">
-                  We offer competitive rates based on current market value and item condition.
-                </p>
-              </div>
-            </ContentAnimation>
-
-            <ContentAnimation delay={0.8}>
-              <div className="p-4 rounded-lg bg-card hover:bg-secondary transition-all duration-300 group shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-[#8c52ff]/10 flex items-center justify-center mb-3 group-hover:bg-[#8c52ff]/20 transition-all duration-300">
-                  <Leaf className="h-4 w-4 text-[#8c52ff]" />
-                </div>
-                <h3 className="text-base font-medium mb-1 text-foreground">Immediate Payment</h3>
-                <p className="text-muted-foreground text-xs leading-relaxed">
-                  Receive payment at the time of pickup, eliminating waiting periods for transactions.
-                </p>
+              <div className="text-center p-6 bg-card rounded-2xl hover:shadow-lg transition-all duration-300">
+                <CreditCard className="h-16 w-16 mx-auto mb-4 text-[#8c52ff]" />
+                <h3 className="text-xl font-bold mb-2 text-foreground">Get Paid Fast</h3>
+                <p className="text-muted-foreground">Cash on pickup</p>
               </div>
             </ContentAnimation>
           </div>
@@ -872,8 +911,6 @@ export default function Home() {
            transform-origin: left;
            opacity: 1;
          }
-         
-         
        }
        
        .animate-line-wipe {

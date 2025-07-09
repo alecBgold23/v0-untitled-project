@@ -1,6 +1,6 @@
 import Link from "next/link"
 import ContentAnimation from "@/components/content-animation"
-import { ArrowRight, Check, MessageSquare, Package, Truck, Wallet } from "lucide-react"
+import { ArrowRight, Check, MessageSquare, Package, Truck, Brain, Zap } from "lucide-react"
 
 export default function HowItWorksPage() {
   return (
@@ -81,81 +81,6 @@ export default function HowItWorksPage() {
               </div>
             </ContentAnimation>
           </div>
-
-          {/* Timeline Steps - Detailed */}
-          <div className="space-y-12 mt-16">
-            {/* Step 1 */}
-            <ContentAnimation>
-              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-[#3B82F6]/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Package className="h-6 w-6 text-[#3B82F6]" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold mb-3 text-foreground">Submit Your Item</h2>
-                    <p className="text-muted-foreground mb-4">
-                      Complete our straightforward form with basic information about your item. We've simplified this
-                      step to eliminate the need for extensive photography or detailed descriptions.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </ContentAnimation>
-
-            {/* Step 2 */}
-            <ContentAnimation delay={0.1}>
-              <div className="bg-secondary/30 p-6 rounded-xl shadow-sm border border-border/50">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-[#8A4FFF]/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <MessageSquare className="h-6 w-6 text-[#8A4FFF]" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold mb-3 text-foreground">Receive a Fair Offer</h2>
-                    <p className="text-muted-foreground mb-4">
-                      Within 24 hours, our team evaluates your submission and provides a competitive offer based on the
-                      item's condition and current market value, eliminating the need for negotiation.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </ContentAnimation>
-
-            {/* Step 3 */}
-            <ContentAnimation delay={0.2}>
-              <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-[#3B82F6]/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Truck className="h-6 w-6 text-[#3B82F6]" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold mb-3 text-foreground">Schedule a Pickup</h2>
-                    <p className="text-muted-foreground mb-4">
-                      Upon accepting our offer, we arrange a convenient pickup time. Our professional team comes to your
-                      location, eliminating transportation concerns on your part.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </ContentAnimation>
-
-            {/* Step 4 */}
-            <ContentAnimation delay={0.3}>
-              <div className="bg-secondary/30 p-6 rounded-xl shadow-sm border border-border/50">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-[#8A4FFF]/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Wallet className="h-6 w-6 text-[#8A4FFF]" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold mb-3 text-foreground">Immediate Payment</h2>
-                    <p className="text-muted-foreground mb-4">
-                      At the time of pickup, you receive immediate payment via your preferred method—cash, check, or
-                      digital transfer—eliminating waiting periods for funds to clear.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </ContentAnimation>
-          </div>
         </div>
       </section>
 
@@ -178,19 +103,19 @@ export default function HowItWorksPage() {
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#3B82F6]/70 flex items-center justify-center mb-4 mx-auto">
                   <Package className="h-5 w-5 text-white" />
                 </div>
-                <h3 className="text-lg font-medium mb-3 text-center text-foreground">No Listings to Create</h3>
+                <h3 className="text-lg font-medium mb-3 text-center text-foreground">Minimal Photo Requirements</h3>
                 <p className="text-muted-foreground text-center text-sm flex-grow">
-                  Forget about taking photos, writing descriptions, or creating online listings. We handle all the
-                  marketing.
+                  Just take a few quick photos with your phone. No professional photography or detailed descriptions
+                  needed.
                 </p>
                 <div className="mt-4 pt-4 border-t border-border/50">
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Check className="h-4 w-4 text-[#3B82F6] mr-2" />
-                    <span>No photography needed</span>
+                    <span>Simple phone photos work</span>
                   </div>
                   <div className="flex items-center text-sm text-muted-foreground mt-2">
                     <Check className="h-4 w-4 text-[#3B82F6] mr-2" />
-                    <span>No descriptions to write</span>
+                    <span>No detailed descriptions needed</span>
                   </div>
                 </div>
               </div>
@@ -253,6 +178,360 @@ export default function HowItWorksPage() {
                   className="inline-flex items-center bg-card hover:bg-secondary transition-colors px-4 py-2 rounded-lg font-medium text-foreground group text-sm"
                 >
                   Start Selling Today
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+              </div>
+            </div>
+          </ContentAnimation>
+        </div>
+      </section>
+
+      {/* AI-Powered Pricing Section */}
+      <section className="py-12 md:py-20 bg-background text-foreground">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <ContentAnimation>
+            <div className="text-center mb-12">
+              <h2 className="text-2xl font-semibold mb-4 text-foreground">AI-Powered Fair Pricing</h2>
+              <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Our advanced AI system analyzes market data to ensure you get the best possible price for your items.
+              </p>
+            </div>
+          </ContentAnimation>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <ContentAnimation delay={0.1}>
+              <div className="bg-card p-8 rounded-xl shadow-sm border border-border/50">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#3B82F6]/70 flex items-center justify-center mb-6 mx-auto">
+                    <Brain className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4 text-foreground">Smart Market Analysis</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Our AI analyzes thousands of similar items across multiple platforms to determine the optimal
+                    selling price for your item.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Check className="h-4 w-4 text-[#3B82F6] mr-3" />
+                      <span>Real-time market data analysis</span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Check className="h-4 w-4 text-[#3B82F6] mr-3" />
+                      <span>Condition-based pricing adjustments</span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Check className="h-4 w-4 text-[#3B82F6] mr-3" />
+                      <span>Local market considerations</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ContentAnimation>
+
+            <ContentAnimation delay={0.2}>
+              <div className="bg-secondary/30 p-8 rounded-xl shadow-sm border border-border/50">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#8A4FFF] to-[#8A4FFF]/70 flex items-center justify-center mb-6 mx-auto">
+                    <Zap className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4 text-foreground">Dynamic Pricing Strategy</h3>
+                  <p className="text-muted-foreground mb-6">
+                    We adjust our commission based on item value, demand, and market conditions to maximize your payout
+                    while ensuring quick sales.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Check className="h-4 w-4 text-[#8A4FFF] mr-3" />
+                      <span>Flexible commission structure</span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Check className="h-4 w-4 text-[#8A4FFF] mr-3" />
+                      <span>Higher payouts for premium items</span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Check className="h-4 w-4 text-[#8A4FFF] mr-3" />
+                      <span>Transparent pricing breakdown</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ContentAnimation>
+          </div>
+
+          <ContentAnimation delay={0.4}>
+            <div className="mt-8 text-center">
+              <div className="bg-gradient-to-r from-[#3B82F6]/10 to-[#8A4FFF]/10 p-6 rounded-xl border border-border/50">
+                <h5 className="font-semibold text-foreground mb-2">No Hidden Fees, No Surprises</h5>
+                <p className="text-muted-foreground text-sm">
+                  You'll know exactly how much you'll receive before we pick up your item. Our AI ensures fair,
+                  competitive pricing that benefits both you and the buyer.
+                </p>
+              </div>
+            </div>
+          </ContentAnimation>
+        </div>
+      </section>
+
+      {/* Service Areas Section */}
+      <section className="py-12 md:py-20 bg-secondary/10 text-foreground">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <ContentAnimation>
+            <div className="text-center mb-12">
+              <h2 className="text-2xl font-semibold mb-4 text-foreground">Service Areas</h2>
+              <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                We're just getting started in the Chicagoland area, with plans to expand nationwide as we grow.
+              </p>
+            </div>
+          </ContentAnimation>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <ContentAnimation delay={0.1}>
+              <div className="bg-card p-8 rounded-xl shadow-sm border border-border/50">
+                <h3 className="text-xl font-semibold mb-6 text-center text-foreground">Current Service Areas</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-[#3B82F6] mr-4"></div>
+                    <div>
+                      <div className="font-medium text-foreground">Chicago Suburbs - North</div>
+                      <div className="text-sm text-muted-foreground">Evanston, Skokie, Wilmette, Winnetka, Glencoe</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-[#3B82F6] mr-4"></div>
+                    <div>
+                      <div className="font-medium text-foreground">Chicago Suburbs - West</div>
+                      <div className="text-sm text-muted-foreground">
+                        Oak Park, River Forest, Elmhurst, Hinsdale, Western Springs
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-[#3B82F6] mr-4"></div>
+                    <div>
+                      <div className="font-medium text-foreground">Chicago Suburbs - Northwest</div>
+                      <div className="text-sm text-muted-foreground">
+                        Schaumburg, Arlington Heights, Des Plaines, Mount Prospect
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ContentAnimation>
+
+            <ContentAnimation delay={0.2}>
+              <div className="bg-secondary/30 p-8 rounded-xl shadow-sm border border-border/50">
+                <h3 className="text-xl font-semibold mb-6 text-center text-foreground">Expanding Soon</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-[#8A4FFF] mr-4"></div>
+                    <div>
+                      <div className="font-medium text-foreground">Chicago Suburbs - South</div>
+                      <div className="text-sm text-muted-foreground">
+                        Orland Park, Tinley Park, Oak Lawn, Palos Heights
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-[#8A4FFF] mr-4"></div>
+                    <div>
+                      <div className="font-medium text-foreground">DuPage County</div>
+                      <div className="text-sm text-muted-foreground">
+                        Naperville, Wheaton, Downers Grove, Glen Ellyn
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-[#8A4FFF] mr-4"></div>
+                    <div>
+                      <div className="font-medium text-foreground">Lake County</div>
+                      <div className="text-sm text-muted-foreground">
+                        Highland Park, Lake Forest, Libertyville, Vernon Hills
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ContentAnimation>
+          </div>
+
+          <ContentAnimation delay={0.3}>
+            <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50 text-center">
+              <h4 className="text-lg font-semibold mb-4 text-foreground">Our Vision: Nationwide Service</h4>
+              <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
+                BluBerry is just getting started! As we grow and prosper, our goal is to bring our hassle-free selling
+                service to every major metropolitan area across the United States. Your success helps us expand to serve
+                more communities.
+              </p>
+              <div className="grid md:grid-cols-3 gap-4 mb-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-[#3B82F6]">Phase 1</div>
+                  <div className="text-sm text-muted-foreground">Chicagoland Complete</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-[#8A4FFF]">Phase 2</div>
+                  <div className="text-sm text-muted-foreground">Midwest Expansion</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gradient-to-r from-[#3B82F6] to-[#8A4FFF]">Phase 3</div>
+                  <div className="text-sm text-muted-foreground">National Coverage</div>
+                </div>
+              </div>
+              <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center bg-card hover:bg-secondary transition-colors px-6 py-3 rounded-lg font-medium text-foreground group"
+                >
+                  Request Service in Your Area
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+              </div>
+            </div>
+          </ContentAnimation>
+        </div>
+      </section>
+
+      {/* What We Accept Section */}
+      <section className="py-12 md:py-20 bg-background text-foreground">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <ContentAnimation>
+            <div className="text-center mb-12">
+              <h2 className="text-2xl font-semibold mb-4 text-foreground">What We Accept</h2>
+              <div className="h-1 w-20 bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] mx-auto mb-6 rounded-full"></div>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                We accept a wide variety of items in good condition. Here's what we can help you sell.
+              </p>
+            </div>
+          </ContentAnimation>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <ContentAnimation delay={0.1}>
+              <div className="bg-card p-8 rounded-xl shadow-sm border border-border/50">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#3B82F6]/70 flex items-center justify-center mb-6">
+                  <Check className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-6 text-foreground">We Accept</h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Furniture</div>
+                    <div className="text-sm text-muted-foreground">
+                      Sofas, chairs, tables, dressers, beds, cabinets, bookshelves
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Electronics</div>
+                    <div className="text-sm text-muted-foreground">
+                      TVs, computers, gaming consoles, audio equipment, cameras
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Appliances</div>
+                    <div className="text-sm text-muted-foreground">
+                      Refrigerators, washers, dryers, microwaves, small appliances
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Home Decor</div>
+                    <div className="text-sm text-muted-foreground">Artwork, mirrors, lamps, rugs, decorative items</div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Collectibles & Antiques</div>
+                    <div className="text-sm text-muted-foreground">
+                      Vintage items, collectibles, antique furniture, memorabilia
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Exercise Equipment</div>
+                    <div className="text-sm text-muted-foreground">Treadmills, weights, bikes, home gym equipment</div>
+                  </div>
+                </div>
+              </div>
+            </ContentAnimation>
+
+            <ContentAnimation delay={0.2}>
+              <div className="bg-secondary/30 p-8 rounded-xl shadow-sm border border-border/50">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mb-6">
+                  <span className="text-white text-xl font-bold">×</span>
+                </div>
+                <h3 className="text-xl font-semibold mb-6 text-foreground">We Don't Accept</h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Damaged Items</div>
+                    <div className="text-sm text-muted-foreground">Broken, heavily worn, or non-functional items</div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Clothing & Textiles</div>
+                    <div className="text-sm text-muted-foreground">Clothes, shoes, bedding, curtains, fabric items</div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Personal Items</div>
+                    <div className="text-sm text-muted-foreground">
+                      Documents, photos, personal memorabilia, jewelry
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Hazardous Materials</div>
+                    <div className="text-sm text-muted-foreground">Chemicals, paint, batteries, flammable items</div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Perishables</div>
+                    <div className="text-sm text-muted-foreground">Food, plants, anything that can spoil or decay</div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground mb-2">Items Under $50 Value</div>
+                    <div className="text-sm text-muted-foreground">
+                      Low-value items that don't meet our minimum threshold
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ContentAnimation>
+          </div>
+
+          <ContentAnimation delay={0.3}>
+            <div className="bg-card p-6 rounded-xl shadow-sm border border-border/50">
+              <h4 className="text-lg font-semibold mb-4 text-center text-foreground">Item Condition Requirements</h4>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4 mx-auto">
+                    <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h5 className="font-semibold text-foreground mb-2">Excellent Condition</h5>
+                  <p className="text-sm text-muted-foreground">Like new, minimal wear, fully functional</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mb-4 mx-auto">
+                    <Check className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                  <h5 className="font-semibold text-foreground mb-2">Good Condition</h5>
+                  <p className="text-sm text-muted-foreground">Light wear, fully functional, clean</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-4 mx-auto">
+                    <Check className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <h5 className="font-semibold text-foreground mb-2">Fair Condition</h5>
+                  <p className="text-sm text-muted-foreground">
+                    Noticeable wear but functional, may need minor repairs
+                  </p>
+                </div>
+              </div>
+            </div>
+          </ContentAnimation>
+
+          <ContentAnimation delay={0.4}>
+            <div className="mt-12 text-center">
+              <p className="text-muted-foreground max-w-3xl mx-auto mb-6">
+                Not sure if we'll accept your item? Submit it anyway! Our team will evaluate each submission and let you
+                know if it meets our criteria.
+              </p>
+              <div className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#8A4FFF] p-[2px] rounded-lg">
+                <Link
+                  href="/sell-multiple-items"
+                  className="inline-flex items-center bg-card hover:bg-secondary transition-colors px-6 py-3 rounded-lg font-medium text-foreground group"
+                >
+                  Submit Your Item
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </div>
