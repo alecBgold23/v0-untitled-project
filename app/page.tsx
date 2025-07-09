@@ -210,26 +210,58 @@ export default function Home() {
               <div className="bg-red-50 dark:bg-red-950/20 p-6 rounded-2xl border-2 border-red-200 dark:border-red-800">
                 <div className="text-center mb-6">
                   <XCircle className="h-16 w-16 mx-auto mb-4 text-red-500" />
-                  <h3 className="text-2xl font-bold text-red-600 dark:text-red-400">Before BluBerry</h3>
+                  <h3 className="text-2xl font-light tracking-wide text-red-600 dark:text-red-400">Before BluBerry</h3>
                   <p className="text-lg text-red-500 dark:text-red-300">The Old Way Was Hard</p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center">
                     <XCircle className="h-6 w-6 text-red-500 mr-3 flex-shrink-0" />
-                    <span className="text-lg">Hours per item to sell</span>
+                    <span
+                      className="text-lg font-medium tracking-tight"
+                      style={{
+                        fontFamily:
+                          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                      }}
+                    >
+                      Hours per item to sell
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <XCircle className="h-6 w-6 text-red-500 mr-3 flex-shrink-0" />
-                    <span className="text-lg">Multiple websites needed</span>
+                    <span
+                      className="text-lg font-medium tracking-tight"
+                      style={{
+                        fontFamily:
+                          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                      }}
+                    >
+                      Multiple websites needed
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <XCircle className="h-6 w-6 text-red-500 mr-3 flex-shrink-0" />
-                    <span className="text-lg">Dealing with strangers</span>
+                    <span
+                      className="text-lg font-medium tracking-tight"
+                      style={{
+                        fontFamily:
+                          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                      }}
+                    >
+                      Dealing with strangers
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <XCircle className="h-6 w-6 text-red-500 mr-3 flex-shrink-0" />
-                    <span className="text-lg">Waiting weeks for payment</span>
+                    <span
+                      className="text-lg font-medium tracking-tight"
+                      style={{
+                        fontFamily:
+                          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                      }}
+                    >
+                      Waiting weeks for payment
+                    </span>
                   </div>
                 </div>
               </div>
@@ -240,26 +272,60 @@ export default function Home() {
               <div className="bg-green-50 dark:bg-green-950/20 p-6 rounded-2xl border-2 border-green-200 dark:border-green-800">
                 <div className="text-center mb-6">
                   <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-500" />
-                  <h3 className="text-2xl font-bold text-green-600 dark:text-green-400">With BluBerry</h3>
+                  <h3 className="text-2xl font-light tracking-wide text-green-600 dark:text-green-400">
+                    With BluBerry
+                  </h3>
                   <p className="text-lg text-green-500 dark:text-green-300">Selling Made Simple</p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center">
                     <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
-                    <span className="text-lg">2-3 minutes per item</span>
+                    <span
+                      className="text-lg font-medium tracking-tight"
+                      style={{
+                        fontFamily:
+                          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                      }}
+                    >
+                      2-3 minutes per item
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
-                    <span className="text-lg">One platform for everything</span>
+                    <span
+                      className="text-lg font-medium tracking-tight"
+                      style={{
+                        fontFamily:
+                          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                      }}
+                    >
+                      One platform for everything
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
-                    <span className="text-lg">Professional pickup team</span>
+                    <span
+                      className="text-lg font-medium tracking-tight"
+                      style={{
+                        fontFamily:
+                          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                      }}
+                    >
+                      Professional pickup team
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
-                    <span className="text-lg">Get paid instantly</span>
+                    <span
+                      className="text-lg font-medium tracking-tight"
+                      style={{
+                        fontFamily:
+                          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                      }}
+                    >
+                      Get paid instantly
+                    </span>
                   </div>
                 </div>
               </div>
