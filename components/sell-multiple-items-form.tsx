@@ -44,6 +44,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { getEbayPriceEstimate } from "@/lib/ebay-price-estimator"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 
@@ -185,6 +193,11 @@ export default function SellMultipleItemsForm() {
   const suggestionTimeoutsRef = useRef({})
   const fullNameInputRef = useRef(null)
   const formBoxRef = useRef(null)
+
+  // State for duplication dialog
+  const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false)
+  const [itemIndexToDuplicate, setItemIndexToDuplicate] = useState<number | null>(null)
+  const [duplicateCount, setDuplicateCount] = useState(1)
 
   // Create a fallback API endpoint in case the real one doesn't exist
   useEffect(() => {
@@ -580,42 +593,48 @@ export default function SellMultipleItemsForm() {
     [getItems, setItems, toast],
   )
 
-  // Duplicate an item
+  // Duplicate an item (now accepts count)
   const duplicateItem = useCallback(
-    (index) => {
+    (index: number, count: number) => {
       try {
         const items = getItems()
         const itemToDuplicate = items[index]
         if (!itemToDuplicate) return
 
-        const newItem = {
-          ...itemToDuplicate,
-          id: "item-" + Date.now(),
-          isExpanded: true,
-          photos: [...(itemToDuplicate.photos || [])],
-          nameSuggestion: "",
-          isLoadingSuggestion: false,
-          lastProcessedName: "",
-          imagePath: "",
-          imageUrl: "",
-          imageUrlInput: "",
+        const newItemsToAdd = []
+        for (let i = 0; i < count; i++) {
+          const newItem = {
+            ...itemToDuplicate,
+            id: "item-" + Date.now() + "-" + i, // Ensure unique ID for each duplicated item
+            isExpanded: true,
+            photos: [...(itemToDuplicate.photos || [])],
+            nameSuggestion: "",
+            isLoadingSuggestion: false,
+            lastProcessedName: "",
+            imagePath: "",
+            imageUrl: "",
+            imageUrlInput: "",
+          }
+          newItemsToAdd.push(newItem)
         }
 
         const updatedItems = [...items]
-        updatedItems.splice(index + 1, 0, newItem)
+        updatedItems.splice(index + 1, 0, ...newItemsToAdd)
         setItems(updatedItems)
 
-        // Scroll to the new item after it's added
-        setTimeout(() => {
-          const element = document.getElementById(newItem.id)
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "start" })
-          }
-        }, 100)
+        // Scroll to the first new item after it's added
+        if (newItemsToAdd.length > 0) {
+          setTimeout(() => {
+            const element = document.getElementById(newItemsToAdd[0].id)
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+          }, 100)
+        }
 
         toast({
           title: "Item Duplicated",
-          description: "The item has been duplicated.",
+          description: `${count} item${count > 1 ? "s" : ""} duplicated.`,
           variant: "default",
         })
       } catch (error) {
@@ -629,6 +648,23 @@ export default function SellMultipleItemsForm() {
     },
     [getItems, setItems, toast],
   )
+
+  // Function to open the duplicate dialog
+  const handleDuplicateClick = useCallback((index: number) => {
+    setItemIndexToDuplicate(index)
+    setDuplicateCount(1) // Reset count to 1 each time dialog opens
+    setIsDuplicateDialogOpen(true)
+  }, [])
+
+  // Function to confirm duplication from dialog
+  const confirmDuplicate = useCallback(() => {
+    if (itemIndexToDuplicate !== null && duplicateCount > 0) {
+      duplicateItem(itemIndexToDuplicate, duplicateCount)
+    }
+    setIsDuplicateDialogOpen(false)
+    setItemIndexToDuplicate(null)
+    setDuplicateCount(1)
+  }, [itemIndexToDuplicate, duplicateCount, duplicateItem])
 
   // Update item field - memoized to prevent recreation on renders
   const updateItemField = useCallback(
@@ -1740,7 +1776,7 @@ export default function SellMultipleItemsForm() {
                                     type="button"
                                     variant="outline"
                                     size="icon"
-                                    onClick={() => duplicateItem(index)}
+                                    onClick={() => handleDuplicateClick(index)} // Changed to open dialog
                                     className="h-7 w-7"
                                     title="Duplicate item"
                                   >
@@ -2805,6 +2841,37 @@ export default function SellMultipleItemsForm() {
           </ContentAnimation>
         )}
       </div>
+
+      {/* Duplicate Item Dialog */}
+      <Dialog open={isDuplicateDialogOpen} onOpenChange={setIsDuplicateDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Duplicate Item</DialogTitle>
+            <DialogDescription>How many copies of this item would you like to create?</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="duplicate-count" className="text-right">
+                Copies
+              </Label>
+              <Input
+                id="duplicate-count"
+                type="number"
+                value={duplicateCount}
+                onChange={(e) => setDuplicateCount(Math.max(1, Number.parseInt(e.target.value) || 1))}
+                min="1"
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDuplicateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmDuplicate}>Duplicate</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
