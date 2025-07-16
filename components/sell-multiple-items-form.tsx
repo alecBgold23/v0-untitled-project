@@ -1775,12 +1775,14 @@ export default function SellMultipleItemsForm() {
                                   <Button
                                     type="button"
                                     variant="outline"
-                                    size="icon"
-                                    onClick={() => handleDuplicateClick(index)} // Changed to open dialog
-                                    className="h-7 w-7"
-                                    title="Duplicate item"
+                                    size="sm" // Changed size to sm for better fit with text
+                                    onClick={() => handleDuplicateClick(index)}
+                                    className="h-7 w-auto px-2" // Adjust width and padding for text
+                                    title="Choose quantity of item" // Updated title
+                                    aria-label="Choose quantity of item" // Added aria-label for accessibility
                                   >
-                                    <Copy className="h-3 w-3" />
+                                    <Copy className="h-3 w-3 mr-1" /> {/* Keep icon, add margin */}
+                                    <span className="text-xs">Choose Quantity</span> {/* New text */}
                                   </Button>
                                   <Button
                                     type="button"
